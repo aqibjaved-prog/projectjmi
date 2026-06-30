@@ -26,6 +26,7 @@ import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authen
 import { Route as AuthenticatedMyChildrenRouteImport } from './routes/_authenticated/my-children'
 import { Route as AuthenticatedDriversRouteImport } from './routes/_authenticated/drivers'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedSchoolsSchoolIdRouteImport } from './routes/_authenticated/schools.$schoolId'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -113,6 +114,12 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSchoolsSchoolIdRoute =
+  AuthenticatedSchoolsSchoolIdRouteImport.update({
+    id: '/$schoolId',
+    path: '/$schoolId',
+    getParentRoute: () => AuthenticatedSchoolsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -125,12 +132,13 @@ export interface FileRoutesByFullPath {
   '/parents': typeof AuthenticatedParentsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/routes': typeof AuthenticatedRoutesRoute
-  '/schools': typeof AuthenticatedSchoolsRoute
+  '/schools': typeof AuthenticatedSchoolsRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
   '/students': typeof AuthenticatedStudentsRoute
   '/subscriptions': typeof AuthenticatedSubscriptionsRoute
   '/trips': typeof AuthenticatedTripsRoute
   '/vehicles': typeof AuthenticatedVehiclesRoute
+  '/schools/$schoolId': typeof AuthenticatedSchoolsSchoolIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -143,12 +151,13 @@ export interface FileRoutesByTo {
   '/parents': typeof AuthenticatedParentsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/routes': typeof AuthenticatedRoutesRoute
-  '/schools': typeof AuthenticatedSchoolsRoute
+  '/schools': typeof AuthenticatedSchoolsRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
   '/students': typeof AuthenticatedStudentsRoute
   '/subscriptions': typeof AuthenticatedSubscriptionsRoute
   '/trips': typeof AuthenticatedTripsRoute
   '/vehicles': typeof AuthenticatedVehiclesRoute
+  '/schools/$schoolId': typeof AuthenticatedSchoolsSchoolIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -163,12 +172,13 @@ export interface FileRoutesById {
   '/_authenticated/parents': typeof AuthenticatedParentsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/routes': typeof AuthenticatedRoutesRoute
-  '/_authenticated/schools': typeof AuthenticatedSchoolsRoute
+  '/_authenticated/schools': typeof AuthenticatedSchoolsRouteWithChildren
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/students': typeof AuthenticatedStudentsRoute
   '/_authenticated/subscriptions': typeof AuthenticatedSubscriptionsRoute
   '/_authenticated/trips': typeof AuthenticatedTripsRoute
   '/_authenticated/vehicles': typeof AuthenticatedVehiclesRoute
+  '/_authenticated/schools/$schoolId': typeof AuthenticatedSchoolsSchoolIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -189,6 +199,7 @@ export interface FileRouteTypes {
     | '/subscriptions'
     | '/trips'
     | '/vehicles'
+    | '/schools/$schoolId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -207,6 +218,7 @@ export interface FileRouteTypes {
     | '/subscriptions'
     | '/trips'
     | '/vehicles'
+    | '/schools/$schoolId'
   id:
     | '__root__'
     | '/'
@@ -226,6 +238,7 @@ export interface FileRouteTypes {
     | '/_authenticated/subscriptions'
     | '/_authenticated/trips'
     | '/_authenticated/vehicles'
+    | '/_authenticated/schools/$schoolId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -356,8 +369,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/schools/$schoolId': {
+      id: '/_authenticated/schools/$schoolId'
+      path: '/$schoolId'
+      fullPath: '/schools/$schoolId'
+      preLoaderRoute: typeof AuthenticatedSchoolsSchoolIdRouteImport
+      parentRoute: typeof AuthenticatedSchoolsRoute
+    }
   }
 }
+
+interface AuthenticatedSchoolsRouteChildren {
+  AuthenticatedSchoolsSchoolIdRoute: typeof AuthenticatedSchoolsSchoolIdRoute
+}
+
+const AuthenticatedSchoolsRouteChildren: AuthenticatedSchoolsRouteChildren = {
+  AuthenticatedSchoolsSchoolIdRoute: AuthenticatedSchoolsSchoolIdRoute,
+}
+
+const AuthenticatedSchoolsRouteWithChildren =
+  AuthenticatedSchoolsRoute._addFileChildren(AuthenticatedSchoolsRouteChildren)
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
@@ -367,7 +398,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedParentsRoute: typeof AuthenticatedParentsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedRoutesRoute: typeof AuthenticatedRoutesRoute
-  AuthenticatedSchoolsRoute: typeof AuthenticatedSchoolsRoute
+  AuthenticatedSchoolsRoute: typeof AuthenticatedSchoolsRouteWithChildren
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedStudentsRoute: typeof AuthenticatedStudentsRoute
   AuthenticatedSubscriptionsRoute: typeof AuthenticatedSubscriptionsRoute
@@ -383,7 +414,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedParentsRoute: AuthenticatedParentsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedRoutesRoute: AuthenticatedRoutesRoute,
-  AuthenticatedSchoolsRoute: AuthenticatedSchoolsRoute,
+  AuthenticatedSchoolsRoute: AuthenticatedSchoolsRouteWithChildren,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedStudentsRoute: AuthenticatedStudentsRoute,
   AuthenticatedSubscriptionsRoute: AuthenticatedSubscriptionsRoute,

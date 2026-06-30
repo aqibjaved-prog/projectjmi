@@ -54,7 +54,10 @@ function SchoolDetailPage() {
   });
 
   const update = useMutation({
-    mutationFn: async (values: Record<string, unknown>) => {
+    mutationFn: async (values: {
+      name: string; contact_person?: string; email?: string; phone?: string;
+      address?: string; city?: string; country?: string; logo_url?: string | null;
+    }) => {
       const { error } = await supabase
         .from("schools")
         .update({
