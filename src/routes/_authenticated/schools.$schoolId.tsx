@@ -213,9 +213,21 @@ function SchoolDetailPage() {
                 <Detail label="City">{data.city ?? "—"}</Detail>
                 <Detail label="Country">{data.country ?? "—"}</Detail>
                 <Detail label="Address" full>{data.address ?? "—"}</Detail>
+                <Detail label="Subscription plan">{sub ? planFor(sub.plan_name).name : "—"}</Detail>
+                <Detail label="Subscription status">
+                  {sub ? <Badge variant="outline" className="capitalize">{sub.status}</Badge> : "—"}
+                </Detail>
+                <Detail label="Start date">{sub?.current_period_start ? new Date(sub.current_period_start).toLocaleDateString() : "—"}</Detail>
+                <Detail label="End date">{sub?.current_period_end ? new Date(sub.current_period_end).toLocaleDateString() : "—"}</Detail>
                 <Detail label="Created">{new Date(data.created_at).toLocaleString()}</Detail>
               </div>
             </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Stat label="Students" value={stats?.students} />
+              <Stat label="Drivers" value={stats?.drivers} />
+              <Stat label="Vehicles" value={stats?.vehicles} />
+              <Stat label="Routes" value={stats?.routes} />
           </CardContent>
         </Card>
 
