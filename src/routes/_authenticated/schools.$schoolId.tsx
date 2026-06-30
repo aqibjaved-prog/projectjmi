@@ -53,6 +53,23 @@ function SchoolDetailPage() {
     },
   });
 
+  const { data: stats } = useQuery({
+    queryKey: ["school-stats", schoolId],
+    queryFn: async () => {
+      const head = (table: "students" | "drivers" | "vehicles" | "routes") =>
+        supabase.from(table).select("id", { count: "exact", head: true }).eq("school_id", schoolId);
+      const [students, drivers, vehicles, routes] = await Promise.all([
+        head("students"), head("drivers"), head("vehicles"), head("routes"),
+      ]);
+      return {
+        students: students.count ?? 0,
+        drivers: drivers.count ?? 0,
+        vehicles: vehicles.count ?? 0,
+        routes: routes.count ?? 0,
+      };
+    },
+  });
+
   const update = useMutation({
     mutationFn: async (values: {
       name: string; contact_person?: string; email?: string; phone?: string;
