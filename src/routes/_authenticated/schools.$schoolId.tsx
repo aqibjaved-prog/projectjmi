@@ -228,6 +228,7 @@ function SchoolDetailPage() {
               <Stat label="Drivers" value={stats?.drivers} />
               <Stat label="Vehicles" value={stats?.vehicles} />
               <Stat label="Routes" value={stats?.routes} />
+            </div>
           </CardContent>
         </Card>
 
