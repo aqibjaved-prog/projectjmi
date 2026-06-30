@@ -78,7 +78,7 @@ function SchoolsPage() {
         const blob = `${row.name} ${row.email ?? ""} ${row.city ?? ""} ${row.contact_person ?? ""}`.toLowerCase();
         if (!blob.includes(s)) return false;
       }
-      const sub = row.subscriptions ?? undefined;
+      const sub = row.subscriptions?.[0];
       const expiry = subscriptionExpiry(sub?.current_period_end);
       if (filter === "active" && row.status !== "active") return false;
       if (filter === "suspended" && row.status !== "suspended") return false;
