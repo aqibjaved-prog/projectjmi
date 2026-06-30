@@ -79,7 +79,8 @@ function SchoolsPage() {
         const blob = `${row.name} ${row.email ?? ""} ${row.city ?? ""} ${row.contact_person ?? ""}`.toLowerCase();
         if (!blob.includes(s)) return false;
       }
-      const sub = Array.isArray(row.subscriptions) ? row.subscriptions[0] : (row.subscriptions as SchoolRow["subscriptions"] extends Array<infer U> ? U : never) ?? null;
+      const subRaw = row.subscriptions as unknown;
+      const sub = Array.isArray(subRaw) ? subRaw[0] : subRaw;
       const expiry = expiryState(sub?.current_period_end);
       if (filter === "active" && row.status !== "active") return false;
       if (filter === "suspended" && row.status !== "suspended") return false;
