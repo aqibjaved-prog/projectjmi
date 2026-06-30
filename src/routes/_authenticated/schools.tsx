@@ -238,7 +238,7 @@ function SchoolsPage() {
                 </TableHeader>
                 <TableBody>
                   {pageRows.map((s) => {
-                    const sub = s.subscriptions ?? undefined;
+                    const sub = s.subscriptions?.[0];
                     const plan = planFor(sub?.plan_name);
                     const expiry = subscriptionExpiry(sub?.current_period_end);
                     return (
