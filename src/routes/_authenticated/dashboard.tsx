@@ -17,7 +17,11 @@ import {
   AlertTriangle,
   CreditCard,
   Bell,
+  TrendingUp,
+  CalendarClock,
+  XCircle,
 } from "lucide-react";
+import { expiryState, isExpiringThisMonth, monthlyAmountCents, type BillingCycle } from "@/lib/plans";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — School Van Guardian" }] }),
@@ -44,12 +48,15 @@ function SuperAdminDashboard() {
         supabase.from("students").select("id", { count: "exact", head: true }),
         supabase.from("drivers").select("id", { count: "exact", head: true }),
         supabase.from("vehicles").select("id", { count: "exact", head: true }),
-        supabase.from("subscriptions").select("amount_cents,status"),
+        supabase.from("subscriptions").select("amount_cents,status,billing_cycle,current_period_end"),
       ]);
-      const revenue = (subs.data ?? [])
-        .filter((s) => s.status === "active")
-        .reduce((sum, s) => sum + (s.amount_cents ?? 0), 0);
-      const activeSubs = (subs.data ?? []).filter((s) => s.status === "active").length;
+      type SubRow = { amount_cents: number; status: string; billing_cycle: BillingCycle; current_period_end: string | null };
+      const allSubs = (subs.data ?? []) as SubRow[];
+      const activeRows = allSubs.filter((s) => s.status === "active");
+      const totalRevenue = activeRows.reduce((sum, s) => sum + (s.amount_cents ?? 0), 0);
+      const mrr = activeRows.reduce((sum, s) => sum + monthlyAmountCents(s.amount_cents ?? 0, s.billing_cycle), 0);
+      const expiringThisMonth = allSubs.filter((s) => s.status === "active" && isExpiringThisMonth(s.current_period_end)).length;
+      const expired = allSubs.filter((s) => expiryState(s.current_period_end) === "expired").length;
       return {
         total: schools.count ?? 0,
         active: active.count ?? 0,
@@ -57,8 +64,11 @@ function SuperAdminDashboard() {
         students: students.count ?? 0,
         drivers: drivers.count ?? 0,
         vehicles: vehicles.count ?? 0,
-        revenue,
-        activeSubs,
+        totalRevenue,
+        mrr,
+        activeSubs: activeRows.length,
+        expiringThisMonth,
+        expired,
       };
     },
   });
@@ -71,16 +81,25 @@ function SuperAdminDashboard() {
         <StatCard label="Active schools" value={data?.active} icon={CheckCircle2} loading={isLoading} tone="success" />
         <StatCard label="Suspended" value={data?.suspended} icon={AlertTriangle} loading={isLoading} tone="warning" />
         <StatCard label="Active subscriptions" value={data?.activeSubs} icon={CreditCard} loading={isLoading} />
-        <StatCard label="Total students" value={data?.students} icon={Users} loading={isLoading} />
-        <StatCard label="Total drivers" value={data?.drivers} icon={UserCog} loading={isLoading} />
-        <StatCard label="Total vehicles" value={data?.vehicles} icon={Car} loading={isLoading} />
+        <StatCard
+          label="Total revenue"
+          value={data ? `$${(data.totalRevenue / 100).toLocaleString()}` : undefined}
+          icon={TrendingUp}
+          loading={isLoading}
+          tone="success"
+        />
         <StatCard
           label="MRR"
-          value={data ? `$${(data.revenue / 100).toLocaleString()}` : undefined}
+          value={data ? `$${(data.mrr / 100).toLocaleString()}` : undefined}
           icon={CreditCard}
           loading={isLoading}
           tone="success"
         />
+        <StatCard label="Expiring this month" value={data?.expiringThisMonth} icon={CalendarClock} loading={isLoading} tone="warning" />
+        <StatCard label="Expired" value={data?.expired} icon={XCircle} loading={isLoading} tone="warning" />
+        <StatCard label="Total students" value={data?.students} icon={Users} loading={isLoading} />
+        <StatCard label="Total drivers" value={data?.drivers} icon={UserCog} loading={isLoading} />
+        <StatCard label="Total vehicles" value={data?.vehicles} icon={Car} loading={isLoading} />
       </div>
 
       <Card className="mt-6">
