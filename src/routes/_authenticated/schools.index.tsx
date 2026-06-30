@@ -29,7 +29,7 @@ import { SchoolForm } from "@/components/schools/school-form";
 import { slugify } from "@/lib/schools";
 import { expiryState, periodEndFor } from "@/lib/plans";
 
-export const Route = createFileRoute("/_authenticated/schools")({
+export const Route = createFileRoute("/_authenticated/schools/")({
   head: () => ({ meta: [{ title: "Schools — School Van Guardian" }] }),
   component: SchoolsPage,
 });
