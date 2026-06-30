@@ -14,16 +14,766 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      drivers: {
+        Row: {
+          assigned_vehicle_id: string | null
+          created_at: string
+          full_name: string
+          id: string
+          is_active: boolean
+          license_expiry: string | null
+          license_number: string | null
+          metadata: Json
+          phone: string | null
+          school_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          assigned_vehicle_id?: string | null
+          created_at?: string
+          full_name: string
+          id?: string
+          is_active?: boolean
+          license_expiry?: string | null
+          license_number?: string | null
+          metadata?: Json
+          phone?: string | null
+          school_id: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          assigned_vehicle_id?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          is_active?: boolean
+          license_expiry?: string | null
+          license_number?: string | null
+          metadata?: Json
+          phone?: string | null
+          school_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drivers_assigned_vehicle_id_fkey"
+            columns: ["assigned_vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drivers_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          data: Json
+          id: string
+          is_read: boolean
+          school_id: string
+          title: string
+          type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          data?: Json
+          id?: string
+          is_read?: boolean
+          school_id: string
+          title: string
+          type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          data?: Json
+          id?: string
+          is_read?: boolean
+          school_id?: string
+          title?: string
+          type?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parents: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          phone: string | null
+          school_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          phone?: string | null
+          school_id: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          phone?: string | null
+          school_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parents_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      qr_logs: {
+        Row: {
+          created_at: string
+          driver_id: string | null
+          event_type: string
+          id: string
+          location: Json | null
+          scanned_at: string
+          school_id: string
+          student_id: string
+          trip_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          driver_id?: string | null
+          event_type: string
+          id?: string
+          location?: Json | null
+          scanned_at?: string
+          school_id: string
+          student_id: string
+          trip_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          driver_id?: string | null
+          event_type?: string
+          id?: string
+          location?: Json | null
+          scanned_at?: string
+          school_id?: string
+          student_id?: string
+          trip_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qr_logs_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qr_logs_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qr_logs_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qr_logs_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      routes: {
+        Row: {
+          created_at: string
+          description: string | null
+          driver_id: string | null
+          drop_start_time: string | null
+          id: string
+          is_active: boolean
+          name: string
+          pickup_start_time: string | null
+          school_id: string
+          stops: Json
+          updated_at: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          driver_id?: string | null
+          drop_start_time?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          pickup_start_time?: string | null
+          school_id: string
+          stops?: Json
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          driver_id?: string | null
+          drop_start_time?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          pickup_start_time?: string | null
+          school_id?: string
+          stops?: Json
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routes_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routes_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routes_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schools: {
+        Row: {
+          address: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          email: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          phone: string | null
+          postal_code: string | null
+          settings: Json
+          slug: string
+          state: string | null
+          status: Database["public"]["Enums"]["school_status"]
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          name: string
+          phone?: string | null
+          postal_code?: string | null
+          settings?: Json
+          slug: string
+          state?: string | null
+          status?: Database["public"]["Enums"]["school_status"]
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          phone?: string | null
+          postal_code?: string | null
+          settings?: Json
+          slug?: string
+          state?: string | null
+          status?: Database["public"]["Enums"]["school_status"]
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      speed_logs: {
+        Row: {
+          driver_id: string | null
+          id: string
+          is_violation: boolean
+          location: Json | null
+          recorded_at: string
+          school_id: string
+          speed_kmh: number
+          speed_limit_kmh: number | null
+          trip_id: string | null
+          vehicle_id: string | null
+        }
+        Insert: {
+          driver_id?: string | null
+          id?: string
+          is_violation?: boolean
+          location?: Json | null
+          recorded_at?: string
+          school_id: string
+          speed_kmh: number
+          speed_limit_kmh?: number | null
+          trip_id?: string | null
+          vehicle_id?: string | null
+        }
+        Update: {
+          driver_id?: string | null
+          id?: string
+          is_violation?: boolean
+          location?: Json | null
+          recorded_at?: string
+          school_id?: string
+          speed_kmh?: number
+          speed_limit_kmh?: number | null
+          trip_id?: string | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "speed_logs_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "speed_logs_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "speed_logs_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "speed_logs_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      students: {
+        Row: {
+          class_section: string | null
+          created_at: string
+          drop_address: string | null
+          full_name: string
+          grade: string | null
+          id: string
+          is_active: boolean
+          parent_id: string | null
+          photo_url: string | null
+          pickup_address: string | null
+          qr_code: string | null
+          roll_number: string | null
+          route_id: string | null
+          school_id: string
+          updated_at: string
+        }
+        Insert: {
+          class_section?: string | null
+          created_at?: string
+          drop_address?: string | null
+          full_name: string
+          grade?: string | null
+          id?: string
+          is_active?: boolean
+          parent_id?: string | null
+          photo_url?: string | null
+          pickup_address?: string | null
+          qr_code?: string | null
+          roll_number?: string | null
+          route_id?: string | null
+          school_id: string
+          updated_at?: string
+        }
+        Update: {
+          class_section?: string | null
+          created_at?: string
+          drop_address?: string | null
+          full_name?: string
+          grade?: string | null
+          id?: string
+          is_active?: boolean
+          parent_id?: string | null
+          photo_url?: string | null
+          pickup_address?: string | null
+          qr_code?: string | null
+          roll_number?: string | null
+          route_id?: string | null
+          school_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "students_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "parents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "students_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "routes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "students_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          metadata: Json
+          plan_name: string
+          school_id: string
+          seats: number
+          status: Database["public"]["Enums"]["subscription_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          metadata?: Json
+          plan_name?: string
+          school_id: string
+          seats?: number
+          status?: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          metadata?: Json
+          plan_name?: string
+          school_id?: string
+          seats?: number
+          status?: Database["public"]["Enums"]["subscription_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: true
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trips: {
+        Row: {
+          created_at: string
+          driver_id: string | null
+          end_location: Json | null
+          ended_at: string | null
+          id: string
+          metadata: Json
+          route_id: string
+          school_id: string
+          start_location: Json | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["trip_status"]
+          trip_date: string
+          trip_type: Database["public"]["Enums"]["trip_type"]
+          updated_at: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          driver_id?: string | null
+          end_location?: Json | null
+          ended_at?: string | null
+          id?: string
+          metadata?: Json
+          route_id: string
+          school_id: string
+          start_location?: Json | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["trip_status"]
+          trip_date?: string
+          trip_type: Database["public"]["Enums"]["trip_type"]
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          driver_id?: string | null
+          end_location?: Json | null
+          ended_at?: string | null
+          id?: string
+          metadata?: Json
+          route_id?: string
+          school_id?: string
+          start_location?: Json | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["trip_status"]
+          trip_date?: string
+          trip_type?: Database["public"]["Enums"]["trip_type"]
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trips_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "routes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          school_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          school_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          school_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicles: {
+        Row: {
+          capacity: number
+          color: string | null
+          created_at: string
+          fitness_expiry: string | null
+          id: string
+          insurance_expiry: string | null
+          is_active: boolean
+          metadata: Json
+          model: string | null
+          registration_number: string
+          school_id: string
+          updated_at: string
+        }
+        Insert: {
+          capacity?: number
+          color?: string | null
+          created_at?: string
+          fitness_expiry?: string | null
+          id?: string
+          insurance_expiry?: string | null
+          is_active?: boolean
+          metadata?: Json
+          model?: string | null
+          registration_number: string
+          school_id: string
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number
+          color?: string | null
+          created_at?: string
+          fitness_expiry?: string | null
+          id?: string
+          insurance_expiry?: string | null
+          is_active?: boolean
+          metadata?: Json
+          model?: string | null
+          registration_number?: string
+          school_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_school_admin_of: {
+        Args: { _school_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      user_belongs_to_school: {
+        Args: { _school_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "super_admin" | "school_admin" | "driver" | "parent"
+      school_status: "active" | "suspended" | "pending"
+      subscription_status: "active" | "past_due" | "canceled" | "trialing"
+      trip_status: "scheduled" | "in_progress" | "completed" | "canceled"
+      trip_type: "pickup" | "drop"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +900,12 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["super_admin", "school_admin", "driver", "parent"],
+      school_status: ["active", "suspended", "pending"],
+      subscription_status: ["active", "past_due", "canceled", "trialing"],
+      trip_status: ["scheduled", "in_progress", "completed", "canceled"],
+      trip_type: ["pickup", "drop"],
+    },
   },
 } as const
