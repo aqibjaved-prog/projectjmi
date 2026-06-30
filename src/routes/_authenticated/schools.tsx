@@ -285,7 +285,7 @@ function SchoolsPage() {
                           <div className="text-sm">{s.contact_person ?? "—"}</div>
                           <div className="text-xs text-muted-foreground">{s.email ?? s.phone ?? "—"}</div>
                         </TableCell>
-                        <TableCell><Badge variant="secondary">{plan.name}</Badge></TableCell>
+                        <TableCell><Badge variant="secondary">{planName}</Badge></TableCell>
                         <TableCell>
                           <Badge variant={s.status === "active" ? "default" : s.status === "suspended" ? "destructive" : "secondary"} className="capitalize">
                             {s.status}
