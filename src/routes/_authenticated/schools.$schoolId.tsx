@@ -266,6 +266,15 @@ function SchoolDetailPage() {
   );
 }
 
+function Stat({ label, value }: { label: string; value: number | undefined }) {
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3">
+      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="mt-1 text-2xl font-semibold">{value ?? "—"}</div>
+    </div>
+  );
+}
+
 function Detail({ label, children, full }: { label: string; children: React.ReactNode; full?: boolean }) {
   return (
     <div className={full ? "sm:col-span-2" : ""}>
