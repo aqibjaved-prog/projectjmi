@@ -264,7 +264,8 @@ function SchoolsPage() {
                 </TableHeader>
                 <TableBody>
                   {pageRows.map((s) => {
-                    const sub = s.subscriptions?.[0];
+                    const subRaw = s.subscriptions as unknown;
+                    const sub = (Array.isArray(subRaw) ? subRaw[0] : subRaw) as { current_period_end: string | null; subscription_plans?: { name: string } | null } | null | undefined;
                     const planName = sub?.subscription_plans?.name ?? "—";
                     const expiry = expiryState(sub?.current_period_end);
                     return (
