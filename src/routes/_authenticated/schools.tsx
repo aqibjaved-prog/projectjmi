@@ -26,7 +26,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { SchoolForm } from "@/components/schools/school-form";
-import { SUBSCRIPTION_PLANS, planFor, slugify, subscriptionExpiry } from "@/lib/schools";
+import { slugify } from "@/lib/schools";
+import { expiryState, periodEndFor } from "@/lib/plans";
 
 export const Route = createFileRoute("/_authenticated/schools")({
   head: () => ({ meta: [{ title: "Schools — School Van Guardian" }] }),
@@ -45,7 +46,7 @@ type SchoolRow = {
   logo_url: string | null;
   status: "active" | "suspended" | "pending";
   created_at: string;
-  subscriptions?: Array<{ plan_name: string; status: string; current_period_end: string | null }> | null;
+  subscriptions?: Array<{ plan_id: string | null; billing_cycle: string; status: string; current_period_end: string | null; subscription_plans?: { name: string; tier: string } | null }> | null;
 };
 
 type Filter = "all" | "active" | "suspended" | "expired";
@@ -64,7 +65,7 @@ function SchoolsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("schools")
-        .select("*, subscriptions(plan_name, status, current_period_end)")
+        .select("*, subscriptions(plan_id, billing_cycle, status, current_period_end, subscription_plans:plan_id(name, tier))")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as SchoolRow[];
@@ -79,7 +80,7 @@ function SchoolsPage() {
         if (!blob.includes(s)) return false;
       }
       const sub = row.subscriptions?.[0];
-      const expiry = subscriptionExpiry(sub?.current_period_end);
+      const expiry = expiryState(sub?.current_period_end);
       if (filter === "active" && row.status !== "active") return false;
       if (filter === "suspended" && row.status !== "suspended") return false;
       if (filter === "expired" && expiry !== "expired") return false;
@@ -138,20 +139,44 @@ function SchoolsPage() {
         .single();
       if (error) throw error;
 
-      // seed a trial subscription so plan + dates exist immediately
-      const plan = SUBSCRIPTION_PLANS[0];
+      // seed a trial subscription from the active Trial plan in the catalog
+      const { data: trial } = await supabase
+        .from("subscription_plans")
+        .select("id, code, price_cents, currency, billing_cycle, duration_days")
+        .eq("tier", "trial")
+        .eq("is_active", true)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
       const start = new Date();
-      const end = new Date(); end.setDate(end.getDate() + 30);
+      const end = periodEndFor(start, trial?.billing_cycle ?? "trial", trial?.duration_days ?? 30);
       await supabase.from("subscriptions").insert({
         school_id: data.id,
-        plan_name: plan.id,
+        plan_id: trial?.id ?? null,
+        plan_name: trial?.code ?? "trial",
+        billing_cycle: trial?.billing_cycle ?? "trial",
         status: "trialing",
-        seats: plan.seats,
-        amount_cents: plan.amountCents,
-        currency: "USD",
+        payment_status: "pending",
+        seats: 0,
+        amount_cents: trial?.price_cents ?? 0,
+        currency: trial?.currency ?? "USD",
         current_period_start: start.toISOString(),
         current_period_end: end.toISOString(),
+        renewal_date: end.toISOString(),
       });
+      if (trial) {
+        await supabase.from("subscription_history").insert({
+          school_id: data.id,
+          to_plan: trial.code,
+          to_cycle: trial.billing_cycle,
+          action: "created",
+          amount_cents: trial.price_cents,
+          currency: trial.currency,
+          period_start: start.toISOString(),
+          period_end: end.toISOString(),
+          notes: "Initial trial assigned on school creation",
+        });
+      }
       return data;
     },
     onSuccess: () => {
@@ -239,8 +264,8 @@ function SchoolsPage() {
                 <TableBody>
                   {pageRows.map((s) => {
                     const sub = s.subscriptions?.[0];
-                    const plan = planFor(sub?.plan_name);
-                    const expiry = subscriptionExpiry(sub?.current_period_end);
+                    const planName = sub?.subscription_plans?.name ?? "—";
+                    const expiry = expiryState(sub?.current_period_end);
                     return (
                       <TableRow key={s.id}>
                         <TableCell>
@@ -260,7 +285,7 @@ function SchoolsPage() {
                           <div className="text-sm">{s.contact_person ?? "—"}</div>
                           <div className="text-xs text-muted-foreground">{s.email ?? s.phone ?? "—"}</div>
                         </TableCell>
-                        <TableCell><Badge variant="secondary">{plan.name}</Badge></TableCell>
+                        <TableCell><Badge variant="secondary">{planName}</Badge></TableCell>
                         <TableCell>
                           <Badge variant={s.status === "active" ? "default" : s.status === "suspended" ? "destructive" : "secondary"} className="capitalize">
                             {s.status}

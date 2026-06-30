@@ -528,16 +528,143 @@ export type Database = {
           },
         ]
       }
+      subscription_history: {
+        Row: {
+          action: string
+          amount_cents: number
+          created_at: string
+          currency: string
+          from_cycle: Database["public"]["Enums"]["billing_cycle"] | null
+          from_plan: string | null
+          id: string
+          notes: string | null
+          performed_by: string | null
+          period_end: string | null
+          period_start: string | null
+          school_id: string
+          subscription_id: string | null
+          to_cycle: Database["public"]["Enums"]["billing_cycle"] | null
+          to_plan: string | null
+        }
+        Insert: {
+          action: string
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          from_cycle?: Database["public"]["Enums"]["billing_cycle"] | null
+          from_plan?: string | null
+          id?: string
+          notes?: string | null
+          performed_by?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          school_id: string
+          subscription_id?: string | null
+          to_cycle?: Database["public"]["Enums"]["billing_cycle"] | null
+          to_plan?: string | null
+        }
+        Update: {
+          action?: string
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          from_cycle?: Database["public"]["Enums"]["billing_cycle"] | null
+          from_plan?: string | null
+          id?: string
+          notes?: string | null
+          performed_by?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          school_id?: string
+          subscription_id?: string | null
+          to_cycle?: Database["public"]["Enums"]["billing_cycle"] | null
+          to_plan?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_history_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_history_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_plans: {
+        Row: {
+          billing_cycle: Database["public"]["Enums"]["billing_cycle"]
+          code: string
+          created_at: string
+          currency: string
+          duration_days: number | null
+          features: Json
+          id: string
+          is_active: boolean
+          name: string
+          price_cents: number
+          sort_order: number
+          student_limit: number | null
+          tier: string
+          updated_at: string
+          vehicle_limit: number | null
+        }
+        Insert: {
+          billing_cycle?: Database["public"]["Enums"]["billing_cycle"]
+          code: string
+          created_at?: string
+          currency?: string
+          duration_days?: number | null
+          features?: Json
+          id?: string
+          is_active?: boolean
+          name: string
+          price_cents?: number
+          sort_order?: number
+          student_limit?: number | null
+          tier: string
+          updated_at?: string
+          vehicle_limit?: number | null
+        }
+        Update: {
+          billing_cycle?: Database["public"]["Enums"]["billing_cycle"]
+          code?: string
+          created_at?: string
+          currency?: string
+          duration_days?: number | null
+          features?: Json
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_cents?: number
+          sort_order?: number
+          student_limit?: number | null
+          tier?: string
+          updated_at?: string
+          vehicle_limit?: number | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           amount_cents: number
+          billing_cycle: Database["public"]["Enums"]["billing_cycle"]
           created_at: string
           currency: string
           current_period_end: string | null
           current_period_start: string | null
           id: string
           metadata: Json
+          payment_status: Database["public"]["Enums"]["payment_status"]
+          plan_id: string | null
           plan_name: string
+          renewal_date: string | null
           school_id: string
           seats: number
           status: Database["public"]["Enums"]["subscription_status"]
@@ -545,13 +672,17 @@ export type Database = {
         }
         Insert: {
           amount_cents?: number
+          billing_cycle?: Database["public"]["Enums"]["billing_cycle"]
           created_at?: string
           currency?: string
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
           metadata?: Json
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          plan_id?: string | null
           plan_name?: string
+          renewal_date?: string | null
           school_id: string
           seats?: number
           status?: Database["public"]["Enums"]["subscription_status"]
@@ -559,19 +690,30 @@ export type Database = {
         }
         Update: {
           amount_cents?: number
+          billing_cycle?: Database["public"]["Enums"]["billing_cycle"]
           created_at?: string
           currency?: string
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
           metadata?: Json
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          plan_id?: string | null
           plan_name?: string
+          renewal_date?: string | null
           school_id?: string
           seats?: number
           status?: Database["public"]["Enums"]["subscription_status"]
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "subscriptions_school_id_fkey"
             columns: ["school_id"]
@@ -773,8 +915,16 @@ export type Database = {
     }
     Enums: {
       app_role: "super_admin" | "school_admin" | "driver" | "parent"
+      billing_cycle: "trial" | "monthly" | "yearly"
+      payment_status: "paid" | "pending" | "overdue"
       school_status: "active" | "suspended" | "pending"
-      subscription_status: "active" | "past_due" | "canceled" | "trialing"
+      subscription_status:
+        | "active"
+        | "past_due"
+        | "canceled"
+        | "trialing"
+        | "expired"
+        | "suspended"
       trip_status: "scheduled" | "in_progress" | "completed" | "canceled"
       trip_type: "pickup" | "drop"
     }
@@ -905,8 +1055,17 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["super_admin", "school_admin", "driver", "parent"],
+      billing_cycle: ["trial", "monthly", "yearly"],
+      payment_status: ["paid", "pending", "overdue"],
       school_status: ["active", "suspended", "pending"],
-      subscription_status: ["active", "past_due", "canceled", "trialing"],
+      subscription_status: [
+        "active",
+        "past_due",
+        "canceled",
+        "trialing",
+        "expired",
+        "suspended",
+      ],
       trip_status: ["scheduled", "in_progress", "completed", "canceled"],
       trip_type: ["pickup", "drop"],
     },

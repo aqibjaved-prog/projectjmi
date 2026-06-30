@@ -10,6 +10,7 @@ import {
   Calendar,
   Bell,
   CreditCard,
+  Package,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -45,6 +46,7 @@ const NAV: { label: string; items: NavItem[] }[] = [
     items: [
       { title: "Schools", url: "/schools", icon: School, roles: ["super_admin"] },
       { title: "Subscriptions", url: "/subscriptions", icon: CreditCard, roles: ["super_admin"] },
+      { title: "Plans", url: "/plans", icon: Package, roles: ["super_admin"] },
     ],
   },
   {
