@@ -53,6 +53,23 @@ function SchoolDetailPage() {
     },
   });
 
+  const { data: stats } = useQuery({
+    queryKey: ["school-stats", schoolId],
+    queryFn: async () => {
+      const head = (table: "students" | "drivers" | "vehicles" | "routes") =>
+        supabase.from(table).select("id", { count: "exact", head: true }).eq("school_id", schoolId);
+      const [students, drivers, vehicles, routes] = await Promise.all([
+        head("students"), head("drivers"), head("vehicles"), head("routes"),
+      ]);
+      return {
+        students: students.count ?? 0,
+        drivers: drivers.count ?? 0,
+        vehicles: vehicles.count ?? 0,
+        routes: routes.count ?? 0,
+      };
+    },
+  });
+
   const update = useMutation({
     mutationFn: async (values: {
       name: string; contact_person?: string; email?: string; phone?: string;
@@ -128,7 +145,8 @@ function SchoolDetailPage() {
     return <EmptyState title="School not found" description="It may have been deleted." />;
   }
 
-  const sub = data.subscriptions ?? undefined;
+  const subs = (data.subscriptions ?? []) as SubRow[];
+  const sub = subs[0];
   const expiry = subscriptionExpiry(sub?.current_period_end);
 
   return (
@@ -195,8 +213,21 @@ function SchoolDetailPage() {
                 <Detail label="City">{data.city ?? "—"}</Detail>
                 <Detail label="Country">{data.country ?? "—"}</Detail>
                 <Detail label="Address" full>{data.address ?? "—"}</Detail>
+                <Detail label="Subscription plan">{sub ? planFor(sub.plan_name).name : "—"}</Detail>
+                <Detail label="Subscription status">
+                  {sub ? <Badge variant="outline" className="capitalize">{sub.status}</Badge> : "—"}
+                </Detail>
+                <Detail label="Start date">{sub?.current_period_start ? new Date(sub.current_period_start).toLocaleDateString() : "—"}</Detail>
+                <Detail label="End date">{sub?.current_period_end ? new Date(sub.current_period_end).toLocaleDateString() : "—"}</Detail>
                 <Detail label="Created">{new Date(data.created_at).toLocaleString()}</Detail>
               </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Stat label="Students" value={stats?.students} />
+              <Stat label="Drivers" value={stats?.drivers} />
+              <Stat label="Vehicles" value={stats?.vehicles} />
+              <Stat label="Routes" value={stats?.routes} />
             </div>
           </CardContent>
         </Card>
@@ -232,6 +263,15 @@ function SchoolDetailPage() {
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: number | undefined }) {
+  return (
+    <div className="rounded-lg border bg-muted/30 p-3">
+      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="mt-1 text-2xl font-semibold">{value ?? "—"}</div>
+    </div>
   );
 }
 

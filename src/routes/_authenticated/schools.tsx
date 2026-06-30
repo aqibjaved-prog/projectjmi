@@ -45,7 +45,7 @@ type SchoolRow = {
   logo_url: string | null;
   status: "active" | "suspended" | "pending";
   created_at: string;
-  subscriptions?: { plan_name: string; status: string; current_period_end: string | null } | null;
+  subscriptions?: Array<{ plan_name: string; status: string; current_period_end: string | null }> | null;
 };
 
 type Filter = "all" | "active" | "suspended" | "expired";
@@ -78,7 +78,7 @@ function SchoolsPage() {
         const blob = `${row.name} ${row.email ?? ""} ${row.city ?? ""} ${row.contact_person ?? ""}`.toLowerCase();
         if (!blob.includes(s)) return false;
       }
-      const sub = row.subscriptions ?? undefined;
+      const sub = row.subscriptions?.[0];
       const expiry = subscriptionExpiry(sub?.current_period_end);
       if (filter === "active" && row.status !== "active") return false;
       if (filter === "suspended" && row.status !== "suspended") return false;
@@ -238,7 +238,7 @@ function SchoolsPage() {
                 </TableHeader>
                 <TableBody>
                   {pageRows.map((s) => {
-                    const sub = s.subscriptions ?? undefined;
+                    const sub = s.subscriptions?.[0];
                     const plan = planFor(sub?.plan_name);
                     const expiry = subscriptionExpiry(sub?.current_period_end);
                     return (
