@@ -45,7 +45,7 @@ type SchoolRow = {
   logo_url: string | null;
   status: "active" | "suspended" | "pending";
   created_at: string;
-  subscriptions?: { plan_name: string; status: string; current_period_end: string | null } | null;
+  subscriptions?: Array<{ plan_name: string; status: string; current_period_end: string | null }> | null;
 };
 
 type Filter = "all" | "active" | "suspended" | "expired";
