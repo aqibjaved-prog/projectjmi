@@ -165,7 +165,8 @@ function SchoolDetailPage() {
     return <EmptyState title="School not found" description="It may have been deleted." />;
   }
 
-  const subs = (data.subscriptions ?? []) as unknown as SubRow[];
+  const rawSubs = data.subscriptions as unknown;
+  const subs: SubRow[] = Array.isArray(rawSubs) ? (rawSubs as SubRow[]) : rawSubs ? [rawSubs as SubRow] : [];
   const sub = subs[0];
   const expiry = expiryState(sub?.current_period_end);
 

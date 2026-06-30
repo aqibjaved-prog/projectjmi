@@ -79,7 +79,8 @@ function SchoolsPage() {
         const blob = `${row.name} ${row.email ?? ""} ${row.city ?? ""} ${row.contact_person ?? ""}`.toLowerCase();
         if (!blob.includes(s)) return false;
       }
-      const sub = row.subscriptions?.[0];
+      const subRaw = row.subscriptions as unknown;
+      const sub = Array.isArray(subRaw) ? subRaw[0] : subRaw;
       const expiry = expiryState(sub?.current_period_end);
       if (filter === "active" && row.status !== "active") return false;
       if (filter === "suspended" && row.status !== "suspended") return false;
@@ -263,7 +264,8 @@ function SchoolsPage() {
                 </TableHeader>
                 <TableBody>
                   {pageRows.map((s) => {
-                    const sub = s.subscriptions?.[0];
+                    const subRaw = s.subscriptions as unknown;
+                    const sub = (Array.isArray(subRaw) ? subRaw[0] : subRaw) as { current_period_end: string | null; subscription_plans?: { name: string } | null } | null | undefined;
                     const planName = sub?.subscription_plans?.name ?? "—";
                     const expiry = expiryState(sub?.current_period_end);
                     return (
