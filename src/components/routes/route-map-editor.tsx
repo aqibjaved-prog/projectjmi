@@ -320,20 +320,46 @@ function MapEditor({
 
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <Badge variant="secondary" className="gap-1">
-          <Navigation className="h-3 w-3" />
+          <RouteIcon className="h-3 w-3" />
           {summary.distanceKm != null ? `${summary.distanceKm} km` : "— km"}
         </Badge>
-        <Badge variant="secondary">
+        <Badge variant="secondary" className="gap-1">
+          <Clock className="h-3 w-3" />
           {summary.durationMin != null ? `${summary.durationMin} min` : "— min"}
         </Badge>
         <Badge variant="secondary" className="gap-1">
           <MapPin className="h-3 w-3" />
           {stops.length} stop{stops.length === 1 ? "" : "s"}
         </Badge>
+        {computing && (
+          <Badge variant="outline" className="gap-1">
+            <Loader2 className="h-3 w-3 animate-spin" /> Calculating route…
+          </Badge>
+        )}
+        {summary.distanceKm != null && summary.distanceKm > 50 && (
+          <Badge variant="destructive" className="gap-1">
+            <AlertTriangle className="h-3 w-3" /> Long route (&gt; 50 km)
+          </Badge>
+        )}
+        {summary.durationMin != null && summary.durationMin > 90 && (
+          <Badge variant="destructive" className="gap-1">
+            <AlertTriangle className="h-3 w-3" /> Long duration (&gt; 90 min)
+          </Badge>
+        )}
+        {typeof maxStops === "number" && maxStops > 0 && stops.length > maxStops && (
+          <Badge variant="destructive" className="gap-1">
+            <AlertTriangle className="h-3 w-3" /> Exceeds max stops ({maxStops})
+          </Badge>
+        )}
         <span className="ml-auto text-xs text-muted-foreground">
           Tip: click on the map to add a stop, or drag any marker to adjust.
         </span>
       </div>
+      {computing || summary.distanceKm == null ? null : (
+        <p className="text-xs text-muted-foreground">
+          Route calculated via Google Directions — <Navigation className="inline h-3 w-3" /> {summary.distanceKm} km · {summary.durationMin} min · {stops.length} stops
+        </p>
+      )}
 
       {/* Stops */}
       <div>
