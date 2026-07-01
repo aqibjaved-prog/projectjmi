@@ -52,6 +52,7 @@ const NAV: { label: string; items: NavItem[] }[] = [
       { title: "School Admins", url: "/school-admins", icon: ShieldCheck, roles: ["super_admin"] },
       { title: "Subscriptions", url: "/subscriptions", icon: CreditCard, roles: ["super_admin"] },
       { title: "Plans", url: "/plans", icon: Package, roles: ["super_admin"] },
+      { title: "All Vehicles", url: "/vehicles", icon: Car, roles: ["super_admin"] },
     ],
   },
   {
