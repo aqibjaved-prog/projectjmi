@@ -338,6 +338,12 @@ function SubscriptionPanel({ schoolId, sub }: { schoolId: string; sub: SubRow | 
     },
   });
 
+  const { data: usage } = useQuery({
+    enabled: !!schoolId,
+    queryKey: ["plan-usage", schoolId],
+    queryFn: () => fetchPlanUsage(schoolId),
+  });
+
   // Selection is local — nothing is saved until the user assigns/applies.
   const [planId, setPlanId] = useState<string>(sub?.plan_id ?? "");
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(sub?.payment_status ?? "pending");
