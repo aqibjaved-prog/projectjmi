@@ -320,7 +320,7 @@ function StudentDetailPage() {
 
       <Dialog open={editOpen} onOpenChange={(o) => { setEditOpen(o); if (!o) navigate({ to: "/students/$studentId", params: { studentId }, search: { edit: undefined } }); }}>
         <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
-          <DialogHeader><DialogTitle>Edit student</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Edit student</DialogTitle><DialogDescription className="sr-only">Update this student's details.</DialogDescription></DialogHeader>
           {defaults && (
             <StudentForm
               schoolId={student.school_id}
