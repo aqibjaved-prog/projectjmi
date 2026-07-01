@@ -184,6 +184,9 @@ function intOrNull(v: string | number | null | undefined): number | null {
 }
 
 export function routeFormToPayload(v: RouteFormValues) {
+  const dwell = numOrNull(v.default_dwell_min ?? "");
+  const endSec = v.end_leg_seconds == null ? null : Number(v.end_leg_seconds);
+  const endDist = v.end_leg_distance_m == null ? null : Number(v.end_leg_distance_m);
   return {
     name: v.name.trim(),
     route_type: v.route_type,
@@ -212,11 +215,21 @@ export function routeFormToPayload(v: RouteFormValues) {
       lng: s.lng ?? null,
       arrival_time: emptyToNull(s.arrival_time ?? null),
       departure_time: emptyToNull(s.departure_time ?? null),
+      dwell_min: s.dwell_min == null || s.dwell_min === "" ? null : Number(s.dwell_min),
+      driving_seconds_from_prev: s.driving_seconds_from_prev == null ? null : Number(s.driving_seconds_from_prev),
+      distance_from_prev_m: s.distance_from_prev_m == null ? null : Number(s.distance_from_prev_m),
+      manual_time: Boolean(s.manual_time),
     })),
+    metadata: {
+      default_dwell_min: dwell,
+      end_leg_seconds: Number.isFinite(endSec as number) ? endSec : null,
+      end_leg_distance_m: Number.isFinite(endDist as number) ? endDist : null,
+    },
   };
 }
 
 export function routeToFormDefaults(r: RouteRow): RouteFormValues {
+  const meta = (r.metadata ?? {}) as Record<string, unknown>;
   return {
     name: r.name ?? "",
     route_type: ((ROUTE_TYPES as readonly string[]).includes(r.route_type) ? r.route_type : "both") as RouteType,
@@ -237,6 +250,9 @@ export function routeToFormDefaults(r: RouteRow): RouteFormValues {
     driver_id: r.driver_id,
     notes: r.notes ?? "",
     stops: normalizeStops(r.stops),
+    default_dwell_min: meta.default_dwell_min == null ? "2" : String(meta.default_dwell_min),
+    end_leg_seconds: meta.end_leg_seconds == null ? null : Number(meta.end_leg_seconds),
+    end_leg_distance_m: meta.end_leg_distance_m == null ? null : Number(meta.end_leg_distance_m),
   };
 }
 
