@@ -122,7 +122,7 @@ function SchoolAdminDashboard() {
     queryFn: async () => {
       if (!schoolId) return null;
       const today = new Date().toISOString().slice(0, 10);
-      const [trips, pickups, drops, vehicles, activeVehicles, drivers, students, routes, parents, unreadNotifs] = await Promise.all([
+      const [trips, pickups, drops, vehicles, activeVehicles, drivers, students, routes, parents, unreadNotifs, capacityRows, occupancyRows] = await Promise.all([
         supabase.from("trips").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("trip_date", today),
         supabase.from("trips").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("trip_date", today).eq("trip_type", "pickup"),
         supabase.from("trips").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("trip_date", today).eq("trip_type", "drop"),
@@ -133,7 +133,11 @@ function SchoolAdminDashboard() {
         supabase.from("routes").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("is_active", true),
         supabase.from("parents").select("id", { count: "exact", head: true }).eq("school_id", schoolId),
         supabase.from("notifications").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("is_read", false),
+        supabase.from("vehicles").select("capacity").eq("school_id", schoolId).eq("status", "active"),
+        supabase.from("vehicle_occupancy" as never).select("occupied").eq("school_id", schoolId),
       ]);
+      const totalCapacity = ((capacityRows.data ?? []) as { capacity: number | null }[]).reduce((s, r) => s + (r.capacity ?? 0), 0);
+      const occupiedSeats = ((occupancyRows.data ?? []) as { occupied: number | null }[]).reduce((s, r) => s + (r.occupied ?? 0), 0);
       return {
         trips: trips.count ?? 0,
         pickups: pickups.count ?? 0,
@@ -145,6 +149,9 @@ function SchoolAdminDashboard() {
         routes: routes.count ?? 0,
         parents: parents.count ?? 0,
         unreadNotifs: unreadNotifs.count ?? 0,
+        totalCapacity,
+        occupiedSeats,
+        availableSeats: Math.max(totalCapacity - occupiedSeats, 0),
       };
     },
   });
