@@ -15,6 +15,7 @@ import {
   FileBarChart,
   ShieldCheck,
   User,
+  BookOpen,
   type LucideIcon,
 } from "lucide-react";
 import {
