@@ -82,6 +82,10 @@ export function RouteForm({ defaults, drivers = [], vehicles = [], submitting, s
     lng: toNum(s.lng),
     arrival_time: (s.arrival_time as string | null | undefined) ?? "",
     departure_time: (s.departure_time as string | null | undefined) ?? "",
+    dwell_min: toNum(s.dwell_min),
+    driving_seconds_from_prev: toNum(s.driving_seconds_from_prev),
+    distance_from_prev_m: toNum(s.distance_from_prev_m),
+    manual_time: Boolean(s.manual_time),
   }));
 
   const setStart = (p: RoutePoint) => {
