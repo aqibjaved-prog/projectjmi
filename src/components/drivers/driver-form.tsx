@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -5,47 +6,155 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Loader2 } from "lucide-react";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Loader2, Upload, User } from "lucide-react";
 import { driverSchema, type DriverFormValues } from "@/lib/drivers";
 
 export interface DriverFormProps {
   defaultValues?: Partial<DriverFormValues>;
   submitting?: boolean;
   submitLabel?: string;
-  onSubmit: (values: DriverFormValues) => void | Promise<void>;
+  existingPhotoUrl?: string | null;
+  onSubmit: (values: DriverFormValues, photoFile: File | null) => void | Promise<void>;
 }
 
-export function DriverForm({ defaultValues, submitting, submitLabel = "Save driver", onSubmit }: DriverFormProps) {
+const GENDERS = ["", "Male", "Female", "Other"];
+const BLOOD_GROUPS = ["", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+
+export function DriverForm({
+  defaultValues, submitting, submitLabel = "Save driver", existingPhotoUrl, onSubmit,
+}: DriverFormProps) {
   const form = useForm<DriverFormValues>({
     resolver: zodResolver(driverSchema),
     defaultValues: {
-      full_name: defaultValues?.full_name ?? "",
+      first_name: defaultValues?.first_name ?? "",
+      last_name: defaultValues?.last_name ?? "",
       phone: defaultValues?.phone ?? "",
       email: defaultValues?.email ?? "",
+      date_of_birth: defaultValues?.date_of_birth ?? "",
+      gender: defaultValues?.gender ?? "",
+      blood_group: defaultValues?.blood_group ?? "",
+      address: defaultValues?.address ?? "",
+      city: defaultValues?.city ?? "",
+      state: defaultValues?.state ?? "",
+      pincode: defaultValues?.pincode ?? "",
+      aadhaar_number: defaultValues?.aadhaar_number ?? "",
       license_number: defaultValues?.license_number ?? "",
       license_class: defaultValues?.license_class ?? "",
       license_issue_date: defaultValues?.license_issue_date ?? "",
       license_expiry: defaultValues?.license_expiry ?? "",
-      date_of_birth: defaultValues?.date_of_birth ?? "",
-      address: defaultValues?.address ?? "",
-      emergency_contact: defaultValues?.emergency_contact ?? "",
+      experience_years: defaultValues?.experience_years ?? "",
+      emergency_contact_name: defaultValues?.emergency_contact_name ?? "",
+      emergency_contact_number: defaultValues?.emergency_contact_number ?? "",
+      joining_date: defaultValues?.joining_date ?? "",
       notes: defaultValues?.notes ?? "",
+      photo_url: defaultValues?.photo_url ?? "",
       is_active: defaultValues?.is_active ?? true,
     },
   });
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(existingPhotoUrl ?? null);
+
+  useEffect(() => {
+    setPreviewUrl(existingPhotoUrl ?? null);
+  }, [existingPhotoUrl]);
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      form.setError("photo_url", { message: "Photo must be under 5 MB" });
+      return;
+    }
+    setPhotoFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setPreviewUrl(String(reader.result));
+    reader.readAsDataURL(file);
+    form.clearErrors("photo_url");
+  };
+
   return (
-    <form onSubmit={form.handleSubmit((v) => onSubmit(v))} className="space-y-5">
-      <Section title="General">
+    <form
+      onSubmit={form.handleSubmit((v) => onSubmit(v, photoFile))}
+      className="space-y-6"
+    >
+      <Section title="Profile">
+        <div className="flex items-start gap-4">
+          <div className="grid h-24 w-24 place-items-center overflow-hidden rounded-full border bg-muted text-muted-foreground">
+            {previewUrl ? (
+              <img src={previewUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <User className="h-10 w-10" />
+            )}
+          </div>
+          <div className="space-y-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoChange}
+            />
+            <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+              <Upload className="mr-2 h-4 w-4" /> {previewUrl ? "Replace photo" : "Upload photo"}
+            </Button>
+            <p className="text-xs text-muted-foreground">PNG or JPG up to 5 MB.</p>
+            {form.formState.errors.photo_url?.message && (
+              <p className="text-xs text-destructive">{form.formState.errors.photo_url.message}</p>
+            )}
+          </div>
+        </div>
+      </Section>
+
+      <Section title="Personal">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Full name *" error={form.formState.errors.full_name?.message}>
-            <Input {...form.register("full_name")} />
+          <Field label="First name *" error={form.formState.errors.first_name?.message}>
+            <Input {...form.register("first_name")} />
+          </Field>
+          <Field label="Last name" error={form.formState.errors.last_name?.message}>
+            <Input {...form.register("last_name")} />
           </Field>
           <Field label="Date of birth">
             <Input type="date" {...form.register("date_of_birth")} />
           </Field>
-          <Field label="Phone" error={form.formState.errors.phone?.message}>
-            <Input {...form.register("phone")} placeholder="+1 555 123 4567" />
+          <Field label="Gender">
+            <Select
+              value={form.watch("gender") ?? ""}
+              onValueChange={(v) => form.setValue("gender", v === "__none" ? "" : v)}
+            >
+              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none">Prefer not to say</SelectItem>
+                {GENDERS.filter(Boolean).map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Blood group">
+            <Select
+              value={form.watch("blood_group") ?? ""}
+              onValueChange={(v) => form.setValue("blood_group", v === "__none" ? "" : v)}
+            >
+              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none">—</SelectItem>
+                {BLOOD_GROUPS.filter(Boolean).map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Aadhaar number" error={form.formState.errors.aadhaar_number?.message}>
+            <Input inputMode="numeric" maxLength={12} placeholder="12-digit ID" {...form.register("aadhaar_number")} />
+          </Field>
+        </div>
+      </Section>
+
+      <Section title="Contact">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Phone *" error={form.formState.errors.phone?.message}>
+            <Input {...form.register("phone")} placeholder="+91 98765 43210" />
           </Field>
           <Field label="Email" error={form.formState.errors.email?.message}>
             <Input type="email" {...form.register("email")} />
@@ -53,9 +162,11 @@ export function DriverForm({ defaultValues, submitting, submitLabel = "Save driv
           <Field label="Address">
             <Textarea rows={2} {...form.register("address")} />
           </Field>
-          <Field label="Emergency contact">
-            <Input {...form.register("emergency_contact")} />
-          </Field>
+          <div className="grid grid-cols-3 gap-2">
+            <Field label="City"><Input {...form.register("city")} /></Field>
+            <Field label="State"><Input {...form.register("state")} /></Field>
+            <Field label="Pincode"><Input {...form.register("pincode")} /></Field>
+          </div>
         </div>
       </Section>
 
@@ -65,13 +176,35 @@ export function DriverForm({ defaultValues, submitting, submitLabel = "Save driv
             <Input {...form.register("license_number")} />
           </Field>
           <Field label="License class">
-            <Input {...form.register("license_class")} placeholder="e.g. Class D / CDL-B" />
+            <Input {...form.register("license_class")} placeholder="e.g. LMV / HMV" />
           </Field>
           <Field label="Issue date">
             <Input type="date" {...form.register("license_issue_date")} />
           </Field>
           <Field label="Expiry date">
             <Input type="date" {...form.register("license_expiry")} />
+          </Field>
+          <Field label="Experience (years)" error={form.formState.errors.experience_years?.message}>
+            <Input type="number" min={0} step="0.5" {...form.register("experience_years")} />
+          </Field>
+        </div>
+      </Section>
+
+      <Section title="Emergency contact">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Name">
+            <Input {...form.register("emergency_contact_name")} />
+          </Field>
+          <Field label="Phone">
+            <Input {...form.register("emergency_contact_number")} />
+          </Field>
+        </div>
+      </Section>
+
+      <Section title="Employment">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Joining date">
+            <Input type="date" {...form.register("joining_date")} />
           </Field>
         </div>
       </Section>
