@@ -12,6 +12,9 @@ import {
   CreditCard,
   Package,
   Settings,
+  FileBarChart,
+  ShieldCheck,
+  User,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -45,6 +48,7 @@ const NAV: { label: string; items: NavItem[] }[] = [
     label: "Platform",
     items: [
       { title: "Schools", url: "/schools", icon: School, roles: ["super_admin"] },
+      { title: "School Admins", url: "/school-admins", icon: ShieldCheck, roles: ["super_admin"] },
       { title: "Subscriptions", url: "/subscriptions", icon: CreditCard, roles: ["super_admin"] },
       { title: "Plans", url: "/plans", icon: Package, roles: ["super_admin"] },
     ],
@@ -52,20 +56,23 @@ const NAV: { label: string; items: NavItem[] }[] = [
   {
     label: "School",
     items: [
-      { title: "Students", url: "/students", icon: Users, roles: ["super_admin", "school_admin"] },
-      { title: "Parents", url: "/parents", icon: Users, roles: ["school_admin"] },
+      { title: "Students", url: "/students", icon: Users, roles: ["school_admin"] },
       { title: "Drivers", url: "/drivers", icon: UserCog, roles: ["school_admin"] },
+      { title: "Parents", url: "/parents", icon: Users, roles: ["school_admin"] },
       { title: "Vehicles", url: "/vehicles", icon: Car, roles: ["school_admin"] },
       { title: "Routes", url: "/routes", icon: MapPin, roles: ["school_admin"] },
       { title: "Trips", url: "/trips", icon: Calendar, roles: ["school_admin", "driver"] },
+      { title: "Reports", url: "/reports", icon: FileBarChart, roles: ["school_admin"] },
     ],
   },
   {
     label: "Personal",
     items: [
       { title: "My children", url: "/my-children", icon: Users, roles: ["parent"] },
-      { title: "Notifications", url: "/notifications", icon: Bell, roles: ["school_admin", "driver", "parent", "super_admin"] },
-      { title: "Settings", url: "/settings", icon: Settings, roles: ["super_admin", "school_admin", "driver", "parent"] },
+      { title: "Notifications", url: "/notifications", icon: Bell, roles: ["super_admin", "school_admin", "driver", "parent"] },
+      { title: "School Settings", url: "/school-settings", icon: Settings, roles: ["school_admin"] },
+      { title: "Platform Settings", url: "/settings", icon: Settings, roles: ["super_admin"] },
+      { title: "My Profile", url: "/profile", icon: User, roles: ["super_admin", "school_admin", "driver", "parent"] },
     ],
   },
 ];
