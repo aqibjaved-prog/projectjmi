@@ -282,22 +282,37 @@ export function StudentForm({
                 No vehicles available. Please add a vehicle first.
               </p>
             ) : (
-              <Select
-                value={form.watch("vehicle_id") ?? "none"}
-                onValueChange={(v) => form.setValue("vehicle_id", v === "none" ? null : v)}
-              >
-                <SelectTrigger><SelectValue placeholder="No vehicle" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">— No vehicle —</SelectItem>
-                  {(vehicles ?? []).map((v) => (
-                    <SelectItem key={v.id} value={v.id}>
-                      {v.registration_number}{v.model ? ` — ${v.model}` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <>
+                <Select
+                  value={form.watch("vehicle_id") ?? "none"}
+                  onValueChange={(v) => form.setValue("vehicle_id", v === "none" ? null : v)}
+                >
+                  <SelectTrigger><SelectValue placeholder="No vehicle" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— No vehicle —</SelectItem>
+                    {(vehicles ?? []).map((v) => {
+                      const occ = occupancy?.get(v.id);
+                      const cap = occ?.capacity ?? v.capacity ?? 0;
+                      const used = occ?.occupied ?? 0;
+                      const isCurrent = v.id === currentVehicleId;
+                      const isFull = !isCurrent && occ ? occ.available <= 0 : false;
+                      return (
+                        <SelectItem key={v.id} value={v.id} disabled={isFull}>
+                          {v.registration_number}{v.model ? ` — ${v.model}` : ""} · Occupied {used} / {cap}{isFull ? " (full)" : ""}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                {currentVehicleId && occupancy?.get(currentVehicleId) && (
+                  <p className="text-xs text-muted-foreground">
+                    Current: Occupied {occupancy.get(currentVehicleId)!.occupied} / {occupancy.get(currentVehicleId)!.capacity} · Available {occupancy.get(currentVehicleId)!.available}
+                  </p>
+                )}
+              </>
             )}
           </Field>
+
         </div>
       </Section>
 
