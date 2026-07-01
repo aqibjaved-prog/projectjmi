@@ -230,10 +230,11 @@ function TripsPage() {
         id: crypto.randomUUID(), event_type: "trip.canceled",
         message: "Trip cancelled", at: new Date().toISOString(),
       }];
-      const { error } = await supabase.from("trips" as never)
-        .update({ status: "canceled", canceled_at: new Date().toISOString(), timeline })
-        .eq("id", row.id);
-      if (error) throw error;
+      const { error } = await (supabase.from("trips" as never) as unknown as {
+        update: (p: unknown) => { eq: (k: string, v: unknown) => Promise<{ error: unknown }> };
+      }).update({ status: "canceled", canceled_at: new Date().toISOString(), timeline }).eq("id", row.id);
+      if (error) throw error as Error;
+
     },
     onSuccess: () => { toast.success("Trip cancelled"); invalidate(); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
