@@ -74,6 +74,7 @@ const NAV: { label: string; items: NavItem[] }[] = [
       { title: "School Settings", url: "/school-settings", icon: Settings, roles: ["school_admin"] },
       { title: "Platform Settings", url: "/settings", icon: Settings, roles: ["super_admin"] },
       { title: "My Profile", url: "/profile", icon: User, roles: ["super_admin", "school_admin", "driver", "parent"] },
+      { title: "Developer Docs", url: "/dev-docs", icon: BookOpen, roles: ["super_admin"] },
     ],
   },
 ];
