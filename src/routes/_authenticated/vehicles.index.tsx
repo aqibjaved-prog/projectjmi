@@ -39,6 +39,8 @@ import {
   VEHICLE_TYPES, VEHICLE_STATUSES, FUEL_TYPES,
   type VehicleFormValues, type VehicleRow, type VehicleType, type VehicleStatus, type FuelType,
 } from "@/lib/vehicles";
+import { fetchPlanUsage, planLimitMessage, preflightCheck } from "@/lib/plan-limits";
+import { PlanUsageCard } from "@/components/plan-usage-card";
 
 export const Route = createFileRoute("/_authenticated/vehicles/")({
   head: () => ({ meta: [{ title: "Vehicles — School Van Guardian" }] }),
