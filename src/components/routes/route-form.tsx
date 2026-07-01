@@ -192,10 +192,13 @@ export function RouteForm({ defaults, drivers = [], vehicles = [], submitting, s
             stops={stops}
             color={values.route_color || ROUTE_COLORS[0]}
             maxStops={toNum(values.max_students)}
+            startTime={values.pickup_start_time ?? ""}
+            defaultDwellMin={dwellDefault}
             onStartChange={setStart}
             onEndChange={setEnd}
             onStopsChange={setStops}
             onSummaryChange={setSummary}
+            onEndLegChange={setEndLeg}
           />
         </div>
 
