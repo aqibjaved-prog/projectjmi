@@ -124,11 +124,21 @@ export function StudentForm({
     }
   };
 
+  const handleFormSubmit = form.handleSubmit((v) => {
+    // Frontend capacity guard (backend trigger also enforces).
+    if (v.is_active !== false && v.vehicle_id && v.vehicle_id !== defaultValues?.vehicle_id) {
+      const occ = occupancy?.get(v.vehicle_id);
+      if (occ && occ.available <= 0) {
+        toast.error("This vehicle has reached its maximum seating capacity.");
+        return;
+      }
+    }
+    onSubmit({ ...v, photo_url: photoUrl });
+  });
+
   return (
-    <form
-      onSubmit={form.handleSubmit((v) => onSubmit({ ...v, photo_url: photoUrl }))}
-      className="space-y-5"
-    >
+    <form onSubmit={handleFormSubmit} className="space-y-5">
+
       <div className="flex items-center gap-4">
         <div className="grid h-20 w-20 place-items-center overflow-hidden rounded-full border bg-muted">
           {photoUrl ? (
