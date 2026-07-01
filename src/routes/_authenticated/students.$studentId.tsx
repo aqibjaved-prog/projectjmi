@@ -325,10 +325,18 @@ function StudentDetailPage() {
             <Info label="Drop address" value={student.drop_address} />
             <Info label="Drop GPS" value={student.drop_lat != null ? `${student.drop_lat}, ${student.drop_lng}` : null} />
             <Info label="Route" value={student.routes?.name} />
-            <Info label="Vehicle" value={student.vehicles ? `${student.vehicles.registration_number}${student.vehicles.model ? ` — ${student.vehicles.model}` : ""}` : null} />
+            <Info
+              label="Vehicle"
+              value={student.vehicles ? (() => {
+                const occ = student.vehicle_id ? occupancy?.get(student.vehicle_id) : null;
+                const label = `${student.vehicles!.registration_number}${student.vehicles!.model ? ` — ${student.vehicles!.model}` : ""}`;
+                return occ ? `${label} · Occupied ${occ.occupied} / ${occ.capacity}` : label;
+              })() : null}
+            />
           </CardContent>
         </Card>
       </div>
+
 
       <Dialog open={editOpen} onOpenChange={(o) => { setEditOpen(o); if (!o) navigate({ to: "/students/$studentId", params: { studentId }, search: { edit: undefined } }); }}>
         <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
