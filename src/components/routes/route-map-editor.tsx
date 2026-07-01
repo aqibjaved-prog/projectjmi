@@ -10,7 +10,17 @@ import {
   GripVertical, Clock, Route as RouteIcon, RotateCcw,
 } from "lucide-react";
 import type { RouteStop } from "@/lib/routes";
-import { newStop, parseHHMM, fmtHHMM, DEFAULT_DWELL_MIN } from "@/lib/routes";
+import {
+  calculateStopTimetable,
+  clearStopTimetable,
+  DEFAULT_DWELL_MIN,
+  effectiveDwellMinutes,
+  fmtHHMM,
+  newStop,
+  parseHHMM,
+  travelSecondsToScheduleMinutes,
+  WAITING_FOR_GOOGLE_ROUTE,
+} from "@/lib/routes";
 import { computeDirections, reverseGeocode as reverseGeocodeFn } from "@/lib/maps.functions";
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
@@ -67,6 +77,10 @@ function MissingKeyPlaceholder() {
 }
 
 interface LegInfo { seconds: number; meters: number }
+
+const stopsEqual = (a: RouteStop[], b: RouteStop[]) => JSON.stringify(a) === JSON.stringify(b);
+const hasGoogleDuration = (seconds: number | null | undefined) =>
+  seconds != null && Number.isFinite(Number(seconds));
 
 function MapEditor({
   start, end, stops, color = "#3b82f6", maxStops,
