@@ -34,6 +34,8 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { StudentForm } from "@/components/students/student-form";
 import { cleanNullable, type StudentRow, type StudentFormValues } from "@/lib/students";
+import { fetchPlanUsage, planLimitMessage, preflightCheck } from "@/lib/plan-limits";
+import { PlanUsageCard } from "@/components/plan-usage-card";
 
 export const Route = createFileRoute("/_authenticated/students/")({
   head: () => ({ meta: [{ title: "Students — School Van Guardian" }] }),

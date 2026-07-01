@@ -180,7 +180,7 @@ function VehiclesPage() {
       }
     },
     onSuccess: () => { toast.success("Vehicle added"); invalidate(); setCreateOpen(false); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+    onError: (e) => toast.error(planLimitMessage(e) ?? (e instanceof Error ? e.message : "Failed")),
   });
 
   const setStatusM = useMutation({
