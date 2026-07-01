@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { isGoogleMapsConfigured, loadGoogleMaps } from "@/lib/google-maps-loader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Loader2, MapPin, Navigation, Trash2, Plus, GripVertical } from "lucide-react";
+import { AlertCircle, AlertTriangle, Loader2, MapPin, Navigation, Trash2, Plus, GripVertical, Clock, Route as RouteIcon } from "lucide-react";
 import type { RouteStop } from "@/lib/routes";
 import { newStop } from "@/lib/routes";
+import { computeDirections, reverseGeocode as reverseGeocodeFn } from "@/lib/maps.functions";
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
   type DragEndEvent,
@@ -28,6 +29,7 @@ interface Props {
   end: RoutePoint;
   stops: RouteStop[];
   color?: string;
+  maxStops?: number | null;
   onStartChange: (p: RoutePoint) => void;
   onEndChange: (p: RoutePoint) => void;
   onStopsChange: (stops: RouteStop[]) => void;
@@ -63,7 +65,7 @@ function MissingKeyPlaceholder() {
 }
 
 function MapEditor({
-  start, end, stops, color = "#3b82f6",
+  start, end, stops, color = "#3b82f6", maxStops,
   onStartChange, onEndChange, onStopsChange, onSummaryChange,
 }: Props) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -71,13 +73,14 @@ function MapEditor({
   const startMarkerRef = useRef<google.maps.Marker | null>(null);
   const endMarkerRef = useRef<google.maps.Marker | null>(null);
   const stopMarkersRef = useRef<google.maps.Marker[]>([]);
-  const rendererRef = useRef<google.maps.DirectionsRenderer | null>(null);
-  const directionsRef = useRef<google.maps.DirectionsService | null>(null);
-  const geocoderRef = useRef<google.maps.Geocoder | null>(null);
+  const polylineRef = useRef<google.maps.Polyline | null>(null);
   const clickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
+  const geocodeCacheRef = useRef<Map<string, string>>(new Map());
+  const directionsReqRef = useRef(0);
 
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [computing, setComputing] = useState(false);
   const [summary, setSummary] = useState<{ distanceKm: number | null; durationMin: number | null }>({
     distanceKm: null, durationMin: null,
   });
@@ -102,11 +105,8 @@ function MapEditor({
           fullscreenControl: false,
         });
         mapRef.current = map;
-        directionsRef.current = new g.maps.DirectionsService();
-        geocoderRef.current = new g.maps.Geocoder();
-        rendererRef.current = new g.maps.DirectionsRenderer({
-          map, suppressMarkers: true,
-          polylineOptions: { strokeColor: color, strokeWeight: 5, strokeOpacity: 0.85 },
+        polylineRef.current = new g.maps.Polyline({
+          map, path: [], strokeColor: color, strokeWeight: 5, strokeOpacity: 0.85,
         });
         clickListenerRef.current = map.addListener("click", (e: google.maps.MapMouseEvent) => {
           if (!e.latLng) return;
@@ -124,25 +124,26 @@ function MapEditor({
 
   // Update polyline color when it changes
   useEffect(() => {
-    rendererRef.current?.setOptions({
-      polylineOptions: { strokeColor: color, strokeWeight: 5, strokeOpacity: 0.85 },
-    });
+    polylineRef.current?.setOptions({ strokeColor: color });
   }, [color]);
 
   const handleMapClick = async (lat: number, lng: number) => {
     const { start: s, end: e, stops: st, onStartChange: oS, onEndChange: oE, onStopsChange: oSt } = latest.current;
-    const address = await reverseGeocode(lat, lng);
+    const address = await reverseLookup(lat, lng);
     if (s.lat == null) { oS({ address, lat, lng }); return; }
     if (e.lat == null) { oE({ address, lat, lng }); return; }
     const stop = { ...newStop(st.length), name: address || `Stop ${st.length + 1}`, address, lat, lng };
     oSt([...st, stop]);
   };
 
-  const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
-    if (!geocoderRef.current) return "";
+  const reverseLookup = async (lat: number, lng: number): Promise<string> => {
+    const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+    const cached = geocodeCacheRef.current.get(key);
+    if (cached !== undefined) return cached;
     try {
-      const res = await geocoderRef.current.geocode({ location: { lat, lng } });
-      return res.results?.[0]?.formatted_address ?? "";
+      const { address } = await reverseGeocodeFn({ data: { lat, lng } });
+      geocodeCacheRef.current.set(key, address);
+      return address;
     } catch { return ""; }
   };
 
@@ -161,7 +162,7 @@ function MapEditor({
         startMarkerRef.current.addListener("dragend", async (e: google.maps.MapMouseEvent) => {
           if (!e.latLng) return;
           const lat = e.latLng.lat(), lng = e.latLng.lng();
-          const address = await reverseGeocode(lat, lng);
+          const address = await reverseLookup(lat, lng);
           latest.current.onStartChange({ address, lat, lng });
         });
       }
@@ -179,7 +180,7 @@ function MapEditor({
         endMarkerRef.current.addListener("dragend", async (e: google.maps.MapMouseEvent) => {
           if (!e.latLng) return;
           const lat = e.latLng.lat(), lng = e.latLng.lng();
-          const address = await reverseGeocode(lat, lng);
+          const address = await reverseLookup(lat, lng);
           latest.current.onEndChange({ address, lat, lng });
         });
       }
@@ -200,7 +201,7 @@ function MapEditor({
       marker.addListener("dragend", async (e: google.maps.MapMouseEvent) => {
         if (!e.latLng) return;
         const lat = e.latLng.lat(), lng = e.latLng.lng();
-        const address = await reverseGeocode(lat, lng);
+        const address = await reverseLookup(lat, lng);
         const next = latest.current.stops.map((x, idx) =>
           idx === i ? { ...x, lat, lng, address } : x);
         latest.current.onStopsChange(next);
@@ -217,40 +218,50 @@ function MapEditor({
     if (has) map.fitBounds(bounds, 60);
 
     // Compute directions if we have start + end
-    void computeDirections();
+    void runDirections();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, start.lat, start.lng, end.lat, end.lng, stops]);
 
-  const computeDirections = async () => {
-    const svc = directionsRef.current;
-    const renderer = rendererRef.current;
-    if (!svc || !renderer) return;
+  const runDirections = async () => {
+    const poly = polylineRef.current;
+    if (!poly) return;
     if (start.lat == null || start.lng == null || end.lat == null || end.lng == null) {
-      renderer.setDirections({ routes: [] } as unknown as google.maps.DirectionsResult);
+      poly.setPath([]);
       setSummary({ distanceKm: null, durationMin: null });
       onSummaryChange?.({ distanceKm: null, durationMin: null });
       return;
     }
     const waypoints = stops
       .filter((s) => s.lat != null && s.lng != null)
-      .map((s) => ({ location: { lat: s.lat as number, lng: s.lng as number }, stopover: true }));
+      .map((s) => ({ lat: s.lat as number, lng: s.lng as number }));
+    const reqId = ++directionsReqRef.current;
+    setComputing(true);
     try {
-      const res = await svc.route({
-        origin: { lat: start.lat, lng: start.lng },
-        destination: { lat: end.lat, lng: end.lng },
-        waypoints,
-        optimizeWaypoints: false,
-        travelMode: google.maps.TravelMode.DRIVING,
+      const res = await computeDirections({
+        data: {
+          origin: { lat: start.lat, lng: start.lng },
+          destination: { lat: end.lat, lng: end.lng },
+          waypoints,
+        },
       });
-      renderer.setDirections(res);
-      const leg = res.routes[0]?.legs ?? [];
-      const meters = leg.reduce((a, l) => a + (l.distance?.value ?? 0), 0);
-      const seconds = leg.reduce((a, l) => a + (l.duration?.value ?? 0), 0);
-      const s = { distanceKm: +(meters / 1000).toFixed(2), durationMin: Math.round(seconds / 60) };
+      if (reqId !== directionsReqRef.current) return;
+      const g = (window as unknown as { google: typeof google }).google;
+      if (res.encodedPolyline && g?.maps?.geometry?.encoding) {
+        const path = g.maps.geometry.encoding.decodePath(res.encodedPolyline);
+        poly.setPath(path);
+      } else {
+        poly.setPath([]);
+      }
+      const s = {
+        distanceKm: +(res.distanceMeters / 1000).toFixed(2),
+        durationMin: Math.round(res.durationSeconds / 60),
+      };
       setSummary(s);
       onSummaryChange?.(s);
     } catch {
-      // ignore route errors (e.g. no roads)
+      poly.setPath([]);
+    } finally {
+      if (reqId === directionsReqRef.current) setComputing(false);
     }
   };
 
@@ -309,20 +320,46 @@ function MapEditor({
 
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <Badge variant="secondary" className="gap-1">
-          <Navigation className="h-3 w-3" />
+          <RouteIcon className="h-3 w-3" />
           {summary.distanceKm != null ? `${summary.distanceKm} km` : "— km"}
         </Badge>
-        <Badge variant="secondary">
+        <Badge variant="secondary" className="gap-1">
+          <Clock className="h-3 w-3" />
           {summary.durationMin != null ? `${summary.durationMin} min` : "— min"}
         </Badge>
         <Badge variant="secondary" className="gap-1">
           <MapPin className="h-3 w-3" />
           {stops.length} stop{stops.length === 1 ? "" : "s"}
         </Badge>
+        {computing && (
+          <Badge variant="outline" className="gap-1">
+            <Loader2 className="h-3 w-3 animate-spin" /> Calculating route…
+          </Badge>
+        )}
+        {summary.distanceKm != null && summary.distanceKm > 50 && (
+          <Badge variant="destructive" className="gap-1">
+            <AlertTriangle className="h-3 w-3" /> Long route (&gt; 50 km)
+          </Badge>
+        )}
+        {summary.durationMin != null && summary.durationMin > 90 && (
+          <Badge variant="destructive" className="gap-1">
+            <AlertTriangle className="h-3 w-3" /> Long duration (&gt; 90 min)
+          </Badge>
+        )}
+        {typeof maxStops === "number" && maxStops > 0 && stops.length > maxStops && (
+          <Badge variant="destructive" className="gap-1">
+            <AlertTriangle className="h-3 w-3" /> Exceeds max stops ({maxStops})
+          </Badge>
+        )}
         <span className="ml-auto text-xs text-muted-foreground">
           Tip: click on the map to add a stop, or drag any marker to adjust.
         </span>
       </div>
+      {computing || summary.distanceKm == null ? null : (
+        <p className="text-xs text-muted-foreground">
+          Route calculated via Google Directions — <Navigation className="inline h-3 w-3" /> {summary.distanceKm} km · {summary.durationMin} min · {stops.length} stops
+        </p>
+      )}
 
       {/* Stops */}
       <div>
