@@ -205,8 +205,32 @@ function StudentDetailPage() {
             <Button variant="outline" asChild>
               <Link to="/students"><ArrowLeft className="mr-2 h-4 w-4" /> Back</Link>
             </Button>
-            <Button variant="outline" onClick={() => setAssignRouteOpen(true)}>Assign route</Button>
-            <Button variant="outline" onClick={() => setAssignVehicleOpen(true)}>Assign vehicle</Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (!routes || routes.length === 0) {
+                  toast.info("No routes available. Please create a route first.");
+                  return;
+                }
+                setAssignRouteOpen(true);
+              }}
+              title={routes && routes.length === 0 ? "No routes available. Please create a route first." : undefined}
+            >
+              Assign route
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (!vehicles || vehicles.length === 0) {
+                  toast.info("No vehicles available. Please add a vehicle first.");
+                  return;
+                }
+                setAssignVehicleOpen(true);
+              }}
+              title={vehicles && vehicles.length === 0 ? "No vehicles available. Please add a vehicle first." : undefined}
+            >
+              Assign vehicle
+            </Button>
             <Button variant="outline" onClick={() => toggleActive.mutate()}>
               <Power className="mr-2 h-4 w-4" /> {student.is_active ? "Deactivate" : "Activate"}
             </Button>
@@ -354,20 +378,29 @@ function AssignDialog({
 }) {
   const [selected, setSelected] = useState<string>(value ?? "none");
   useEffect(() => { setSelected(value ?? "none"); }, [value, open]);
+  const empty = options.length === 0;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader>
-        <Select value={selected} onValueChange={setSelected}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">— None —</SelectItem>
-            {options.map((o) => <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        {empty ? (
+          <p className="text-sm text-muted-foreground">
+            {title.toLowerCase().includes("route")
+              ? "No routes available. Please create a route first."
+              : "No vehicles available. Please add a vehicle first."}
+          </p>
+        ) : (
+          <Select value={selected} onValueChange={setSelected}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">— None —</SelectItem>
+              {options.map((o) => <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button disabled={saving} onClick={() => onSave(selected === "none" ? null : selected)}>Save</Button>
+          <Button disabled={saving || empty} onClick={() => onSave(selected === "none" ? null : selected)}>Save</Button>
         </div>
       </DialogContent>
     </Dialog>
