@@ -22,6 +22,7 @@ import {
   cleanNullable, downloadDataUrl, makeQRDataUrl, printQR,
   type StudentFormValues, type StudentRow,
 } from "@/lib/students";
+import { fetchVehicleOccupancy, isCapacityError, type VehicleOccupancyRow } from "@/lib/vehicles";
 
 type Detail = StudentRow & {
   routes?: { id: string; name: string } | null;
