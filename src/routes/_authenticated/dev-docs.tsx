@@ -104,7 +104,7 @@ const MODULES: Array<{ name: string; status: "Complete" | "In Progress" | "Plann
   { name: "School Admin Management", status: "Complete", notes: "Super-admin creates accounts; password reset; tenant assignment." },
   { name: "Student Management", status: "Complete", notes: "31 fields, QR generation, CSV/Excel/PDF import/export, photo upload." },
   { name: "Driver Management", status: "Complete", notes: "Profile photo, license tracking with <30-day warnings, import/export." },
-  { name: "Vehicle Management", status: "Complete", notes: "Full fleet CRUD, photo upload, insurance/fitness/pollution expiry tracking, import/export, super-admin read-only cross-tenant view." },
+  { name: "Vehicle Management", status: "Complete", notes: "Full fleet CRUD, photo upload, insurance/fitness/pollution expiry tracking, import/export, super-admin read-only cross-tenant view. Backend-enforced seating capacity: a Postgres trigger (students_check_vehicle_capacity) rejects INSERT/UPDATE that would exceed a vehicle's capacity; the vehicle_occupancy view (security_invoker) exposes capacity/occupied/available seats per vehicle and powers frontend badges, disabled selects, and dashboard totals." },
   { name: "Route Management", status: "Planned", notes: "Stops, timing, driver/vehicle assignment." },
   { name: "Parent Management", status: "Planned", notes: "Invite parents, link children." },
   { name: "Trip Management", status: "Planned", notes: "Live trips, QR check-in/out, speed logs." },
