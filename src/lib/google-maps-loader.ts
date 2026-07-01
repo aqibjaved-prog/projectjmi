@@ -1,5 +1,5 @@
+/// <reference types="google.maps" />
 // Loads the Google Maps JavaScript API once, using the browser key from the
-// Lovable connector. Returns a promise that resolves with the `google` namespace.
 
 const BROWSER_KEY = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY as
   | string
