@@ -56,6 +56,9 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur">
       <SidebarTrigger />
+      <Badge variant="outline" className="hidden text-[10px] font-semibold uppercase tracking-wider sm:inline-flex">
+        {roleLabel(primaryRole)}
+      </Badge>
       {primaryRole === "school_admin" && school && (
         <div className="flex items-center gap-2">
           <Avatar className="h-7 w-7">
