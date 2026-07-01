@@ -39,6 +39,8 @@ import {
   VEHICLE_TYPES, VEHICLE_STATUSES, FUEL_TYPES,
   type VehicleFormValues, type VehicleRow, type VehicleType, type VehicleStatus, type FuelType,
 } from "@/lib/vehicles";
+import { fetchPlanUsage, planLimitMessage, preflightCheck } from "@/lib/plan-limits";
+import { PlanUsageCard } from "@/components/plan-usage-card";
 
 export const Route = createFileRoute("/_authenticated/vehicles/")({
   head: () => ({ meta: [{ title: "Vehicles — School Van Guardian" }] }),
@@ -101,6 +103,12 @@ function VehiclesPage() {
     enabled: !!occupancyScope,
     queryKey: ["vehicle-occupancy", occupancyScope],
     queryFn: () => fetchVehicleOccupancy(occupancyScope),
+  });
+
+  const { data: planUsage } = useQuery({
+    enabled: !!occupancyScope,
+    queryKey: ["plan-usage", occupancyScope],
+    queryFn: () => fetchPlanUsage(occupancyScope),
   });
 
   const filtered = useMemo(() => {
@@ -167,6 +175,10 @@ function VehiclesPage() {
   const create = useMutation({
     mutationFn: async ({ values, photo }: { values: VehicleFormValues; photo: File | null }) => {
       if (!activeSchoolId) throw new Error("No school selected.");
+      if (planUsage) {
+        const err = preflightCheck(planUsage.vehicles);
+        if (err) throw new Error("PLAN_LIMIT_VEHICLES: " + err);
+      }
       const { columns, metadata } = splitVehiclePayload(values);
       const { data: inserted, error } = await supabase
         .from("vehicles")
@@ -180,7 +192,7 @@ function VehiclesPage() {
       }
     },
     onSuccess: () => { toast.success("Vehicle added"); invalidate(); setCreateOpen(false); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+    onError: (e) => toast.error(planLimitMessage(e) ?? (e instanceof Error ? e.message : "Failed")),
   });
 
   const setStatusM = useMutation({
@@ -243,7 +255,7 @@ function VehiclesPage() {
       return payload.length;
     },
     onSuccess: (n) => { toast.success(`Imported ${n} vehicles`); invalidate(); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Import failed"),
+    onError: (e) => toast.error(planLimitMessage(e) ?? (e instanceof Error ? e.message : "Import failed")),
   });
 
   const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -386,6 +398,8 @@ function VehiclesPage() {
         <StatCard label="Occupied seats" value={totals.occupiedSeats ?? "—"} icon={CheckCircle2} loading={isLoading} />
         <StatCard label="Available seats" value={totals.availableSeats ?? "—"} icon={CheckCircle2} loading={isLoading} tone="success" />
       </div>
+
+      {planUsage ? <PlanUsageCard usage={planUsage} /> : null}
 
       <Card className="mt-4">
         <CardContent className="p-0">

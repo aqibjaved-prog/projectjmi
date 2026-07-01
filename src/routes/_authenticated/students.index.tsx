@@ -34,6 +34,8 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { StudentForm } from "@/components/students/student-form";
 import { cleanNullable, type StudentRow, type StudentFormValues } from "@/lib/students";
+import { fetchPlanUsage, planLimitMessage, preflightCheck } from "@/lib/plan-limits";
+import { PlanUsageCard } from "@/components/plan-usage-card";
 
 export const Route = createFileRoute("/_authenticated/students/")({
   head: () => ({ meta: [{ title: "Students — School Van Guardian" }] }),
@@ -90,6 +92,13 @@ function StudentsPage() {
       if (error) throw error;
       return (data ?? []) as StudentListRow[];
     },
+  });
+
+  const usageScope = isSuper ? (schoolFilter !== "all" ? schoolFilter : null) : (schoolId ?? null);
+  const { data: planUsage } = useQuery({
+    enabled: !!usageScope,
+    queryKey: ["plan-usage", usageScope],
+    queryFn: () => fetchPlanUsage(usageScope),
   });
 
   const classes = useMemo(
@@ -150,6 +159,10 @@ function StudentsPage() {
     mutationFn: async (values: StudentFormValues & { photo_url?: string | null }) => {
       const target = activeSchoolId;
       if (!target) throw new Error("Select a school first.");
+      if (planUsage && (values.is_active !== false)) {
+        const err = preflightCheck(planUsage.students);
+        if (err) throw new Error("PLAN_LIMIT_STUDENTS: " + err);
+      }
       const payload = cleanNullable({
         ...values,
         school_id: target,
@@ -163,7 +176,7 @@ function StudentsPage() {
       invalidate();
       setCreateOpen(false);
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+    onError: (e) => toast.error(planLimitMessage(e) ?? (e instanceof Error ? e.message : "Failed")),
   });
 
   const setActive = useMutation({
@@ -175,7 +188,7 @@ function StudentsPage() {
       toast.success(v.is_active ? "Student activated" : "Student deactivated");
       invalidate();
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+    onError: (e) => toast.error(planLimitMessage(e) ?? (e instanceof Error ? e.message : "Failed")),
   });
 
   const remove = useMutation({
@@ -220,7 +233,7 @@ function StudentsPage() {
       return payload.length;
     },
     onSuccess: (n) => { toast.success(`Imported ${n} students`); invalidate(); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Import failed"),
+    onError: (e) => toast.error(planLimitMessage(e) ?? (e instanceof Error ? e.message : "Import failed")),
   });
 
   const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -348,6 +361,8 @@ function StudentsPage() {
         <StatCard label="Active" value={totals.active} icon={CheckCircle2} loading={isLoading} tone="success" />
         <StatCard label="Inactive" value={totals.inactive} icon={XCircle} loading={isLoading} tone="warning" />
       </div>
+
+      {planUsage ? <PlanUsageCard usage={planUsage} /> : null}
 
       <Card className="mt-4">
         <CardContent className="p-0">

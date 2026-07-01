@@ -22,6 +22,8 @@ import {
   XCircle,
 } from "lucide-react";
 import { expiryState, isExpiringThisMonth, monthlyAmountCents, type BillingCycle } from "@/lib/plans";
+import { fetchPlanUsage } from "@/lib/plan-limits";
+import { PlanUsageCard } from "@/components/plan-usage-card";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — School Van Guardian" }] }),
@@ -116,6 +118,11 @@ function SuperAdminDashboard() {
 // ---------- School Admin ----------
 function SchoolAdminDashboard() {
   const { schoolId } = useAuth();
+  const { data: planUsage } = useQuery({
+    enabled: !!schoolId,
+    queryKey: ["plan-usage", schoolId],
+    queryFn: () => fetchPlanUsage(schoolId),
+  });
   const { data, isLoading } = useQuery({
     enabled: !!schoolId,
     queryKey: ["school-stats", schoolId],
@@ -174,6 +181,7 @@ function SchoolAdminDashboard() {
         <StatCard label="Available seats" value={data?.availableSeats} icon={Users} loading={isLoading} tone="success" />
         <StatCard label="Pending notifications" value={data?.unreadNotifs} icon={Bell} loading={isLoading} tone="warning" />
       </div>
+      {planUsage ? <div className="mt-6"><PlanUsageCard usage={planUsage} /></div> : null}
       <Card className="mt-6">
         <CardHeader><CardTitle>Quick actions</CardTitle></CardHeader>
         <CardContent className="flex flex-wrap gap-2">
