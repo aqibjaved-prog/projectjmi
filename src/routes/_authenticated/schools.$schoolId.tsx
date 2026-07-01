@@ -513,6 +513,17 @@ function SubscriptionPanel({ schoolId, sub }: { schoolId: string; sub: SubRow | 
               <RefreshCw className="mr-2 h-4 w-4" /> Renew
             </Button>
           )}
+          {sub && (
+            <Button
+              variant="outline"
+              onClick={() => recalc.mutate()}
+              disabled={recalc.isPending || assign.isPending}
+              title="Recompute end date from the plan's configured duration"
+            >
+              {recalc.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+              Recalculate dates
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
