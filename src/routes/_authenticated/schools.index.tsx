@@ -150,7 +150,9 @@ function SchoolsPage() {
         .limit(1)
         .maybeSingle();
       const start = new Date();
-      const end = periodEndFor(start, trial?.billing_cycle ?? "trial", trial?.duration_days ?? 30);
+      const end = trial && trial.duration_days && trial.duration_days >= 1
+        ? periodEndFor(start, trial.billing_cycle, trial.duration_days)
+        : null;
       await supabase.from("subscriptions").insert({
         school_id: data.id,
         plan_id: trial?.id ?? null,
