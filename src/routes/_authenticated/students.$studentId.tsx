@@ -205,8 +205,32 @@ function StudentDetailPage() {
             <Button variant="outline" asChild>
               <Link to="/students"><ArrowLeft className="mr-2 h-4 w-4" /> Back</Link>
             </Button>
-            <Button variant="outline" onClick={() => setAssignRouteOpen(true)}>Assign route</Button>
-            <Button variant="outline" onClick={() => setAssignVehicleOpen(true)}>Assign vehicle</Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (!routes || routes.length === 0) {
+                  toast.info("No routes available. Please create a route first.");
+                  return;
+                }
+                setAssignRouteOpen(true);
+              }}
+              title={routes && routes.length === 0 ? "No routes available. Please create a route first." : undefined}
+            >
+              Assign route
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (!vehicles || vehicles.length === 0) {
+                  toast.info("No vehicles available. Please add a vehicle first.");
+                  return;
+                }
+                setAssignVehicleOpen(true);
+              }}
+              title={vehicles && vehicles.length === 0 ? "No vehicles available. Please add a vehicle first." : undefined}
+            >
+              Assign vehicle
+            </Button>
             <Button variant="outline" onClick={() => toggleActive.mutate()}>
               <Power className="mr-2 h-4 w-4" /> {student.is_active ? "Deactivate" : "Activate"}
             </Button>
