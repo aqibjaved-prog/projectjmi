@@ -382,7 +382,7 @@ function AssignDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription className="sr-only">Choose an option to assign, or clear the current assignment.</DialogDescription></DialogHeader>
         {empty ? (
           <p className="text-sm text-muted-foreground">
             {title.toLowerCase().includes("route")
