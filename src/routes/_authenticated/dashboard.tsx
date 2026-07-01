@@ -122,23 +122,29 @@ function SchoolAdminDashboard() {
     queryFn: async () => {
       if (!schoolId) return null;
       const today = new Date().toISOString().slice(0, 10);
-      const [trips, pickups, drops, vehicles, drivers, students, routes] = await Promise.all([
+      const [trips, pickups, drops, vehicles, activeVehicles, drivers, students, routes, parents, unreadNotifs] = await Promise.all([
         supabase.from("trips").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("trip_date", today),
         supabase.from("trips").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("trip_date", today).eq("trip_type", "pickup"),
         supabase.from("trips").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("trip_date", today).eq("trip_type", "drop"),
+        supabase.from("vehicles").select("id", { count: "exact", head: true }).eq("school_id", schoolId),
         supabase.from("vehicles").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("is_active", true),
         supabase.from("drivers").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("is_active", true),
         supabase.from("students").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("is_active", true),
         supabase.from("routes").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("is_active", true),
+        supabase.from("parents").select("id", { count: "exact", head: true }).eq("school_id", schoolId),
+        supabase.from("notifications").select("id", { count: "exact", head: true }).eq("school_id", schoolId).eq("is_read", false),
       ]);
       return {
         trips: trips.count ?? 0,
         pickups: pickups.count ?? 0,
         drops: drops.count ?? 0,
         vehicles: vehicles.count ?? 0,
+        activeVehicles: activeVehicles.count ?? 0,
         drivers: drivers.count ?? 0,
         students: students.count ?? 0,
         routes: routes.count ?? 0,
+        parents: parents.count ?? 0,
+        unreadNotifs: unreadNotifs.count ?? 0,
       };
     },
   });
@@ -147,26 +153,32 @@ function SchoolAdminDashboard() {
     <>
       <PageHeader title="School dashboard" description="Today's activity across your fleet." />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Total students" value={data?.students} icon={Users} loading={isLoading} />
+        <StatCard label="Total drivers" value={data?.drivers} icon={UserCog} loading={isLoading} />
+        <StatCard label="Total parents" value={data?.parents} icon={Users} loading={isLoading} />
+        <StatCard label="Total vehicles" value={data?.vehicles} icon={Car} loading={isLoading} />
+        <StatCard label="Total routes" value={data?.routes} icon={MapPin} loading={isLoading} />
         <StatCard label="Today's trips" value={data?.trips} icon={Calendar} loading={isLoading} />
         <StatCard label="Today's pickups" value={data?.pickups} icon={MapPin} loading={isLoading} tone="success" />
         <StatCard label="Today's drops" value={data?.drops} icon={MapPin} loading={isLoading} />
-        <StatCard label="Active vehicles" value={data?.vehicles} icon={Car} loading={isLoading} />
-        <StatCard label="Active drivers" value={data?.drivers} icon={UserCog} loading={isLoading} />
-        <StatCard label="Students" value={data?.students} icon={Users} loading={isLoading} />
-        <StatCard label="Routes" value={data?.routes} icon={MapPin} loading={isLoading} />
+        <StatCard label="Active vehicles" value={data?.activeVehicles} icon={Car} loading={isLoading} tone="success" />
+        <StatCard label="Pending notifications" value={data?.unreadNotifs} icon={Bell} loading={isLoading} tone="warning" />
       </div>
       <Card className="mt-6">
         <CardHeader><CardTitle>Quick actions</CardTitle></CardHeader>
         <CardContent className="flex flex-wrap gap-2">
-          <Button asChild><a href="/students">Add students</a></Button>
-          <Button asChild variant="secondary"><a href="/drivers">Add drivers</a></Button>
-          <Button asChild variant="secondary"><a href="/vehicles">Add vehicles</a></Button>
-          <Button asChild variant="secondary"><a href="/routes">Create routes</a></Button>
+          <Button asChild><a href="/students">Manage students</a></Button>
+          <Button asChild variant="secondary"><a href="/drivers">Drivers</a></Button>
+          <Button asChild variant="secondary"><a href="/vehicles">Vehicles</a></Button>
+          <Button asChild variant="secondary"><a href="/routes">Routes</a></Button>
+          <Button asChild variant="secondary"><a href="/reports">Reports</a></Button>
+          <Button asChild variant="secondary"><a href="/school-settings">School settings</a></Button>
         </CardContent>
       </Card>
     </>
   );
 }
+
 
 // ---------- Driver ----------
 function DriverDashboard() {
