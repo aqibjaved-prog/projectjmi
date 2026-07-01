@@ -24,6 +24,7 @@ import {
   GENDERS,
   BLOOD_GROUPS,
 } from "@/lib/students";
+import { fetchVehicleOccupancy } from "@/lib/vehicles";
 
 export interface StudentFormProps {
   schoolId: string;
