@@ -72,7 +72,14 @@ export function PlanForm({ defaultValues, submitLabel, submitting, onSubmit }: P
         </div>
         <div className="space-y-1.5">
           <Label>Billing cycle</Label>
-          <Select value={v.billing_cycle} onValueChange={(x) => update("billing_cycle", x as PlanFormValues["billing_cycle"])}>
+          <Select value={v.billing_cycle} onValueChange={(x) => {
+            const cycle = x as PlanFormValues["billing_cycle"];
+            setV((p) => ({
+              ...p,
+              billing_cycle: cycle,
+              duration_days: cycle === "trial" ? (p.duration_days && p.duration_days >= 1 ? p.duration_days : 14) : p.duration_days,
+            }));
+          }}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="trial">Trial</SelectItem>
