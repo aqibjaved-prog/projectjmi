@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -204,7 +204,7 @@ function SchoolsPage() {
               <Button><Plus className="mr-2 h-4 w-4" /> Add school</Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
-              <DialogHeader><DialogTitle>Create school</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>Create school</DialogTitle><DialogDescription className="sr-only">Add a new school to the platform.</DialogDescription></DialogHeader>
               <SchoolForm
                 submitLabel="Create school"
                 submitting={create.isPending}

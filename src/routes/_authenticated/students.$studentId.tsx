@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -320,7 +320,7 @@ function StudentDetailPage() {
 
       <Dialog open={editOpen} onOpenChange={(o) => { setEditOpen(o); if (!o) navigate({ to: "/students/$studentId", params: { studentId }, search: { edit: undefined } }); }}>
         <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
-          <DialogHeader><DialogTitle>Edit student</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Edit student</DialogTitle><DialogDescription className="sr-only">Update this student's details.</DialogDescription></DialogHeader>
           {defaults && (
             <StudentForm
               schoolId={student.school_id}
@@ -382,7 +382,7 @@ function AssignDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription className="sr-only">Choose an option to assign, or clear the current assignment.</DialogDescription></DialogHeader>
         {empty ? (
           <p className="text-sm text-muted-foreground">
             {title.toLowerCase().includes("route")

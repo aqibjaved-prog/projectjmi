@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -348,7 +348,7 @@ function DriversPage() {
                   <Button disabled={!activeSchoolId}><Plus className="mr-2 h-4 w-4" /> Add driver</Button>
                 </DialogTrigger>
                 <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
-                  <DialogHeader><DialogTitle>Add driver</DialogTitle></DialogHeader>
+                  <DialogHeader><DialogTitle>Add driver</DialogTitle><DialogDescription className="sr-only">Register a new driver for this school.</DialogDescription></DialogHeader>
                   {activeSchoolId && (
                     <DriverForm
                       submitting={create.isPending}

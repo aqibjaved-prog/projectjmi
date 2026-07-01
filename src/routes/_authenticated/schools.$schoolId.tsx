@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Pencil, Power, Trash2, AlertTriangle, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
@@ -278,7 +278,7 @@ function SchoolDetailPage() {
         }}
       >
         <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>Edit school</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Edit school</DialogTitle><DialogDescription className="sr-only">Update this school's information.</DialogDescription></DialogHeader>
           <SchoolForm
             submitLabel="Save changes"
             submitting={update.isPending}

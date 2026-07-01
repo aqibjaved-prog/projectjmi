@@ -7,7 +7,7 @@ import { PageHeader, EmptyState } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Pencil, Trash2, Power, Wrench, Bus } from "lucide-react";
 import { toast } from "sonner";
@@ -230,7 +230,7 @@ function VehicleDetailPage() {
           }}
         >
           <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
-            <DialogHeader><DialogTitle>Edit vehicle</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>Edit vehicle</DialogTitle><DialogDescription className="sr-only">Update this vehicle's details.</DialogDescription></DialogHeader>
             {defaults && (
               <VehicleForm
                 defaults={defaults}

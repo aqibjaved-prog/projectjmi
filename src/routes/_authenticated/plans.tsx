@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Plus, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
@@ -99,7 +99,7 @@ function PlansPage() {
               <Button><Plus className="mr-2 h-4 w-4" /> New plan</Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
-              <DialogHeader><DialogTitle>Create plan</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>Create plan</DialogTitle><DialogDescription className="sr-only">Configure a new subscription plan.</DialogDescription></DialogHeader>
               <PlanForm submitLabel="Create plan" submitting={create.isPending} onSubmit={(v) => create.mutate(v)} />
             </DialogContent>
           </Dialog>
@@ -169,7 +169,7 @@ function PlansPage() {
 
       <Dialog open={!!editPlan} onOpenChange={(o) => !o && setEditPlan(null)}>
         <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>Edit plan</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Edit plan</DialogTitle><DialogDescription className="sr-only">Update the selected subscription plan.</DialogDescription></DialogHeader>
           {editPlan && (
             <PlanForm
               defaultValues={editPlan}

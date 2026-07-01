@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -115,7 +115,7 @@ function SchoolAdminsPage() {
               <Button><Plus className="mr-2 h-4 w-4" /> New school admin</Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>Create school admin</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>Create school admin</DialogTitle><DialogDescription className="sr-only">Invite a new administrator for a school.</DialogDescription></DialogHeader>
               <CreateForm schools={schools ?? []} pending={createMut.isPending} onSubmit={(v) => createMut.mutate(v)} />
             </DialogContent>
           </Dialog>
@@ -178,7 +178,7 @@ function SchoolAdminsPage() {
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Edit school admin</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Edit school admin</DialogTitle><DialogDescription className="sr-only">Update this administrator's details.</DialogDescription></DialogHeader>
           {editing && (
             <EditForm
               admin={editing}
@@ -192,7 +192,7 @@ function SchoolAdminsPage() {
 
       <Dialog open={!!resetting} onOpenChange={(o) => !o && setResetting(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Reset password</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Reset password</DialogTitle><DialogDescription className="sr-only">Set a new password for this administrator.</DialogDescription></DialogHeader>
           {resetting && (
             <ResetForm
               admin={resetting}
