@@ -353,7 +353,7 @@ function DriversPage() {
                     <DriverForm
                       submitting={create.isPending}
                       submitLabel="Create driver"
-                      onSubmit={(v) => create.mutate(v)}
+                      onSubmit={(values, photo) => create.mutate({ values, photo })}
                     />
                   )}
                 </DialogContent>
