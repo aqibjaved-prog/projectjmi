@@ -258,20 +258,32 @@ function DriversPage() {
     filtered.map((d) => {
       const m = d.metadata ?? {};
       return {
+        first_name: m.first_name ?? "",
+        last_name: m.last_name ?? "",
         full_name: d.full_name,
         phone: d.phone ?? "",
         email: m.email ?? "",
+        date_of_birth: m.date_of_birth ?? "",
+        gender: m.gender ?? "",
+        blood_group: m.blood_group ?? "",
+        address: m.address ?? "",
+        city: m.city ?? "",
+        state: m.state ?? "",
+        pincode: m.pincode ?? "",
+        aadhaar_number: m.aadhaar_number ?? "",
         license_number: d.license_number ?? "",
         license_class: m.license_class ?? "",
         license_issue_date: m.license_issue_date ?? "",
         license_expiry: d.license_expiry ?? "",
         license_status: licenseStatusLabel(licenseStatus(d.license_expiry)),
-        date_of_birth: m.date_of_birth ?? "",
-        address: m.address ?? "",
-        emergency_contact: m.emergency_contact ?? "",
+        experience_years: m.experience_years ?? "",
+        emergency_contact_name: m.emergency_contact_name ?? "",
+        emergency_contact_number: m.emergency_contact_number ?? m.emergency_contact ?? "",
+        joining_date: m.joining_date ?? "",
         status: d.is_active ? "active" : "inactive",
       };
     });
+
 
   const exportCSV = () => {
     const csv = Papa.unparse(exportData());
