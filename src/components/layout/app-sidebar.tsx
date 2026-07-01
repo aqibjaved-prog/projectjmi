@@ -16,6 +16,11 @@ import {
   ShieldCheck,
   User,
   BookOpen,
+  Navigation as NavigationIcon,
+  QrCode,
+  History,
+  Baby,
+  Radio,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -42,7 +47,9 @@ const NAV: { label: string; items: NavItem[] }[] = [
   {
     label: "Overview",
     items: [
-      { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, roles: ["super_admin", "school_admin", "driver", "parent"] },
+      { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, roles: ["super_admin", "school_admin"] },
+      { title: "Dashboard", url: "/driver/dashboard", icon: LayoutDashboard, roles: ["driver"] },
+      { title: "Dashboard", url: "/parent/dashboard", icon: LayoutDashboard, roles: ["parent"] },
     ],
   },
   {
@@ -63,14 +70,31 @@ const NAV: { label: string; items: NavItem[] }[] = [
       { title: "Parents", url: "/parents", icon: Users, roles: ["school_admin"] },
       { title: "Vehicles", url: "/vehicles", icon: Car, roles: ["school_admin"] },
       { title: "Routes", url: "/routes", icon: MapPin, roles: ["school_admin", "super_admin"] },
-      { title: "Trips", url: "/trips", icon: Calendar, roles: ["school_admin", "driver"] },
+      { title: "Trips", url: "/trips", icon: Calendar, roles: ["school_admin"] },
       { title: "Reports", url: "/reports", icon: FileBarChart, roles: ["school_admin"] },
+    ],
+  },
+  {
+    label: "Driver",
+    items: [
+      { title: "Today's Trip", url: "/driver/today", icon: Calendar, roles: ["driver"] },
+      { title: "Navigation", url: "/driver/navigation", icon: NavigationIcon, roles: ["driver"] },
+      { title: "Students", url: "/driver/students", icon: Users, roles: ["driver"] },
+      { title: "QR Scanner", url: "/driver/qr", icon: QrCode, roles: ["driver"] },
+      { title: "Trip History", url: "/driver/history", icon: History, roles: ["driver"] },
+    ],
+  },
+  {
+    label: "Parent",
+    items: [
+      { title: "My Child", url: "/parent/child", icon: Baby, roles: ["parent"] },
+      { title: "Live Bus", url: "/parent/live", icon: Radio, roles: ["parent"] },
+      { title: "Trip History", url: "/parent/history", icon: History, roles: ["parent"] },
     ],
   },
   {
     label: "Personal",
     items: [
-      { title: "My children", url: "/my-children", icon: Users, roles: ["parent"] },
       { title: "Notifications", url: "/notifications", icon: Bell, roles: ["super_admin", "school_admin", "driver", "parent"] },
       { title: "School Settings", url: "/school-settings", icon: Settings, roles: ["school_admin"] },
       { title: "Platform Settings", url: "/settings", icon: Settings, roles: ["super_admin"] },

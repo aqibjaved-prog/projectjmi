@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Bus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { ROLE_HOME } from "@/lib/role-access";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Sign in — School Van Guardian" }] }),
@@ -14,7 +15,7 @@ export const Route = createFileRoute("/auth")({
 });
 
 function AuthPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, primaryRole } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "reset">("signin");
   const [email, setEmail] = useState("");
@@ -22,8 +23,10 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) navigate({ to: "/dashboard" });
-  }, [user, loading, navigate]);
+    if (loading || !user) return;
+    const target = primaryRole ? ROLE_HOME[primaryRole] : "/dashboard";
+    navigate({ to: target });
+  }, [user, loading, primaryRole, navigate]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();

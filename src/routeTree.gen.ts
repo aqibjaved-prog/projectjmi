@@ -26,9 +26,11 @@ import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedPlansRouteImport } from './routes/_authenticated/plans'
 import { Route as AuthenticatedParentsRouteImport } from './routes/_authenticated/parents'
+import { Route as AuthenticatedParentRouteImport } from './routes/_authenticated/parent'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedMyChildrenRouteImport } from './routes/_authenticated/my-children'
 import { Route as AuthenticatedDriversRouteImport } from './routes/_authenticated/drivers'
+import { Route as AuthenticatedDriverRouteImport } from './routes/_authenticated/driver'
 import { Route as AuthenticatedDevDocsRouteImport } from './routes/_authenticated/dev-docs'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedVehiclesIndexRouteImport } from './routes/_authenticated/vehicles.index'
@@ -42,7 +44,17 @@ import { Route as AuthenticatedTripsTripIdRouteImport } from './routes/_authenti
 import { Route as AuthenticatedStudentsStudentIdRouteImport } from './routes/_authenticated/students.$studentId'
 import { Route as AuthenticatedSchoolsSchoolIdRouteImport } from './routes/_authenticated/schools.$schoolId'
 import { Route as AuthenticatedRoutesRouteIdRouteImport } from './routes/_authenticated/routes.$routeId'
+import { Route as AuthenticatedParentLiveRouteImport } from './routes/_authenticated/parent.live'
+import { Route as AuthenticatedParentHistoryRouteImport } from './routes/_authenticated/parent.history'
+import { Route as AuthenticatedParentDashboardRouteImport } from './routes/_authenticated/parent.dashboard'
+import { Route as AuthenticatedParentChildRouteImport } from './routes/_authenticated/parent.child'
 import { Route as AuthenticatedDriversDriverIdRouteImport } from './routes/_authenticated/drivers.$driverId'
+import { Route as AuthenticatedDriverTodayRouteImport } from './routes/_authenticated/driver.today'
+import { Route as AuthenticatedDriverStudentsRouteImport } from './routes/_authenticated/driver.students'
+import { Route as AuthenticatedDriverQrRouteImport } from './routes/_authenticated/driver.qr'
+import { Route as AuthenticatedDriverNavigationRouteImport } from './routes/_authenticated/driver.navigation'
+import { Route as AuthenticatedDriverHistoryRouteImport } from './routes/_authenticated/driver.history'
+import { Route as AuthenticatedDriverDashboardRouteImport } from './routes/_authenticated/driver.dashboard'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -131,6 +143,11 @@ const AuthenticatedParentsRoute = AuthenticatedParentsRouteImport.update({
   path: '/parents',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedParentRoute = AuthenticatedParentRouteImport.update({
+  id: '/parent',
+  path: '/parent',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedNotificationsRoute =
   AuthenticatedNotificationsRouteImport.update({
     id: '/notifications',
@@ -145,6 +162,11 @@ const AuthenticatedMyChildrenRoute = AuthenticatedMyChildrenRouteImport.update({
 const AuthenticatedDriversRoute = AuthenticatedDriversRouteImport.update({
   id: '/drivers',
   path: '/drivers',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDriverRoute = AuthenticatedDriverRouteImport.update({
+  id: '/driver',
+  path: '/driver',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDevDocsRoute = AuthenticatedDevDocsRouteImport.update({
@@ -222,11 +244,69 @@ const AuthenticatedRoutesRouteIdRoute =
     path: '/$routeId',
     getParentRoute: () => AuthenticatedRoutesRoute,
   } as any)
+const AuthenticatedParentLiveRoute = AuthenticatedParentLiveRouteImport.update({
+  id: '/live',
+  path: '/live',
+  getParentRoute: () => AuthenticatedParentRoute,
+} as any)
+const AuthenticatedParentHistoryRoute =
+  AuthenticatedParentHistoryRouteImport.update({
+    id: '/history',
+    path: '/history',
+    getParentRoute: () => AuthenticatedParentRoute,
+  } as any)
+const AuthenticatedParentDashboardRoute =
+  AuthenticatedParentDashboardRouteImport.update({
+    id: '/dashboard',
+    path: '/dashboard',
+    getParentRoute: () => AuthenticatedParentRoute,
+  } as any)
+const AuthenticatedParentChildRoute =
+  AuthenticatedParentChildRouteImport.update({
+    id: '/child',
+    path: '/child',
+    getParentRoute: () => AuthenticatedParentRoute,
+  } as any)
 const AuthenticatedDriversDriverIdRoute =
   AuthenticatedDriversDriverIdRouteImport.update({
     id: '/$driverId',
     path: '/$driverId',
     getParentRoute: () => AuthenticatedDriversRoute,
+  } as any)
+const AuthenticatedDriverTodayRoute =
+  AuthenticatedDriverTodayRouteImport.update({
+    id: '/today',
+    path: '/today',
+    getParentRoute: () => AuthenticatedDriverRoute,
+  } as any)
+const AuthenticatedDriverStudentsRoute =
+  AuthenticatedDriverStudentsRouteImport.update({
+    id: '/students',
+    path: '/students',
+    getParentRoute: () => AuthenticatedDriverRoute,
+  } as any)
+const AuthenticatedDriverQrRoute = AuthenticatedDriverQrRouteImport.update({
+  id: '/qr',
+  path: '/qr',
+  getParentRoute: () => AuthenticatedDriverRoute,
+} as any)
+const AuthenticatedDriverNavigationRoute =
+  AuthenticatedDriverNavigationRouteImport.update({
+    id: '/navigation',
+    path: '/navigation',
+    getParentRoute: () => AuthenticatedDriverRoute,
+  } as any)
+const AuthenticatedDriverHistoryRoute =
+  AuthenticatedDriverHistoryRouteImport.update({
+    id: '/history',
+    path: '/history',
+    getParentRoute: () => AuthenticatedDriverRoute,
+  } as any)
+const AuthenticatedDriverDashboardRoute =
+  AuthenticatedDriverDashboardRouteImport.update({
+    id: '/dashboard',
+    path: '/dashboard',
+    getParentRoute: () => AuthenticatedDriverRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -235,9 +315,11 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/dev-docs': typeof AuthenticatedDevDocsRoute
+  '/driver': typeof AuthenticatedDriverRouteWithChildren
   '/drivers': typeof AuthenticatedDriversRouteWithChildren
   '/my-children': typeof AuthenticatedMyChildrenRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
+  '/parent': typeof AuthenticatedParentRouteWithChildren
   '/parents': typeof AuthenticatedParentsRoute
   '/plans': typeof AuthenticatedPlansRoute
   '/profile': typeof AuthenticatedProfileRoute
@@ -251,7 +333,17 @@ export interface FileRoutesByFullPath {
   '/subscriptions': typeof AuthenticatedSubscriptionsRoute
   '/trips': typeof AuthenticatedTripsRouteWithChildren
   '/vehicles': typeof AuthenticatedVehiclesRouteWithChildren
+  '/driver/dashboard': typeof AuthenticatedDriverDashboardRoute
+  '/driver/history': typeof AuthenticatedDriverHistoryRoute
+  '/driver/navigation': typeof AuthenticatedDriverNavigationRoute
+  '/driver/qr': typeof AuthenticatedDriverQrRoute
+  '/driver/students': typeof AuthenticatedDriverStudentsRoute
+  '/driver/today': typeof AuthenticatedDriverTodayRoute
   '/drivers/$driverId': typeof AuthenticatedDriversDriverIdRoute
+  '/parent/child': typeof AuthenticatedParentChildRoute
+  '/parent/dashboard': typeof AuthenticatedParentDashboardRoute
+  '/parent/history': typeof AuthenticatedParentHistoryRoute
+  '/parent/live': typeof AuthenticatedParentLiveRoute
   '/routes/$routeId': typeof AuthenticatedRoutesRouteIdRoute
   '/schools/$schoolId': typeof AuthenticatedSchoolsSchoolIdRoute
   '/students/$studentId': typeof AuthenticatedStudentsStudentIdRoute
@@ -270,8 +362,10 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/dev-docs': typeof AuthenticatedDevDocsRoute
+  '/driver': typeof AuthenticatedDriverRouteWithChildren
   '/my-children': typeof AuthenticatedMyChildrenRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
+  '/parent': typeof AuthenticatedParentRouteWithChildren
   '/parents': typeof AuthenticatedParentsRoute
   '/plans': typeof AuthenticatedPlansRoute
   '/profile': typeof AuthenticatedProfileRoute
@@ -280,7 +374,17 @@ export interface FileRoutesByTo {
   '/school-settings': typeof AuthenticatedSchoolSettingsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/subscriptions': typeof AuthenticatedSubscriptionsRoute
+  '/driver/dashboard': typeof AuthenticatedDriverDashboardRoute
+  '/driver/history': typeof AuthenticatedDriverHistoryRoute
+  '/driver/navigation': typeof AuthenticatedDriverNavigationRoute
+  '/driver/qr': typeof AuthenticatedDriverQrRoute
+  '/driver/students': typeof AuthenticatedDriverStudentsRoute
+  '/driver/today': typeof AuthenticatedDriverTodayRoute
   '/drivers/$driverId': typeof AuthenticatedDriversDriverIdRoute
+  '/parent/child': typeof AuthenticatedParentChildRoute
+  '/parent/dashboard': typeof AuthenticatedParentDashboardRoute
+  '/parent/history': typeof AuthenticatedParentHistoryRoute
+  '/parent/live': typeof AuthenticatedParentLiveRoute
   '/routes/$routeId': typeof AuthenticatedRoutesRouteIdRoute
   '/schools/$schoolId': typeof AuthenticatedSchoolsSchoolIdRoute
   '/students/$studentId': typeof AuthenticatedStudentsStudentIdRoute
@@ -301,9 +405,11 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/dev-docs': typeof AuthenticatedDevDocsRoute
+  '/_authenticated/driver': typeof AuthenticatedDriverRouteWithChildren
   '/_authenticated/drivers': typeof AuthenticatedDriversRouteWithChildren
   '/_authenticated/my-children': typeof AuthenticatedMyChildrenRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
+  '/_authenticated/parent': typeof AuthenticatedParentRouteWithChildren
   '/_authenticated/parents': typeof AuthenticatedParentsRoute
   '/_authenticated/plans': typeof AuthenticatedPlansRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
@@ -317,7 +423,17 @@ export interface FileRoutesById {
   '/_authenticated/subscriptions': typeof AuthenticatedSubscriptionsRoute
   '/_authenticated/trips': typeof AuthenticatedTripsRouteWithChildren
   '/_authenticated/vehicles': typeof AuthenticatedVehiclesRouteWithChildren
+  '/_authenticated/driver/dashboard': typeof AuthenticatedDriverDashboardRoute
+  '/_authenticated/driver/history': typeof AuthenticatedDriverHistoryRoute
+  '/_authenticated/driver/navigation': typeof AuthenticatedDriverNavigationRoute
+  '/_authenticated/driver/qr': typeof AuthenticatedDriverQrRoute
+  '/_authenticated/driver/students': typeof AuthenticatedDriverStudentsRoute
+  '/_authenticated/driver/today': typeof AuthenticatedDriverTodayRoute
   '/_authenticated/drivers/$driverId': typeof AuthenticatedDriversDriverIdRoute
+  '/_authenticated/parent/child': typeof AuthenticatedParentChildRoute
+  '/_authenticated/parent/dashboard': typeof AuthenticatedParentDashboardRoute
+  '/_authenticated/parent/history': typeof AuthenticatedParentHistoryRoute
+  '/_authenticated/parent/live': typeof AuthenticatedParentLiveRoute
   '/_authenticated/routes/$routeId': typeof AuthenticatedRoutesRouteIdRoute
   '/_authenticated/schools/$schoolId': typeof AuthenticatedSchoolsSchoolIdRoute
   '/_authenticated/students/$studentId': typeof AuthenticatedStudentsStudentIdRoute
@@ -338,9 +454,11 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/dashboard'
     | '/dev-docs'
+    | '/driver'
     | '/drivers'
     | '/my-children'
     | '/notifications'
+    | '/parent'
     | '/parents'
     | '/plans'
     | '/profile'
@@ -354,7 +472,17 @@ export interface FileRouteTypes {
     | '/subscriptions'
     | '/trips'
     | '/vehicles'
+    | '/driver/dashboard'
+    | '/driver/history'
+    | '/driver/navigation'
+    | '/driver/qr'
+    | '/driver/students'
+    | '/driver/today'
     | '/drivers/$driverId'
+    | '/parent/child'
+    | '/parent/dashboard'
+    | '/parent/history'
+    | '/parent/live'
     | '/routes/$routeId'
     | '/schools/$schoolId'
     | '/students/$studentId'
@@ -373,8 +501,10 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/dashboard'
     | '/dev-docs'
+    | '/driver'
     | '/my-children'
     | '/notifications'
+    | '/parent'
     | '/parents'
     | '/plans'
     | '/profile'
@@ -383,7 +513,17 @@ export interface FileRouteTypes {
     | '/school-settings'
     | '/settings'
     | '/subscriptions'
+    | '/driver/dashboard'
+    | '/driver/history'
+    | '/driver/navigation'
+    | '/driver/qr'
+    | '/driver/students'
+    | '/driver/today'
     | '/drivers/$driverId'
+    | '/parent/child'
+    | '/parent/dashboard'
+    | '/parent/history'
+    | '/parent/live'
     | '/routes/$routeId'
     | '/schools/$schoolId'
     | '/students/$studentId'
@@ -403,9 +543,11 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/dashboard'
     | '/_authenticated/dev-docs'
+    | '/_authenticated/driver'
     | '/_authenticated/drivers'
     | '/_authenticated/my-children'
     | '/_authenticated/notifications'
+    | '/_authenticated/parent'
     | '/_authenticated/parents'
     | '/_authenticated/plans'
     | '/_authenticated/profile'
@@ -419,7 +561,17 @@ export interface FileRouteTypes {
     | '/_authenticated/subscriptions'
     | '/_authenticated/trips'
     | '/_authenticated/vehicles'
+    | '/_authenticated/driver/dashboard'
+    | '/_authenticated/driver/history'
+    | '/_authenticated/driver/navigation'
+    | '/_authenticated/driver/qr'
+    | '/_authenticated/driver/students'
+    | '/_authenticated/driver/today'
     | '/_authenticated/drivers/$driverId'
+    | '/_authenticated/parent/child'
+    | '/_authenticated/parent/dashboard'
+    | '/_authenticated/parent/history'
+    | '/_authenticated/parent/live'
     | '/_authenticated/routes/$routeId'
     | '/_authenticated/schools/$schoolId'
     | '/_authenticated/students/$studentId'
@@ -561,6 +713,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedParentsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/parent': {
+      id: '/_authenticated/parent'
+      path: '/parent'
+      fullPath: '/parent'
+      preLoaderRoute: typeof AuthenticatedParentRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/notifications': {
       id: '/_authenticated/notifications'
       path: '/notifications'
@@ -580,6 +739,13 @@ declare module '@tanstack/react-router' {
       path: '/drivers'
       fullPath: '/drivers'
       preLoaderRoute: typeof AuthenticatedDriversRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/driver': {
+      id: '/_authenticated/driver'
+      path: '/driver'
+      fullPath: '/driver'
+      preLoaderRoute: typeof AuthenticatedDriverRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dev-docs': {
@@ -673,6 +839,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRoutesRouteIdRouteImport
       parentRoute: typeof AuthenticatedRoutesRoute
     }
+    '/_authenticated/parent/live': {
+      id: '/_authenticated/parent/live'
+      path: '/live'
+      fullPath: '/parent/live'
+      preLoaderRoute: typeof AuthenticatedParentLiveRouteImport
+      parentRoute: typeof AuthenticatedParentRoute
+    }
+    '/_authenticated/parent/history': {
+      id: '/_authenticated/parent/history'
+      path: '/history'
+      fullPath: '/parent/history'
+      preLoaderRoute: typeof AuthenticatedParentHistoryRouteImport
+      parentRoute: typeof AuthenticatedParentRoute
+    }
+    '/_authenticated/parent/dashboard': {
+      id: '/_authenticated/parent/dashboard'
+      path: '/dashboard'
+      fullPath: '/parent/dashboard'
+      preLoaderRoute: typeof AuthenticatedParentDashboardRouteImport
+      parentRoute: typeof AuthenticatedParentRoute
+    }
+    '/_authenticated/parent/child': {
+      id: '/_authenticated/parent/child'
+      path: '/child'
+      fullPath: '/parent/child'
+      preLoaderRoute: typeof AuthenticatedParentChildRouteImport
+      parentRoute: typeof AuthenticatedParentRoute
+    }
     '/_authenticated/drivers/$driverId': {
       id: '/_authenticated/drivers/$driverId'
       path: '/$driverId'
@@ -680,8 +874,71 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDriversDriverIdRouteImport
       parentRoute: typeof AuthenticatedDriversRoute
     }
+    '/_authenticated/driver/today': {
+      id: '/_authenticated/driver/today'
+      path: '/today'
+      fullPath: '/driver/today'
+      preLoaderRoute: typeof AuthenticatedDriverTodayRouteImport
+      parentRoute: typeof AuthenticatedDriverRoute
+    }
+    '/_authenticated/driver/students': {
+      id: '/_authenticated/driver/students'
+      path: '/students'
+      fullPath: '/driver/students'
+      preLoaderRoute: typeof AuthenticatedDriverStudentsRouteImport
+      parentRoute: typeof AuthenticatedDriverRoute
+    }
+    '/_authenticated/driver/qr': {
+      id: '/_authenticated/driver/qr'
+      path: '/qr'
+      fullPath: '/driver/qr'
+      preLoaderRoute: typeof AuthenticatedDriverQrRouteImport
+      parentRoute: typeof AuthenticatedDriverRoute
+    }
+    '/_authenticated/driver/navigation': {
+      id: '/_authenticated/driver/navigation'
+      path: '/navigation'
+      fullPath: '/driver/navigation'
+      preLoaderRoute: typeof AuthenticatedDriverNavigationRouteImport
+      parentRoute: typeof AuthenticatedDriverRoute
+    }
+    '/_authenticated/driver/history': {
+      id: '/_authenticated/driver/history'
+      path: '/history'
+      fullPath: '/driver/history'
+      preLoaderRoute: typeof AuthenticatedDriverHistoryRouteImport
+      parentRoute: typeof AuthenticatedDriverRoute
+    }
+    '/_authenticated/driver/dashboard': {
+      id: '/_authenticated/driver/dashboard'
+      path: '/dashboard'
+      fullPath: '/driver/dashboard'
+      preLoaderRoute: typeof AuthenticatedDriverDashboardRouteImport
+      parentRoute: typeof AuthenticatedDriverRoute
+    }
   }
 }
+
+interface AuthenticatedDriverRouteChildren {
+  AuthenticatedDriverDashboardRoute: typeof AuthenticatedDriverDashboardRoute
+  AuthenticatedDriverHistoryRoute: typeof AuthenticatedDriverHistoryRoute
+  AuthenticatedDriverNavigationRoute: typeof AuthenticatedDriverNavigationRoute
+  AuthenticatedDriverQrRoute: typeof AuthenticatedDriverQrRoute
+  AuthenticatedDriverStudentsRoute: typeof AuthenticatedDriverStudentsRoute
+  AuthenticatedDriverTodayRoute: typeof AuthenticatedDriverTodayRoute
+}
+
+const AuthenticatedDriverRouteChildren: AuthenticatedDriverRouteChildren = {
+  AuthenticatedDriverDashboardRoute: AuthenticatedDriverDashboardRoute,
+  AuthenticatedDriverHistoryRoute: AuthenticatedDriverHistoryRoute,
+  AuthenticatedDriverNavigationRoute: AuthenticatedDriverNavigationRoute,
+  AuthenticatedDriverQrRoute: AuthenticatedDriverQrRoute,
+  AuthenticatedDriverStudentsRoute: AuthenticatedDriverStudentsRoute,
+  AuthenticatedDriverTodayRoute: AuthenticatedDriverTodayRoute,
+}
+
+const AuthenticatedDriverRouteWithChildren =
+  AuthenticatedDriverRoute._addFileChildren(AuthenticatedDriverRouteChildren)
 
 interface AuthenticatedDriversRouteChildren {
   AuthenticatedDriversDriverIdRoute: typeof AuthenticatedDriversDriverIdRoute
@@ -695,6 +952,23 @@ const AuthenticatedDriversRouteChildren: AuthenticatedDriversRouteChildren = {
 
 const AuthenticatedDriversRouteWithChildren =
   AuthenticatedDriversRoute._addFileChildren(AuthenticatedDriversRouteChildren)
+
+interface AuthenticatedParentRouteChildren {
+  AuthenticatedParentChildRoute: typeof AuthenticatedParentChildRoute
+  AuthenticatedParentDashboardRoute: typeof AuthenticatedParentDashboardRoute
+  AuthenticatedParentHistoryRoute: typeof AuthenticatedParentHistoryRoute
+  AuthenticatedParentLiveRoute: typeof AuthenticatedParentLiveRoute
+}
+
+const AuthenticatedParentRouteChildren: AuthenticatedParentRouteChildren = {
+  AuthenticatedParentChildRoute: AuthenticatedParentChildRoute,
+  AuthenticatedParentDashboardRoute: AuthenticatedParentDashboardRoute,
+  AuthenticatedParentHistoryRoute: AuthenticatedParentHistoryRoute,
+  AuthenticatedParentLiveRoute: AuthenticatedParentLiveRoute,
+}
+
+const AuthenticatedParentRouteWithChildren =
+  AuthenticatedParentRoute._addFileChildren(AuthenticatedParentRouteChildren)
 
 interface AuthenticatedRoutesRouteChildren {
   AuthenticatedRoutesRouteIdRoute: typeof AuthenticatedRoutesRouteIdRoute
@@ -768,9 +1042,11 @@ const AuthenticatedVehiclesRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDevDocsRoute: typeof AuthenticatedDevDocsRoute
+  AuthenticatedDriverRoute: typeof AuthenticatedDriverRouteWithChildren
   AuthenticatedDriversRoute: typeof AuthenticatedDriversRouteWithChildren
   AuthenticatedMyChildrenRoute: typeof AuthenticatedMyChildrenRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
+  AuthenticatedParentRoute: typeof AuthenticatedParentRouteWithChildren
   AuthenticatedParentsRoute: typeof AuthenticatedParentsRoute
   AuthenticatedPlansRoute: typeof AuthenticatedPlansRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
@@ -789,9 +1065,11 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDevDocsRoute: AuthenticatedDevDocsRoute,
+  AuthenticatedDriverRoute: AuthenticatedDriverRouteWithChildren,
   AuthenticatedDriversRoute: AuthenticatedDriversRouteWithChildren,
   AuthenticatedMyChildrenRoute: AuthenticatedMyChildrenRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
+  AuthenticatedParentRoute: AuthenticatedParentRouteWithChildren,
   AuthenticatedParentsRoute: AuthenticatedParentsRoute,
   AuthenticatedPlansRoute: AuthenticatedPlansRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
