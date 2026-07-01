@@ -91,12 +91,19 @@ export function StudentForm({
     queryFn: async () => {
       const { data } = await supabase
         .from("vehicles")
-        .select("id,registration_number,model")
+        .select("id,registration_number,model,capacity")
         .eq("school_id", schoolId)
         .order("registration_number");
       return data ?? [];
     },
   });
+
+  const { data: occupancy } = useQuery({
+    queryKey: ["vehicle-occupancy", schoolId],
+    queryFn: () => fetchVehicleOccupancy(schoolId),
+  });
+
+  const currentVehicleId = form.watch("vehicle_id") ?? null;
 
   const handlePhoto = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
