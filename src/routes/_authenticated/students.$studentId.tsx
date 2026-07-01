@@ -31,7 +31,7 @@ type Detail = StudentRow & {
 
 export const Route = createFileRoute("/_authenticated/students/$studentId")({
   head: () => ({ meta: [{ title: "Student — School Van Guardian" }] }),
-  validateSearch: (s: Record<string, unknown>) => ({ edit: s.edit ? 1 : undefined }),
+  validateSearch: (s: Record<string, unknown>) => ({ edit: s.edit ? 1 : undefined } as { edit?: number }),
   component: StudentDetailPage,
 });
 
@@ -88,7 +88,7 @@ function StudentDetailPage() {
       toast.success("Student updated");
       invalidate();
       setEditOpen(false);
-      navigate({ to: "/students/$studentId", params: { studentId }, search: {} });
+      navigate({ to: "/students/$studentId", params: { studentId }, search: { edit: undefined } });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
@@ -294,7 +294,7 @@ function StudentDetailPage() {
         </Card>
       </div>
 
-      <Dialog open={editOpen} onOpenChange={(o) => { setEditOpen(o); if (!o) navigate({ to: "/students/$studentId", params: { studentId }, search: {} }); }}>
+      <Dialog open={editOpen} onOpenChange={(o) => { setEditOpen(o); if (!o) navigate({ to: "/students/$studentId", params: { studentId }, search: { edit: undefined } }); }}>
         <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
           <DialogHeader><DialogTitle>Edit student</DialogTitle></DialogHeader>
           {defaults && (

@@ -442,7 +442,7 @@ function StudentsPage() {
                             {s.photo_url ? <img src={s.photo_url} alt="" className="h-full w-full object-cover" /> : (s.full_name ?? "?").slice(0, 2).toUpperCase()}
                           </div>
                           <div>
-                            <Link to="/students/$studentId" params={{ studentId: s.id }} className="font-medium hover:underline">
+                            <Link to="/students/$studentId" params={{ studentId: s.id }} search={{}} className="font-medium hover:underline">
                               {s.full_name}
                             </Link>
                             <div className="text-xs text-muted-foreground">
@@ -476,7 +476,7 @@ function StudentsPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem asChild>
-                              <Link to="/students/$studentId" params={{ studentId: s.id }}>
+                              <Link to="/students/$studentId" params={{ studentId: s.id }} search={{}}>
                                 <Eye className="mr-2 h-4 w-4" /> View details
                               </Link>
                             </DropdownMenuItem>
