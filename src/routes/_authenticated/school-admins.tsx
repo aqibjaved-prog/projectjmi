@@ -115,7 +115,7 @@ function SchoolAdminsPage() {
               <Button><Plus className="mr-2 h-4 w-4" /> New school admin</Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>Create school admin</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>Create school admin</DialogTitle><DialogDescription className="sr-only">Invite a new administrator for a school.</DialogDescription></DialogHeader>
               <CreateForm schools={schools ?? []} pending={createMut.isPending} onSubmit={(v) => createMut.mutate(v)} />
             </DialogContent>
           </Dialog>
