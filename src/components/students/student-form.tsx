@@ -239,34 +239,46 @@ export function StudentForm({
             <Input type="number" step="any" {...form.register("drop_lng")} />
           </Field>
           <Field label="Assigned route">
-            <Select
-              value={form.watch("route_id") ?? "none"}
-              onValueChange={(v) => form.setValue("route_id", v === "none" ? null : v)}
-            >
-              <SelectTrigger><SelectValue placeholder="No route" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">— No route —</SelectItem>
-                {(routes ?? []).map((r) => (
-                  <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {(routes ?? []).length === 0 ? (
+              <p className="text-xs text-muted-foreground rounded-md border border-dashed px-3 py-2">
+                No routes available. Please create a route first.
+              </p>
+            ) : (
+              <Select
+                value={form.watch("route_id") ?? "none"}
+                onValueChange={(v) => form.setValue("route_id", v === "none" ? null : v)}
+              >
+                <SelectTrigger><SelectValue placeholder="No route" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— No route —</SelectItem>
+                  {(routes ?? []).map((r) => (
+                    <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </Field>
           <Field label="Assigned vehicle">
-            <Select
-              value={form.watch("vehicle_id") ?? "none"}
-              onValueChange={(v) => form.setValue("vehicle_id", v === "none" ? null : v)}
-            >
-              <SelectTrigger><SelectValue placeholder="No vehicle" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">— No vehicle —</SelectItem>
-                {(vehicles ?? []).map((v) => (
-                  <SelectItem key={v.id} value={v.id}>
-                    {v.registration_number}{v.model ? ` — ${v.model}` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {(vehicles ?? []).length === 0 ? (
+              <p className="text-xs text-muted-foreground rounded-md border border-dashed px-3 py-2">
+                No vehicles available. Please add a vehicle first.
+              </p>
+            ) : (
+              <Select
+                value={form.watch("vehicle_id") ?? "none"}
+                onValueChange={(v) => form.setValue("vehicle_id", v === "none" ? null : v)}
+              >
+                <SelectTrigger><SelectValue placeholder="No vehicle" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— No vehicle —</SelectItem>
+                  {(vehicles ?? []).map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.registration_number}{v.model ? ` — ${v.model}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </Field>
         </div>
       </Section>
