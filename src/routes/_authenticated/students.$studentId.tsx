@@ -144,7 +144,10 @@ function StudentDetailPage() {
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Vehicle updated"); invalidate(); setAssignVehicleOpen(false); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+    onError: (e) => {
+      if (isCapacityError(e)) toast.error("This vehicle has reached its maximum seating capacity.");
+      else toast.error(e instanceof Error ? e.message : "Failed");
+    },
   });
 
   const { data: routes } = useQuery({
@@ -159,9 +162,14 @@ function StudentDetailPage() {
     enabled: !!student?.school_id,
     queryKey: ["vehicles-for-school", student?.school_id],
     queryFn: async () => {
-      const { data } = await supabase.from("vehicles").select("id,registration_number,model").eq("school_id", student!.school_id).order("registration_number");
+      const { data } = await supabase.from("vehicles").select("id,registration_number,model,capacity").eq("school_id", student!.school_id).order("registration_number");
       return data ?? [];
     },
+  });
+  const { data: occupancy } = useQuery({
+    enabled: !!student?.school_id,
+    queryKey: ["vehicle-occupancy", student?.school_id],
+    queryFn: () => fetchVehicleOccupancy(student?.school_id),
   });
 
   const defaults = useMemo(() => {
