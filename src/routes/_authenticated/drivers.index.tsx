@@ -131,16 +131,24 @@ function DriversPage() {
   };
 
   const create = useMutation({
-    mutationFn: async (values: DriverFormValues) => {
+    mutationFn: async ({ values, photo }: { values: DriverFormValues; photo: File | null }) => {
       const target = activeSchoolId;
       if (!target) throw new Error("Select a school first.");
       const { columns, metadata } = splitDriverPayload(values);
-      const { error } = await supabase.from("drivers").insert({
-        ...columns,
-        school_id: target,
-        metadata,
-      });
+      const { data: inserted, error } = await supabase
+        .from("drivers")
+        .insert({ ...columns, school_id: target, metadata })
+        .select("id")
+        .single();
       if (error) throw error;
+      if (photo && inserted?.id) {
+        const { uploadDriverPhoto } = await import("@/lib/drivers");
+        const path = await uploadDriverPhoto(target, inserted.id, photo);
+        await supabase
+          .from("drivers")
+          .update({ metadata: { ...metadata, photo_path: path } })
+          .eq("id", inserted.id);
+      }
     },
     onSuccess: () => {
       toast.success("Driver added");
@@ -176,22 +184,41 @@ function DriversPage() {
     mutationFn: async (rows: Record<string, unknown>[]) => {
       const target = activeSchoolId;
       if (!target) throw new Error("Select a school first.");
+      const asStr = (v: unknown) => (v == null ? "" : String(v));
       const payload = rows
-        .filter((r) => r && (r.full_name || r.name))
+        .filter((r) => r && (r.first_name || r.full_name || r.name))
         .map((r) => {
+          let first = asStr(r.first_name);
+          let last = asStr(r.last_name);
+          if (!first && (r.full_name || r.name)) {
+            const parts = asStr(r.full_name ?? r.name).trim().split(/\s+/);
+            first = parts[0] ?? "";
+            last = parts.slice(1).join(" ");
+          }
           const values: DriverFormValues = {
-            full_name: (r.full_name as string) ?? (r.name as string) ?? "",
-            phone: (r.phone as string) ?? "",
-            email: (r.email as string) ?? "",
-            license_number: (r.license_number as string) ?? "",
-            license_class: (r.license_class as string) ?? "",
-            license_issue_date: (r.license_issue_date as string) ?? "",
-            license_expiry: (r.license_expiry as string) ?? "",
-            date_of_birth: (r.date_of_birth as string) ?? "",
-            address: (r.address as string) ?? "",
-            emergency_contact: (r.emergency_contact as string) ?? "",
-            notes: (r.notes as string) ?? "",
-            is_active: r.is_active === false || r.is_active === "false" ? false : true,
+            first_name: first,
+            last_name: last,
+            phone: asStr(r.phone),
+            email: asStr(r.email),
+            date_of_birth: asStr(r.date_of_birth),
+            gender: asStr(r.gender),
+            blood_group: asStr(r.blood_group),
+            address: asStr(r.address),
+            city: asStr(r.city),
+            state: asStr(r.state),
+            pincode: asStr(r.pincode),
+            aadhaar_number: asStr(r.aadhaar_number),
+            license_number: asStr(r.license_number),
+            license_class: asStr(r.license_class),
+            license_issue_date: asStr(r.license_issue_date),
+            license_expiry: asStr(r.license_expiry),
+            experience_years: asStr(r.experience_years),
+            emergency_contact_name: asStr(r.emergency_contact_name),
+            emergency_contact_number: asStr(r.emergency_contact_number ?? r.emergency_contact),
+            joining_date: asStr(r.joining_date),
+            notes: asStr(r.notes),
+            photo_url: "",
+            is_active: !(r.is_active === false || r.is_active === "false"),
           };
           const { columns, metadata } = splitDriverPayload(values);
           return { ...columns, school_id: target, metadata };
@@ -231,20 +258,32 @@ function DriversPage() {
     filtered.map((d) => {
       const m = d.metadata ?? {};
       return {
+        first_name: m.first_name ?? "",
+        last_name: m.last_name ?? "",
         full_name: d.full_name,
         phone: d.phone ?? "",
         email: m.email ?? "",
+        date_of_birth: m.date_of_birth ?? "",
+        gender: m.gender ?? "",
+        blood_group: m.blood_group ?? "",
+        address: m.address ?? "",
+        city: m.city ?? "",
+        state: m.state ?? "",
+        pincode: m.pincode ?? "",
+        aadhaar_number: m.aadhaar_number ?? "",
         license_number: d.license_number ?? "",
         license_class: m.license_class ?? "",
         license_issue_date: m.license_issue_date ?? "",
         license_expiry: d.license_expiry ?? "",
         license_status: licenseStatusLabel(licenseStatus(d.license_expiry)),
-        date_of_birth: m.date_of_birth ?? "",
-        address: m.address ?? "",
-        emergency_contact: m.emergency_contact ?? "",
+        experience_years: m.experience_years ?? "",
+        emergency_contact_name: m.emergency_contact_name ?? "",
+        emergency_contact_number: m.emergency_contact_number ?? m.emergency_contact ?? "",
+        joining_date: m.joining_date ?? "",
         status: d.is_active ? "active" : "inactive",
       };
     });
+
 
   const exportCSV = () => {
     const csv = Papa.unparse(exportData());
@@ -314,7 +353,7 @@ function DriversPage() {
                     <DriverForm
                       submitting={create.isPending}
                       submitLabel="Create driver"
-                      onSubmit={(v) => create.mutate(v)}
+                      onSubmit={(values, photo) => create.mutate({ values, photo })}
                     />
                   )}
                 </DialogContent>
