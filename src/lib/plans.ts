@@ -9,19 +9,24 @@ export type SubscriptionStatus = Database["public"]["Enums"]["subscription_statu
 export const TIERS = ["trial", "basic", "standard", "premium"] as const;
 export type Tier = (typeof TIERS)[number];
 
-export const planSchema = z.object({
-  code: z.string().trim().min(2).max(64).regex(/^[a-z0-9_]+$/i, "letters, numbers and _ only"),
-  name: z.string().trim().min(2).max(120),
-  tier: z.enum(TIERS),
-  billing_cycle: z.enum(["trial", "monthly", "yearly"] as const),
-  price_cents: z.coerce.number().int().min(0),
-  currency: z.string().trim().min(3).max(8).default("USD"),
-  student_limit: z.coerce.number().int().min(0).nullable().optional(),
-  vehicle_limit: z.coerce.number().int().min(0).nullable().optional(),
-  duration_days: z.coerce.number().int().min(0).nullable().optional(),
-  is_active: z.boolean().default(true),
-  features: z.record(z.string(), z.boolean()).default({}),
-});
+export const planSchema = z
+  .object({
+    code: z.string().trim().min(2).max(64).regex(/^[a-z0-9_]+$/i, "letters, numbers and _ only"),
+    name: z.string().trim().min(2).max(120),
+    tier: z.enum(TIERS),
+    billing_cycle: z.enum(["trial", "monthly", "yearly"] as const),
+    price_cents: z.coerce.number().int().min(0),
+    currency: z.string().trim().min(3).max(8).default("USD"),
+    student_limit: z.coerce.number().int().min(0).nullable().optional(),
+    vehicle_limit: z.coerce.number().int().min(0).nullable().optional(),
+    duration_days: z.coerce.number().int().min(0).nullable().optional(),
+    is_active: z.boolean().default(true),
+    features: z.record(z.string(), z.boolean()).default({}),
+  })
+  .refine(
+    (v) => v.billing_cycle !== "trial" || (v.duration_days !== null && v.duration_days !== undefined && v.duration_days >= 1),
+    { message: "Trial plans require a Trial Duration of at least 1 day.", path: ["duration_days"] },
+  );
 export type PlanFormValues = z.infer<typeof planSchema>;
 
 export const FEATURE_KEYS = [
