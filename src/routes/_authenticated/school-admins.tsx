@@ -192,7 +192,7 @@ function SchoolAdminsPage() {
 
       <Dialog open={!!resetting} onOpenChange={(o) => !o && setResetting(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Reset password</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Reset password</DialogTitle><DialogDescription className="sr-only">Set a new password for this administrator.</DialogDescription></DialogHeader>
           {resetting && (
             <ResetForm
               admin={resetting}
