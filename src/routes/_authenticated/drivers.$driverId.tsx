@@ -232,7 +232,7 @@ function DriverDetailPage() {
         }}
       >
         <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
-          <DialogHeader><DialogTitle>Edit driver</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Edit driver</DialogTitle><DialogDescription className="sr-only">Update this driver's details.</DialogDescription></DialogHeader>
           {defaults && (
             <DriverForm
               defaultValues={defaults}
