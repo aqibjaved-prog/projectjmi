@@ -27,6 +27,26 @@ export function routeStatusLabel(s: boolean | null | undefined): string {
   return s ? "Active" : "Inactive";
 }
 
+/* -------------------- Time helpers -------------------- */
+
+export const DEFAULT_DWELL_MIN = 2;
+
+export function parseHHMM(v: string | null | undefined): number | null {
+  if (!v) return null;
+  const m = String(v).trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return null;
+  const h = Number(m[1]), min = Number(m[2]);
+  if (!Number.isFinite(h) || !Number.isFinite(min)) return null;
+  return h * 60 + min;
+}
+
+export function fmtHHMM(totalMin: number | null | undefined): string {
+  if (totalMin == null || !Number.isFinite(totalMin)) return "";
+  const t = ((Math.round(totalMin) % (24 * 60)) + 24 * 60) % (24 * 60);
+  const h = Math.floor(t / 60), m = t % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
 /* -------------------- Stops -------------------- */
 
 export interface RouteStop {
@@ -38,6 +58,10 @@ export interface RouteStop {
   lng?: number | null;
   arrival_time?: string | null;   // "HH:MM"
   departure_time?: string | null; // "HH:MM"
+  dwell_min?: number | null;
+  driving_seconds_from_prev?: number | null;
+  distance_from_prev_m?: number | null;
+  manual_time?: boolean | null;
 }
 
 export const stopSchema = z.object({
@@ -55,6 +79,13 @@ export const stopSchema = z.object({
     .refine((v) => v == null || (!Number.isNaN(v) && v >= -180 && v <= 180), "Invalid longitude"),
   arrival_time: z.string().trim().max(8).optional().nullable(),
   departure_time: z.string().trim().max(8).optional().nullable(),
+  dwell_min: z.union([z.string(), z.number()]).optional().nullable()
+    .transform((v) => (v == null || v === "" ? null : Number(v))),
+  driving_seconds_from_prev: z.union([z.string(), z.number()]).optional().nullable()
+    .transform((v) => (v == null || v === "" ? null : Number(v))),
+  distance_from_prev_m: z.union([z.string(), z.number()]).optional().nullable()
+    .transform((v) => (v == null || v === "" ? null : Number(v))),
+  manual_time: z.boolean().optional().nullable(),
 });
 
 export function normalizeStops(raw: unknown): RouteStop[] {
@@ -71,6 +102,10 @@ export function normalizeStops(raw: unknown): RouteStop[] {
         lng: o.lng == null || o.lng === "" ? null : Number(o.lng),
         arrival_time: (o.arrival_time as string | null) ?? null,
         departure_time: (o.departure_time as string | null) ?? null,
+        dwell_min: o.dwell_min == null || o.dwell_min === "" ? null : Number(o.dwell_min),
+        driving_seconds_from_prev: o.driving_seconds_from_prev == null ? null : Number(o.driving_seconds_from_prev),
+        distance_from_prev_m: o.distance_from_prev_m == null ? null : Number(o.distance_from_prev_m),
+        manual_time: Boolean(o.manual_time),
       } as RouteStop;
     })
     .sort((a, b) => a.order - b.order)
@@ -78,7 +113,11 @@ export function normalizeStops(raw: unknown): RouteStop[] {
 }
 
 export function newStop(order = 0): RouteStop {
-  return { id: crypto.randomUUID(), name: "", order, address: "", lat: null, lng: null, arrival_time: "", departure_time: "" };
+  return {
+    id: crypto.randomUUID(), name: "", order, address: "", lat: null, lng: null,
+    arrival_time: "", departure_time: "",
+    dwell_min: null, driving_seconds_from_prev: null, distance_from_prev_m: null, manual_time: false,
+  };
 }
 
 /* -------------------- Route form schema -------------------- */
@@ -106,6 +145,12 @@ export const routeSchema = z.object({
   driver_id: z.string().uuid().optional().nullable(),
   notes: optStr(2000),
   stops: z.array(stopSchema).default([]),
+  default_dwell_min: z.union([z.string(), z.number()]).optional()
+    .transform((v) => (v == null || v === "" ? "" : String(v))),
+  end_leg_seconds: z.union([z.string(), z.number()]).optional().nullable()
+    .transform((v) => (v == null || v === "" ? null : Number(v))),
+  end_leg_distance_m: z.union([z.string(), z.number()]).optional().nullable()
+    .transform((v) => (v == null || v === "" ? null : Number(v))),
 });
 
 export type RouteFormValues = z.input<typeof routeSchema>;
@@ -159,6 +204,9 @@ function intOrNull(v: string | number | null | undefined): number | null {
 }
 
 export function routeFormToPayload(v: RouteFormValues) {
+  const dwell = numOrNull(v.default_dwell_min ?? "");
+  const endSec = v.end_leg_seconds == null ? null : Number(v.end_leg_seconds);
+  const endDist = v.end_leg_distance_m == null ? null : Number(v.end_leg_distance_m);
   return {
     name: v.name.trim(),
     route_type: v.route_type,
@@ -187,11 +235,21 @@ export function routeFormToPayload(v: RouteFormValues) {
       lng: s.lng ?? null,
       arrival_time: emptyToNull(s.arrival_time ?? null),
       departure_time: emptyToNull(s.departure_time ?? null),
+      dwell_min: s.dwell_min == null || s.dwell_min === "" ? null : Number(s.dwell_min),
+      driving_seconds_from_prev: s.driving_seconds_from_prev == null ? null : Number(s.driving_seconds_from_prev),
+      distance_from_prev_m: s.distance_from_prev_m == null ? null : Number(s.distance_from_prev_m),
+      manual_time: Boolean(s.manual_time),
     })),
+    metadata: {
+      default_dwell_min: dwell,
+      end_leg_seconds: Number.isFinite(endSec as number) ? endSec : null,
+      end_leg_distance_m: Number.isFinite(endDist as number) ? endDist : null,
+    },
   };
 }
 
 export function routeToFormDefaults(r: RouteRow): RouteFormValues {
+  const meta = (r.metadata ?? {}) as Record<string, unknown>;
   return {
     name: r.name ?? "",
     route_type: ((ROUTE_TYPES as readonly string[]).includes(r.route_type) ? r.route_type : "both") as RouteType,
@@ -212,6 +270,9 @@ export function routeToFormDefaults(r: RouteRow): RouteFormValues {
     driver_id: r.driver_id,
     notes: r.notes ?? "",
     stops: normalizeStops(r.stops),
+    default_dwell_min: meta.default_dwell_min == null ? "2" : String(meta.default_dwell_min),
+    end_leg_seconds: meta.end_leg_seconds == null ? null : Number(meta.end_leg_seconds),
+    end_leg_distance_m: meta.end_leg_distance_m == null ? null : Number(meta.end_leg_distance_m),
   };
 }
 

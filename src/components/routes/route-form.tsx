@@ -45,6 +45,9 @@ const DEFAULTS: RouteFormValues = {
   driver_id: null,
   notes: "",
   stops: [],
+  default_dwell_min: "2",
+  end_leg_seconds: null,
+  end_leg_distance_m: null,
 };
 
 const toNum = (v: unknown): number | null => {
@@ -102,6 +105,14 @@ export function RouteForm({ defaults, drivers = [], vehicles = [], submitting, s
     form.setValue("total_distance", s.distanceKm == null ? "" : String(s.distanceKm), { shouldDirty: true });
     form.setValue("estimated_duration", s.durationMin == null ? "" : String(s.durationMin), { shouldDirty: true });
   };
+  const setEndLeg = (info: { seconds: number | null; meters: number | null }) => {
+    form.setValue("end_leg_seconds", info.seconds, { shouldDirty: true });
+    form.setValue("end_leg_distance_m", info.meters, { shouldDirty: true });
+  };
+  const dwellDefault = (() => {
+    const n = Number(values.default_dwell_min);
+    return Number.isFinite(n) && n >= 0 ? n : 2;
+  })();
 
   return (
     <Form {...form}>
@@ -128,10 +139,23 @@ export function RouteForm({ defaults, drivers = [], vehicles = [], submitting, s
             </FormItem>
           )} />
           <FormField name="pickup_start_time" control={form.control} render={({ field }) => (
-            <FormItem><FormLabel>Pickup start</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
+            <FormItem>
+              <FormLabel>Route start time</FormLabel>
+              <FormControl><Input type="time" {...field} /></FormControl>
+              <p className="text-[11px] text-muted-foreground">Arrival &amp; departure times auto-fill from Google ETAs.</p>
+              <FormMessage />
+            </FormItem>
           )} />
           <FormField name="drop_start_time" control={form.control} render={({ field }) => (
-            <FormItem><FormLabel>Drop start</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
+            <FormItem><FormLabel>Drop start (afternoon)</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
+          )} />
+          <FormField name="default_dwell_min" control={form.control} render={({ field }) => (
+            <FormItem>
+              <FormLabel>Default stop dwell (min)</FormLabel>
+              <FormControl><Input type="number" min={0} {...field} placeholder="2" /></FormControl>
+              <p className="text-[11px] text-muted-foreground">Applied when a stop has no custom dwell.</p>
+              <FormMessage />
+            </FormItem>
           )} />
           <FormField name="max_students" control={form.control} render={({ field }) => (
             <FormItem><FormLabel>Maximum students</FormLabel><FormControl><Input {...field} inputMode="numeric" placeholder="e.g. 40" /></FormControl><FormMessage /></FormItem>
@@ -168,10 +192,13 @@ export function RouteForm({ defaults, drivers = [], vehicles = [], submitting, s
             stops={stops}
             color={values.route_color || ROUTE_COLORS[0]}
             maxStops={toNum(values.max_students)}
+            startTime={values.pickup_start_time ?? ""}
+            defaultDwellMin={dwellDefault}
             onStartChange={setStart}
             onEndChange={setEnd}
             onStopsChange={setStops}
             onSummaryChange={setSummary}
+            onEndLegChange={setEndLeg}
           />
         </div>
 

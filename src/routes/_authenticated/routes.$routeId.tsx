@@ -274,22 +274,40 @@ function RouteDetailPage() {
             {stops.length === 0 ? (
               <p className="text-sm text-muted-foreground">No stops defined. Edit the route to add stops.</p>
             ) : (
-              <ol className="space-y-2">
-                {stops.map((s, i) => (
-                  <li key={s.id} className="flex items-start gap-3 rounded-md border p-3">
-                    <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{i + 1}</div>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium">{s.name}</div>
-                      {s.address && <div className="text-xs text-muted-foreground">{s.address}</div>}
-                      <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-foreground">
-                        {(s.lat != null && s.lng != null) && <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{s.lat}, {s.lng}</span>}
-                        {s.arrival_time && <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" /> Arr {s.arrival_time}</span>}
-                        {s.departure_time && <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" /> Dep {s.departure_time}</span>}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ol>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-xs uppercase tracking-wide text-muted-foreground">
+                    <tr className="border-b">
+                      <th className="px-2 py-2 text-left">#</th>
+                      <th className="px-2 py-2 text-left">Stop</th>
+                      <th className="px-2 py-2 text-left">Arrival</th>
+                      <th className="px-2 py-2 text-left">Departure</th>
+                      <th className="px-2 py-2 text-right">Travel</th>
+                      <th className="px-2 py-2 text-right">Distance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stops.map((s, i) => {
+                      const drive = s.driving_seconds_from_prev != null ? Math.round(s.driving_seconds_from_prev / 60) : null;
+                      const dist = s.distance_from_prev_m != null ? +(s.distance_from_prev_m / 1000).toFixed(2) : null;
+                      return (
+                        <tr key={s.id} className="border-b last:border-0 align-top">
+                          <td className="px-2 py-2 font-semibold text-primary">{i + 1}</td>
+                          <td className="px-2 py-2">
+                            <div className="font-medium">{s.name}</div>
+                            {s.address && <div className="text-xs text-muted-foreground">{s.address}</div>}
+                            {s.manual_time ? <div className="mt-1 text-[10px] uppercase tracking-wide text-amber-600">Manual override</div> : null}
+                          </td>
+                          <td className="px-2 py-2">{s.arrival_time || "—"}</td>
+                          <td className="px-2 py-2">{s.departure_time || "—"}</td>
+                          <td className="px-2 py-2 text-right">{drive != null ? `${drive} min` : "—"}</td>
+                          <td className="px-2 py-2 text-right">{dist != null ? `${dist} km` : "—"}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </CardContent>
         </Card>
