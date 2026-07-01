@@ -35,6 +35,7 @@ import { Route as AuthenticatedSchoolsIndexRouteImport } from './routes/_authent
 import { Route as AuthenticatedDriversIndexRouteImport } from './routes/_authenticated/drivers.index'
 import { Route as AuthenticatedStudentsStudentIdRouteImport } from './routes/_authenticated/students.$studentId'
 import { Route as AuthenticatedSchoolsSchoolIdRouteImport } from './routes/_authenticated/schools.$schoolId'
+import { Route as AuthenticatedDriversDriverIdRouteImport } from './routes/_authenticated/drivers.$driverId'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -174,6 +175,12 @@ const AuthenticatedSchoolsSchoolIdRoute =
     path: '/$schoolId',
     getParentRoute: () => AuthenticatedSchoolsRoute,
   } as any)
+const AuthenticatedDriversDriverIdRoute =
+  AuthenticatedDriversDriverIdRouteImport.update({
+    id: '/$driverId',
+    path: '/$driverId',
+    getParentRoute: () => AuthenticatedDriversRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -196,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/subscriptions': typeof AuthenticatedSubscriptionsRoute
   '/trips': typeof AuthenticatedTripsRoute
   '/vehicles': typeof AuthenticatedVehiclesRoute
+  '/drivers/$driverId': typeof AuthenticatedDriversDriverIdRoute
   '/schools/$schoolId': typeof AuthenticatedSchoolsSchoolIdRoute
   '/students/$studentId': typeof AuthenticatedStudentsStudentIdRoute
   '/drivers/': typeof AuthenticatedDriversIndexRoute
@@ -220,6 +228,7 @@ export interface FileRoutesByTo {
   '/subscriptions': typeof AuthenticatedSubscriptionsRoute
   '/trips': typeof AuthenticatedTripsRoute
   '/vehicles': typeof AuthenticatedVehiclesRoute
+  '/drivers/$driverId': typeof AuthenticatedDriversDriverIdRoute
   '/schools/$schoolId': typeof AuthenticatedSchoolsSchoolIdRoute
   '/students/$studentId': typeof AuthenticatedStudentsStudentIdRoute
   '/drivers': typeof AuthenticatedDriversIndexRoute
@@ -249,6 +258,7 @@ export interface FileRoutesById {
   '/_authenticated/subscriptions': typeof AuthenticatedSubscriptionsRoute
   '/_authenticated/trips': typeof AuthenticatedTripsRoute
   '/_authenticated/vehicles': typeof AuthenticatedVehiclesRoute
+  '/_authenticated/drivers/$driverId': typeof AuthenticatedDriversDriverIdRoute
   '/_authenticated/schools/$schoolId': typeof AuthenticatedSchoolsSchoolIdRoute
   '/_authenticated/students/$studentId': typeof AuthenticatedStudentsStudentIdRoute
   '/_authenticated/drivers/': typeof AuthenticatedDriversIndexRoute
@@ -278,6 +288,7 @@ export interface FileRouteTypes {
     | '/subscriptions'
     | '/trips'
     | '/vehicles'
+    | '/drivers/$driverId'
     | '/schools/$schoolId'
     | '/students/$studentId'
     | '/drivers/'
@@ -302,6 +313,7 @@ export interface FileRouteTypes {
     | '/subscriptions'
     | '/trips'
     | '/vehicles'
+    | '/drivers/$driverId'
     | '/schools/$schoolId'
     | '/students/$studentId'
     | '/drivers'
@@ -330,6 +342,7 @@ export interface FileRouteTypes {
     | '/_authenticated/subscriptions'
     | '/_authenticated/trips'
     | '/_authenticated/vehicles'
+    | '/_authenticated/drivers/$driverId'
     | '/_authenticated/schools/$schoolId'
     | '/_authenticated/students/$studentId'
     | '/_authenticated/drivers/'
@@ -528,14 +541,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSchoolsSchoolIdRouteImport
       parentRoute: typeof AuthenticatedSchoolsRoute
     }
+    '/_authenticated/drivers/$driverId': {
+      id: '/_authenticated/drivers/$driverId'
+      path: '/$driverId'
+      fullPath: '/drivers/$driverId'
+      preLoaderRoute: typeof AuthenticatedDriversDriverIdRouteImport
+      parentRoute: typeof AuthenticatedDriversRoute
+    }
   }
 }
 
 interface AuthenticatedDriversRouteChildren {
+  AuthenticatedDriversDriverIdRoute: typeof AuthenticatedDriversDriverIdRoute
   AuthenticatedDriversIndexRoute: typeof AuthenticatedDriversIndexRoute
 }
 
 const AuthenticatedDriversRouteChildren: AuthenticatedDriversRouteChildren = {
+  AuthenticatedDriversDriverIdRoute: AuthenticatedDriversDriverIdRoute,
   AuthenticatedDriversIndexRoute: AuthenticatedDriversIndexRoute,
 }
 
