@@ -24,6 +24,7 @@ import {
   GENDERS,
   BLOOD_GROUPS,
 } from "@/lib/students";
+import { fetchVehicleOccupancy } from "@/lib/vehicles";
 
 export interface StudentFormProps {
   schoolId: string;
@@ -90,12 +91,19 @@ export function StudentForm({
     queryFn: async () => {
       const { data } = await supabase
         .from("vehicles")
-        .select("id,registration_number,model")
+        .select("id,registration_number,model,capacity")
         .eq("school_id", schoolId)
         .order("registration_number");
       return data ?? [];
     },
   });
+
+  const { data: occupancy } = useQuery({
+    queryKey: ["vehicle-occupancy", schoolId],
+    queryFn: () => fetchVehicleOccupancy(schoolId),
+  });
+
+  const currentVehicleId = form.watch("vehicle_id") ?? null;
 
   const handlePhoto = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -116,11 +124,21 @@ export function StudentForm({
     }
   };
 
+  const handleFormSubmit = form.handleSubmit((v) => {
+    // Frontend capacity guard (backend trigger also enforces).
+    if (v.is_active !== false && v.vehicle_id && v.vehicle_id !== defaultValues?.vehicle_id) {
+      const occ = occupancy?.get(v.vehicle_id);
+      if (occ && occ.available <= 0) {
+        toast.error("This vehicle has reached its maximum seating capacity.");
+        return;
+      }
+    }
+    onSubmit({ ...v, photo_url: photoUrl });
+  });
+
   return (
-    <form
-      onSubmit={form.handleSubmit((v) => onSubmit({ ...v, photo_url: photoUrl }))}
-      className="space-y-5"
-    >
+    <form onSubmit={handleFormSubmit} className="space-y-5">
+
       <div className="flex items-center gap-4">
         <div className="grid h-20 w-20 place-items-center overflow-hidden rounded-full border bg-muted">
           {photoUrl ? (
@@ -264,22 +282,37 @@ export function StudentForm({
                 No vehicles available. Please add a vehicle first.
               </p>
             ) : (
-              <Select
-                value={form.watch("vehicle_id") ?? "none"}
-                onValueChange={(v) => form.setValue("vehicle_id", v === "none" ? null : v)}
-              >
-                <SelectTrigger><SelectValue placeholder="No vehicle" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">— No vehicle —</SelectItem>
-                  {(vehicles ?? []).map((v) => (
-                    <SelectItem key={v.id} value={v.id}>
-                      {v.registration_number}{v.model ? ` — ${v.model}` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <>
+                <Select
+                  value={form.watch("vehicle_id") ?? "none"}
+                  onValueChange={(v) => form.setValue("vehicle_id", v === "none" ? null : v)}
+                >
+                  <SelectTrigger><SelectValue placeholder="No vehicle" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— No vehicle —</SelectItem>
+                    {(vehicles ?? []).map((v) => {
+                      const occ = occupancy?.get(v.id);
+                      const cap = occ?.capacity ?? v.capacity ?? 0;
+                      const used = occ?.occupied ?? 0;
+                      const isCurrent = v.id === currentVehicleId;
+                      const isFull = !isCurrent && occ ? occ.available <= 0 : false;
+                      return (
+                        <SelectItem key={v.id} value={v.id} disabled={isFull}>
+                          {v.registration_number}{v.model ? ` — ${v.model}` : ""} · Occupied {used} / {cap}{isFull ? " (full)" : ""}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                {currentVehicleId && occupancy?.get(currentVehicleId) && (
+                  <p className="text-xs text-muted-foreground">
+                    Current: Occupied {occupancy.get(currentVehicleId)!.occupied} / {occupancy.get(currentVehicleId)!.capacity} · Available {occupancy.get(currentVehicleId)!.available}
+                  </p>
+                )}
+              </>
             )}
           </Field>
+
         </div>
       </Section>
 

@@ -22,6 +22,7 @@ import {
   cleanNullable, downloadDataUrl, makeQRDataUrl, printQR,
   type StudentFormValues, type StudentRow,
 } from "@/lib/students";
+import { fetchVehicleOccupancy, isCapacityError, type VehicleOccupancyRow } from "@/lib/vehicles";
 
 type Detail = StudentRow & {
   routes?: { id: string; name: string } | null;
@@ -90,7 +91,10 @@ function StudentDetailPage() {
       setEditOpen(false);
       navigate({ to: "/students/$studentId", params: { studentId }, search: { edit: undefined } });
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+    onError: (e) => {
+      if (isCapacityError(e)) toast.error("This vehicle has reached its maximum seating capacity.");
+      else toast.error(e instanceof Error ? e.message : "Failed");
+    },
   });
 
   const toggleActive = useMutation({
@@ -143,7 +147,10 @@ function StudentDetailPage() {
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Vehicle updated"); invalidate(); setAssignVehicleOpen(false); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+    onError: (e) => {
+      if (isCapacityError(e)) toast.error("This vehicle has reached its maximum seating capacity.");
+      else toast.error(e instanceof Error ? e.message : "Failed");
+    },
   });
 
   const { data: routes } = useQuery({
@@ -158,9 +165,14 @@ function StudentDetailPage() {
     enabled: !!student?.school_id,
     queryKey: ["vehicles-for-school", student?.school_id],
     queryFn: async () => {
-      const { data } = await supabase.from("vehicles").select("id,registration_number,model").eq("school_id", student!.school_id).order("registration_number");
+      const { data } = await supabase.from("vehicles").select("id,registration_number,model,capacity").eq("school_id", student!.school_id).order("registration_number");
       return data ?? [];
     },
+  });
+  const { data: occupancy } = useQuery({
+    enabled: !!student?.school_id,
+    queryKey: ["vehicle-occupancy", student?.school_id],
+    queryFn: () => fetchVehicleOccupancy(student?.school_id),
   });
 
   const defaults = useMemo(() => {
@@ -313,10 +325,18 @@ function StudentDetailPage() {
             <Info label="Drop address" value={student.drop_address} />
             <Info label="Drop GPS" value={student.drop_lat != null ? `${student.drop_lat}, ${student.drop_lng}` : null} />
             <Info label="Route" value={student.routes?.name} />
-            <Info label="Vehicle" value={student.vehicles ? `${student.vehicles.registration_number}${student.vehicles.model ? ` — ${student.vehicles.model}` : ""}` : null} />
+            <Info
+              label="Vehicle"
+              value={student.vehicles ? (() => {
+                const occ = student.vehicle_id ? occupancy?.get(student.vehicle_id) : null;
+                const label = `${student.vehicles!.registration_number}${student.vehicles!.model ? ` — ${student.vehicles!.model}` : ""}`;
+                return occ ? `${label} · Occupied ${occ.occupied} / ${occ.capacity}` : label;
+              })() : null}
+            />
           </CardContent>
         </Card>
       </div>
+
 
       <Dialog open={editOpen} onOpenChange={(o) => { setEditOpen(o); if (!o) navigate({ to: "/students/$studentId", params: { studentId }, search: { edit: undefined } }); }}>
         <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
@@ -348,13 +368,26 @@ function StudentDetailPage() {
         onOpenChange={setAssignVehicleOpen}
         title="Assign vehicle"
         value={student.vehicle_id}
-        options={(vehicles ?? []).map((v) => ({ id: v.id, label: `${v.registration_number}${v.model ? ` — ${v.model}` : ""}` }))}
+        options={(vehicles ?? []).map((v) => {
+          const occ = occupancy?.get(v.id);
+          const cap = occ?.capacity ?? v.capacity ?? 0;
+          const used = occ?.occupied ?? 0;
+          const isCurrent = v.id === student.vehicle_id;
+          const disabled = !isCurrent && occ ? occ.available <= 0 : false;
+          const suffix = ` · Occupied ${used} / ${cap}${disabled ? " (full)" : ""}`;
+          return {
+            id: v.id,
+            label: `${v.registration_number}${v.model ? ` — ${v.model}` : ""}${suffix}`,
+            disabled,
+          };
+        })}
         onSave={(v) => assignVehicle.mutate(v)}
         saving={assignVehicle.isPending}
       />
     </>
   );
 }
+
 
 function Info({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -372,7 +405,7 @@ function AssignDialog({
   onOpenChange: (v: boolean) => void;
   title: string;
   value: string | null;
-  options: { id: string; label: string }[];
+  options: { id: string; label: string; disabled?: boolean }[];
   onSave: (id: string | null) => void;
   saving: boolean;
 }) {
@@ -394,7 +427,7 @@ function AssignDialog({
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="none">— None —</SelectItem>
-              {options.map((o) => <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>)}
+              {options.map((o) => <SelectItem key={o.id} value={o.id} disabled={o.disabled}>{o.label}</SelectItem>)}
             </SelectContent>
           </Select>
         )}

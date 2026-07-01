@@ -232,3 +232,34 @@ export async function getVehiclePhotoUrl(path: string | null | undefined): Promi
   if (error) return null;
   return data.signedUrl;
 }
+
+/* -------------------- Occupancy -------------------- */
+
+export interface VehicleOccupancyRow {
+  vehicle_id: string;
+  school_id: string;
+  capacity: number;
+  occupied: number;
+  available: number;
+}
+
+export async function fetchVehicleOccupancy(schoolId: string | null | undefined): Promise<Map<string, VehicleOccupancyRow>> {
+  const map = new Map<string, VehicleOccupancyRow>();
+  if (!schoolId) return map;
+  const { data, error } = await supabase
+    .from("vehicle_occupancy" as never)
+    .select("vehicle_id,school_id,capacity,occupied,available")
+    .eq("school_id", schoolId);
+  if (error) return map;
+  for (const row of (data ?? []) as VehicleOccupancyRow[]) {
+    map.set(row.vehicle_id, row);
+  }
+  return map;
+}
+
+export const VEHICLE_CAPACITY_ERROR = "This vehicle has reached its maximum seating capacity.";
+
+export function isCapacityError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err ?? "");
+  return msg.toLowerCase().includes("maximum seating capacity");
+}

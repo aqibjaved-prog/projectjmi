@@ -62,6 +62,13 @@ export type Database = {
             foreignKeyName: "drivers_assigned_vehicle_id_fkey"
             columns: ["assigned_vehicle_id"]
             isOneToOne: false
+            referencedRelation: "vehicle_occupancy"
+            referencedColumns: ["vehicle_id"]
+          },
+          {
+            foreignKeyName: "drivers_assigned_vehicle_id_fkey"
+            columns: ["assigned_vehicle_id"]
+            isOneToOne: false
             referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
@@ -319,6 +326,13 @@ export type Database = {
             foreignKeyName: "routes_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
+            referencedRelation: "vehicle_occupancy"
+            referencedColumns: ["vehicle_id"]
+          },
+          {
+            foreignKeyName: "routes_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
             referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
@@ -442,6 +456,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "trips"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "speed_logs_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_occupancy"
+            referencedColumns: ["vehicle_id"]
           },
           {
             foreignKeyName: "speed_logs_vehicle_id_fkey"
@@ -573,6 +594,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "students_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_occupancy"
+            referencedColumns: ["vehicle_id"]
           },
           {
             foreignKeyName: "students_vehicle_id_fkey"
@@ -856,6 +884,13 @@ export type Database = {
             foreignKeyName: "trips_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
+            referencedRelation: "vehicle_occupancy"
+            referencedColumns: ["vehicle_id"]
+          },
+          {
+            foreignKeyName: "trips_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
             referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
@@ -957,7 +992,24 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      vehicle_occupancy: {
+        Row: {
+          available: number | null
+          capacity: number | null
+          occupied: number | null
+          school_id: string | null
+          vehicle_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       has_role: {

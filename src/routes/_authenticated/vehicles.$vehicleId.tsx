@@ -15,7 +15,7 @@ import { VehicleForm } from "@/components/vehicles/vehicle-form";
 import {
   vehicleToFormDefaults, splitVehiclePayload, mergeMetadata, uploadVehiclePhoto,
   getVehiclePhotoUrl, expiryStatus, expiryLabel,
-  vehicleTypeLabel, vehicleStatusLabel, fuelTypeLabel,
+  vehicleTypeLabel, vehicleStatusLabel, fuelTypeLabel, fetchVehicleOccupancy,
   type VehicleFormValues, type VehicleRow, type VehicleStatus,
 } from "@/lib/vehicles";
 
@@ -49,6 +49,13 @@ function VehicleDetailPage() {
       return data as unknown as Detail | null;
     },
   });
+
+  const { data: occupancy } = useQuery({
+    enabled: !!vehicle?.school_id,
+    queryKey: ["vehicle-occupancy", vehicle?.school_id],
+    queryFn: () => fetchVehicleOccupancy(vehicle?.school_id),
+  });
+  const occ = vehicle ? occupancy?.get(vehicle.id) : undefined;
 
   const { data: photoUrl } = useQuery({
     enabled: !!vehicle?.metadata?.photo_path,
@@ -165,6 +172,11 @@ function VehicleDetailPage() {
                 <Info label="Manufacturing year" value={m.manufacturing_year} />
                 <Info label="Fuel type" value={fuelTypeLabel(m.fuel_type)} />
                 <Info label="Capacity" value={vehicle.capacity} />
+                <Info label="Occupied seats" value={occ ? occ.occupied : "—"} />
+                <Info
+                  label="Available seats"
+                  value={occ ? <>{occ.available}{occ.available <= 0 && <Badge variant="destructive" className="ml-2">Full</Badge>}</> : "—"}
+                />
                 <Info label="Color" value={vehicle.color} />
                 <Info label="GPS device ID" value={m.gps_device_id} />
                 <Info label="Status" value={<Badge>{vehicleStatusLabel(vehicle.status)}</Badge>} />

@@ -35,7 +35,7 @@ import autoTable from "jspdf-autotable";
 import { VehicleForm } from "@/components/vehicles/vehicle-form";
 import {
   splitVehiclePayload, uploadVehiclePhoto, expiryStatus, expiryLabel,
-  vehicleTypeLabel, vehicleStatusLabel, fuelTypeLabel,
+  vehicleTypeLabel, vehicleStatusLabel, fuelTypeLabel, fetchVehicleOccupancy,
   VEHICLE_TYPES, VEHICLE_STATUSES, FUEL_TYPES,
   type VehicleFormValues, type VehicleRow, type VehicleType, type VehicleStatus, type FuelType,
 } from "@/lib/vehicles";
@@ -95,6 +95,14 @@ function VehiclesPage() {
     },
   });
 
+  // Occupancy per school (super admin gets a map only when a specific school is selected).
+  const occupancyScope = isSuper ? (schoolFilter !== "all" ? schoolFilter : null) : (schoolId ?? null);
+  const { data: occupancy } = useQuery({
+    enabled: !!occupancyScope,
+    queryKey: ["vehicle-occupancy", occupancyScope],
+    queryFn: () => fetchVehicleOccupancy(occupancyScope),
+  });
+
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
     return (vehicles ?? []).filter((v) => {
@@ -130,16 +138,25 @@ function VehiclesPage() {
         const s = expiryStatus(getDate(v));
         return s === "expiring" || s === "expired";
       });
+    const activeVehicles = list.filter((v) => v.status === "active");
+    const totalCapacity = activeVehicles.reduce((sum, v) => sum + (v.capacity ?? 0), 0);
+    const occupiedSeats = occupancy
+      ? activeVehicles.reduce((sum, v) => sum + (occupancy.get(v.id)?.occupied ?? 0), 0)
+      : null;
+    const availableSeats = occupiedSeats == null ? null : Math.max(totalCapacity - occupiedSeats, 0);
     return {
       total: list.length,
-      active: count((v) => v.status === "active"),
+      active: activeVehicles.length,
       maintenance: count((v) => v.status === "maintenance"),
       insurance: flagged((v) => v.insurance_expiry),
       fitness: flagged((v) => v.fitness_expiry),
       pollution: flagged((v) => v.metadata?.pollution_expiry),
       service: flagged((v) => v.metadata?.service_due_date),
+      totalCapacity,
+      occupiedSeats,
+      availableSeats,
     };
-  }, [vehicles]);
+  }, [vehicles, occupancy]);
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["vehicles-list"] });
@@ -365,6 +382,9 @@ function VehiclesPage() {
         <StatCard label="Fitness expiring" value={totals.fitness} icon={AlertTriangle} loading={isLoading} tone="warning" />
         <StatCard label="Pollution expiring" value={totals.pollution} icon={AlertTriangle} loading={isLoading} tone="warning" />
         <StatCard label="Service due" value={totals.service} icon={Wrench} loading={isLoading} tone="warning" />
+        <StatCard label="Total capacity" value={totals.totalCapacity} icon={Bus} loading={isLoading} />
+        <StatCard label="Occupied seats" value={totals.occupiedSeats ?? "—"} icon={CheckCircle2} loading={isLoading} />
+        <StatCard label="Available seats" value={totals.availableSeats ?? "—"} icon={CheckCircle2} loading={isLoading} tone="success" />
       </div>
 
       <Card className="mt-4">
@@ -439,7 +459,7 @@ function VehiclesPage() {
                   <TableRow>
                     <TableHead>Vehicle</TableHead>
                     <TableHead>Type</TableHead>
-                    <TableHead>Capacity</TableHead>
+                    <TableHead>Occupancy</TableHead>
                     <TableHead>Insurance</TableHead>
                     <TableHead>Fitness</TableHead>
                     <TableHead>Pollution</TableHead>
@@ -468,7 +488,24 @@ function VehiclesPage() {
                           <div>{vehicleTypeLabel(m.vehicle_type)}</div>
                           <div className="text-xs text-muted-foreground">{[m.brand, v.model].filter(Boolean).join(" ")}</div>
                         </TableCell>
-                        <TableCell className="text-sm">{v.capacity}</TableCell>
+                        <TableCell className="text-sm">
+                          {(() => {
+                            const occ = occupancy?.get(v.id);
+                            const cap = v.capacity ?? 0;
+                            const used = occ?.occupied ?? 0;
+                            const avail = occ ? occ.available : Math.max(cap - used, 0);
+                            const full = occ ? occ.available <= 0 : false;
+                            return (
+                              <div>
+                                <div>Capacity: <span className="font-medium">{cap}</span></div>
+                                <div className="text-xs text-muted-foreground">
+                                  {occ ? <>Occupied: {used} · Available: {avail}</> : "Occupancy — select a school"}
+                                </div>
+                                {full && <Badge variant="destructive" className="mt-1">Full</Badge>}
+                              </div>
+                            );
+                          })()}
+                        </TableCell>
                         <TableCell>
                           <div className="text-xs">{v.insurance_expiry ?? "—"}</div>
                           <ExpiryBadge status={ins} />
