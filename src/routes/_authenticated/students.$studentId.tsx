@@ -382,16 +382,29 @@ function AssignDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader>
-        <Select value={selected} onValueChange={setSelected}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">— None —</SelectItem>
-            {options.map((o) => <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
+  const empty = options.length === 0;
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader>
+        {empty ? (
+          <p className="text-sm text-muted-foreground">
+            {title.toLowerCase().includes("route")
+              ? "No routes available. Please create a route first."
+              : "No vehicles available. Please add a vehicle first."}
+          </p>
+        ) : (
+          <Select value={selected} onValueChange={setSelected}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">— None —</SelectItem>
+              {options.map((o) => <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button disabled={saving} onClick={() => onSave(selected === "none" ? null : selected)}>Save</Button>
+          <Button disabled={saving || empty} onClick={() => onSave(selected === "none" ? null : selected)}>Save</Button>
         </div>
       </DialogContent>
     </Dialog>
