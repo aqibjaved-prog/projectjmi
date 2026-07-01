@@ -38,6 +38,10 @@ export interface RouteStop {
   lng?: number | null;
   arrival_time?: string | null;   // "HH:MM"
   departure_time?: string | null; // "HH:MM"
+  dwell_min?: number | null;
+  driving_seconds_from_prev?: number | null;
+  distance_from_prev_m?: number | null;
+  manual_time?: boolean | null;
 }
 
 export const stopSchema = z.object({
@@ -55,6 +59,13 @@ export const stopSchema = z.object({
     .refine((v) => v == null || (!Number.isNaN(v) && v >= -180 && v <= 180), "Invalid longitude"),
   arrival_time: z.string().trim().max(8).optional().nullable(),
   departure_time: z.string().trim().max(8).optional().nullable(),
+  dwell_min: z.union([z.string(), z.number()]).optional().nullable()
+    .transform((v) => (v == null || v === "" ? null : Number(v))),
+  driving_seconds_from_prev: z.union([z.string(), z.number()]).optional().nullable()
+    .transform((v) => (v == null || v === "" ? null : Number(v))),
+  distance_from_prev_m: z.union([z.string(), z.number()]).optional().nullable()
+    .transform((v) => (v == null || v === "" ? null : Number(v))),
+  manual_time: z.boolean().optional().nullable(),
 });
 
 export function normalizeStops(raw: unknown): RouteStop[] {
@@ -71,6 +82,10 @@ export function normalizeStops(raw: unknown): RouteStop[] {
         lng: o.lng == null || o.lng === "" ? null : Number(o.lng),
         arrival_time: (o.arrival_time as string | null) ?? null,
         departure_time: (o.departure_time as string | null) ?? null,
+        dwell_min: o.dwell_min == null || o.dwell_min === "" ? null : Number(o.dwell_min),
+        driving_seconds_from_prev: o.driving_seconds_from_prev == null ? null : Number(o.driving_seconds_from_prev),
+        distance_from_prev_m: o.distance_from_prev_m == null ? null : Number(o.distance_from_prev_m),
+        manual_time: Boolean(o.manual_time),
       } as RouteStop;
     })
     .sort((a, b) => a.order - b.order)
@@ -78,7 +93,11 @@ export function normalizeStops(raw: unknown): RouteStop[] {
 }
 
 export function newStop(order = 0): RouteStop {
-  return { id: crypto.randomUUID(), name: "", order, address: "", lat: null, lng: null, arrival_time: "", departure_time: "" };
+  return {
+    id: crypto.randomUUID(), name: "", order, address: "", lat: null, lng: null,
+    arrival_time: "", departure_time: "",
+    dwell_min: null, driving_seconds_from_prev: null, distance_from_prev_m: null, manual_time: false,
+  };
 }
 
 /* -------------------- Route form schema -------------------- */
