@@ -368,13 +368,26 @@ function StudentDetailPage() {
         onOpenChange={setAssignVehicleOpen}
         title="Assign vehicle"
         value={student.vehicle_id}
-        options={(vehicles ?? []).map((v) => ({ id: v.id, label: `${v.registration_number}${v.model ? ` — ${v.model}` : ""}` }))}
+        options={(vehicles ?? []).map((v) => {
+          const occ = occupancy?.get(v.id);
+          const cap = occ?.capacity ?? v.capacity ?? 0;
+          const used = occ?.occupied ?? 0;
+          const isCurrent = v.id === student.vehicle_id;
+          const disabled = !isCurrent && occ ? occ.available <= 0 : false;
+          const suffix = ` · Occupied ${used} / ${cap}${disabled ? " (full)" : ""}`;
+          return {
+            id: v.id,
+            label: `${v.registration_number}${v.model ? ` — ${v.model}` : ""}${suffix}`,
+            disabled,
+          };
+        })}
         onSave={(v) => assignVehicle.mutate(v)}
         saving={assignVehicle.isPending}
       />
     </>
   );
 }
+
 
 function Info({ label, value }: { label: string; value: React.ReactNode }) {
   return (
