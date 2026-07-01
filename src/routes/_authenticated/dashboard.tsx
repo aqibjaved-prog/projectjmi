@@ -22,6 +22,8 @@ import {
   XCircle,
 } from "lucide-react";
 import { expiryState, isExpiringThisMonth, monthlyAmountCents, type BillingCycle } from "@/lib/plans";
+import { fetchPlanUsage } from "@/lib/plan-limits";
+import { PlanUsageCard } from "@/components/plan-usage-card";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — School Van Guardian" }] }),
