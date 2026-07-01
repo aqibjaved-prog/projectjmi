@@ -366,7 +366,7 @@ function MapEditor({
     const result = calculateStopTimetable(stops, startTime, dwellDefault, { resetManualTimes: true });
     if (!stopsEqual(result.stops, stops)) latest.current.onStopsChange(result.stops);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startTime, dwellDefault, stops.map((s) => `${s.id}:${s.driving_seconds_from_prev}:${s.dwell_min}`).join("|")]);
+  }, [startTime, dwellDefault, stops.map((s) => `${s.id}:${s.driving_seconds_from_prev}:${s.dwell_min}:${s.arrival_time}:${s.departure_time}:${s.manual_time}`).join("|")]);
 
   const removeStop = (i: number) => onStopsChange(clearRouteTimetable(stops.filter((_, idx) => idx !== i)));
   const updateStop = (i: number, patch: Partial<RouteStop>) => {
@@ -559,7 +559,7 @@ function SummaryCell({ label, value, icon }: { label: string; value: string; ico
 }
 
 function SortableStopRow({
-  id, index, stop, defaultDwell, onChange, onRemove,
+  id, index, stop, defaultDwell, onChange, onRemove, previousName,
 }: {
   id: string;
   index: number;
@@ -567,6 +567,7 @@ function SortableStopRow({
   defaultDwell: number;
   onChange: (patch: Partial<RouteStop>) => void;
   onRemove: () => void;
+  previousName: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1 };
@@ -647,11 +648,9 @@ function SortableStopRow({
         </Button>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-2 pl-6 text-[11px] text-muted-foreground">
-        {driveMin != null && (
-          <Badge variant="outline" className="gap-1 font-normal">
-            <Navigation className="h-3 w-3" /> {driveMin} min from previous
-          </Badge>
-        )}
+        <Badge variant="outline" className="gap-1 font-normal">
+          <Navigation className="h-3 w-3" /> {previousName} → {stop.name || `Stop ${index + 1}`}: {driveMin != null ? `Travel: ${driveMin} min` : WAITING_FOR_GOOGLE_ROUTE}
+        </Badge>
         {distKm != null && (
           <Badge variant="outline" className="gap-1 font-normal">
             <RouteIcon className="h-3 w-3" /> {distKm} km
