@@ -459,7 +459,7 @@ function VehiclesPage() {
                   <TableRow>
                     <TableHead>Vehicle</TableHead>
                     <TableHead>Type</TableHead>
-                    <TableHead>Capacity</TableHead>
+                    <TableHead>Occupancy</TableHead>
                     <TableHead>Insurance</TableHead>
                     <TableHead>Fitness</TableHead>
                     <TableHead>Pollution</TableHead>
