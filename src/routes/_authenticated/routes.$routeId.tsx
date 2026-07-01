@@ -320,7 +320,7 @@ function RouteDetailPage() {
                   <li key={s.id} className="rounded-md border p-3 text-sm">
                     <Link to="/students/$studentId" params={{ studentId: s.id }} className="font-medium hover:underline">{s.full_name}</Link>
                     <div className="text-xs text-muted-foreground">
-                      {s.student_code ?? "—"}{s.class ? ` · Class ${s.class}` : ""}{s.section ? `-${s.section}` : ""}
+                      {s.student_code ?? "—"}{s.grade ? ` · Class ${s.grade}` : ""}{s.class_section ? `-${s.class_section}` : ""}
                     </div>
                   </li>
                 ))}
@@ -510,7 +510,7 @@ function AssignStudentsDialog({
     return allStudents
       .filter((s) => s.is_active)
       .filter((s) => !s.route_id || s.route_id === currentRouteId)
-      .filter((s) => !q2 || `${s.full_name} ${s.student_code ?? ""} ${s.class ?? ""} ${s.section ?? ""}`.toLowerCase().includes(q2));
+      .filter((s) => !q2 || `${s.full_name} ${s.student_code ?? ""} ${s.grade ?? ""} ${s.class_section ?? ""}`.toLowerCase().includes(q2));
   }, [allStudents, currentRouteId, q]);
 
   const overCapacity = capacity != null && selected.size > capacity;
@@ -551,7 +551,7 @@ function AssignStudentsDialog({
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium">{s.full_name}</div>
                       <div className="text-xs text-muted-foreground">
-                        {s.student_code ?? "—"}{s.class ? ` · Class ${s.class}` : ""}{s.section ? `-${s.section}` : ""}
+                        {s.student_code ?? "—"}{s.grade ? ` · Class ${s.grade}` : ""}{s.class_section ? `-${s.class_section}` : ""}
                       </div>
                     </div>
                   </li>
