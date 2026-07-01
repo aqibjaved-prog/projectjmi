@@ -419,6 +419,7 @@ function DevDocsPage() {
                           {b.name === "school-logos" && "School branding assets"}
                           {b.name === "student-photos" && "Student profile & ID photos"}
                           {b.name === "driver-photos" && "Driver profile photos & license scans"}
+                          {b.name === "vehicle-photos" && "Vehicle profile photos"}
                         </TableCell>
                       </TableRow>
                     ))}
