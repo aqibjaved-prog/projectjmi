@@ -27,6 +27,26 @@ export function routeStatusLabel(s: boolean | null | undefined): string {
   return s ? "Active" : "Inactive";
 }
 
+/* -------------------- Time helpers -------------------- */
+
+export const DEFAULT_DWELL_MIN = 2;
+
+export function parseHHMM(v: string | null | undefined): number | null {
+  if (!v) return null;
+  const m = String(v).trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return null;
+  const h = Number(m[1]), min = Number(m[2]);
+  if (!Number.isFinite(h) || !Number.isFinite(min)) return null;
+  return h * 60 + min;
+}
+
+export function fmtHHMM(totalMin: number | null | undefined): string {
+  if (totalMin == null || !Number.isFinite(totalMin)) return "";
+  const t = ((Math.round(totalMin) % (24 * 60)) + 24 * 60) % (24 * 60);
+  const h = Math.floor(t / 60), m = t % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
 /* -------------------- Stops -------------------- */
 
 export interface RouteStop {
