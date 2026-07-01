@@ -850,51 +850,81 @@ export type Database = {
       }
       trips: {
         Row: {
+          canceled_at: string | null
           created_at: string
           driver_id: string | null
           end_location: Json | null
           ended_at: string | null
+          expected_end_time: string | null
+          expected_start_time: string | null
           id: string
+          live_location: Json | null
           metadata: Json
+          name: string | null
+          notes: string | null
           route_id: string
           school_id: string
+          snapshot: Json
           start_location: Json | null
           started_at: string | null
           status: Database["public"]["Enums"]["trip_status"]
+          stop_progress: Json
+          timeline: Json
+          trip_code: string | null
           trip_date: string
           trip_type: Database["public"]["Enums"]["trip_type"]
           updated_at: string
           vehicle_id: string | null
         }
         Insert: {
+          canceled_at?: string | null
           created_at?: string
           driver_id?: string | null
           end_location?: Json | null
           ended_at?: string | null
+          expected_end_time?: string | null
+          expected_start_time?: string | null
           id?: string
+          live_location?: Json | null
           metadata?: Json
+          name?: string | null
+          notes?: string | null
           route_id: string
           school_id: string
+          snapshot?: Json
           start_location?: Json | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["trip_status"]
+          stop_progress?: Json
+          timeline?: Json
+          trip_code?: string | null
           trip_date?: string
           trip_type: Database["public"]["Enums"]["trip_type"]
           updated_at?: string
           vehicle_id?: string | null
         }
         Update: {
+          canceled_at?: string | null
           created_at?: string
           driver_id?: string | null
           end_location?: Json | null
           ended_at?: string | null
+          expected_end_time?: string | null
+          expected_start_time?: string | null
           id?: string
+          live_location?: Json | null
           metadata?: Json
+          name?: string | null
+          notes?: string | null
           route_id?: string
           school_id?: string
+          snapshot?: Json
           start_location?: Json | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["trip_status"]
+          stop_progress?: Json
+          timeline?: Json
+          trip_code?: string | null
           trip_date?: string
           trip_type?: Database["public"]["Enums"]["trip_type"]
           updated_at?: string
@@ -1093,8 +1123,14 @@ export type Database = {
         | "trialing"
         | "expired"
         | "suspended"
-      trip_status: "scheduled" | "in_progress" | "completed" | "canceled"
-      trip_type: "pickup" | "drop"
+      trip_status:
+        | "scheduled"
+        | "in_progress"
+        | "completed"
+        | "canceled"
+        | "ready"
+        | "paused"
+      trip_type: "pickup" | "drop" | "special" | "emergency"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1234,8 +1270,15 @@ export const Constants = {
         "expired",
         "suspended",
       ],
-      trip_status: ["scheduled", "in_progress", "completed", "canceled"],
-      trip_type: ["pickup", "drop"],
+      trip_status: [
+        "scheduled",
+        "in_progress",
+        "completed",
+        "canceled",
+        "ready",
+        "paused",
+      ],
+      trip_type: ["pickup", "drop", "special", "emergency"],
     },
   },
 } as const
