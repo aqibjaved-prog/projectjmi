@@ -1024,6 +1024,16 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      school_plan_limits: {
+        Args: { _school_id: string }
+        Returns: {
+          plan_code: string
+          plan_name: string
+          student_limit: number
+          vehicle_limit: number
+        }[]
+      }
+      school_plan_usage: { Args: { _school_id: string }; Returns: Json }
       user_belongs_to_school: {
         Args: { _school_id: string; _user_id: string }
         Returns: boolean
