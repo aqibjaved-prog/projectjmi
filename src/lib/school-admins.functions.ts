@@ -39,13 +39,29 @@ export const createSchoolAdmin = createServerFn({ method: "POST" })
     await assertSuperAdmin(context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    // Pre-check for existing user to return a friendly error instead of throwing
+    const { data: existing } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .eq("email", data.email)
+      .maybeSingle();
+    if (existing) {
+      return { ok: false as const, error: "A user with this email already exists." };
+    }
+
     const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
       email: data.email,
       password: data.password,
       email_confirm: true,
       user_metadata: { full_name: data.fullName },
     });
-    if (createErr || !created.user) throw new Error(createErr?.message ?? "Failed to create user");
+    if (createErr || !created.user) {
+      const msg = createErr?.message ?? "Failed to create user";
+      const friendly = /already been registered|already exists/i.test(msg)
+        ? "A user with this email already exists."
+        : msg;
+      return { ok: false as const, error: friendly };
+    }
 
     const uid = created.user.id;
 
@@ -61,11 +77,12 @@ export const createSchoolAdmin = createServerFn({ method: "POST" })
       .insert({ user_id: uid, role: "school_admin", school_id: data.schoolId });
     if (roleErr) {
       await supabaseAdmin.auth.admin.deleteUser(uid);
-      throw new Error(roleErr.message);
+      return { ok: false as const, error: roleErr.message };
     }
 
-    return { userId: uid };
+    return { ok: true as const, userId: uid };
   });
+
 
 export const updateSchoolAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
