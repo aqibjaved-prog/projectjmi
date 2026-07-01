@@ -215,31 +215,33 @@ export function delayLabel(mins: number | null): { label: string; tone: "success
 /* -------------------- Server-side data access wrappers -------------------- */
 
 // Casts to `never` avoid stale generated types until types.ts refresh.
-const trips = () => supabase.from("trips" as never);
+const trips = () => supabase.from("trips" as never) as unknown as {
+  select: (s: string) => { eq: (k: string, v: unknown) => { maybeSingle: () => Promise<{ data: unknown; error: unknown }>; single: () => Promise<{ data: unknown; error: unknown }> } };
+  insert: (p: unknown) => { select: (s: string) => { single: () => Promise<{ data: unknown; error: unknown }> } };
+  update: (p: unknown) => { eq: (k: string, v: unknown) => { select: (s: string) => { single: () => Promise<{ data: unknown; error: unknown }> } } };
+  delete: () => { eq: (k: string, v: unknown) => Promise<{ error: unknown }> };
+};
 
 export async function fetchTripById(id: string): Promise<TripRow | null> {
-  const { data, error } = await supabase
-    .from("trips" as never)
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-  if (error) throw error;
+  const { data, error } = await trips().select("*").eq("id", id).maybeSingle();
+  if (error) throw error as Error;
   return data ? normalizeTrip(data as Record<string, unknown>) : null;
 }
 
 export async function insertTrip(payload: Record<string, unknown>) {
   const { data, error } = await trips().insert(payload).select("*").single();
-  if (error) throw error;
+  if (error) throw error as Error;
   return normalizeTrip(data as Record<string, unknown>);
 }
 
 export async function updateTrip(id: string, payload: Record<string, unknown>) {
   const { data, error } = await trips().update(payload).eq("id", id).select("*").single();
-  if (error) throw error;
+  if (error) throw error as Error;
   return normalizeTrip(data as Record<string, unknown>);
 }
 
 export async function deleteTrip(id: string) {
   const { error } = await trips().delete().eq("id", id);
-  if (error) throw error;
+  if (error) throw error as Error;
 }
+
