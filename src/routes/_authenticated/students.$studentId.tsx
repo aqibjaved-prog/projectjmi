@@ -405,7 +405,7 @@ function AssignDialog({
   onOpenChange: (v: boolean) => void;
   title: string;
   value: string | null;
-  options: { id: string; label: string }[];
+  options: { id: string; label: string; disabled?: boolean }[];
   onSave: (id: string | null) => void;
   saving: boolean;
 }) {
