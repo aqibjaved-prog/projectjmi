@@ -40,7 +40,7 @@ type DetailRow = RouteRow & {
 
 type StudentRow = {
   id: string; full_name: string; student_code: string | null;
-  class: string | null; section: string | null; route_id: string | null; is_active: boolean;
+  grade: string | null; class_section: string | null; route_id: string | null; is_active: boolean;
 };
 
 function RouteDetailPage() {
@@ -76,7 +76,7 @@ function RouteDetailPage() {
     queryKey: ["route-students", routeId, routeSchoolId],
     queryFn: async () => {
       const { data, error } = await supabase.from("students")
-        .select("id,full_name,student_code,class,section,route_id,is_active")
+        .select("id,full_name,student_code,grade,class_section,route_id,is_active")
         .eq("school_id", routeSchoolId!).order("full_name");
       if (error) throw error;
       return (data ?? []) as StudentRow[];
