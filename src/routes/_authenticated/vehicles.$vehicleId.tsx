@@ -230,7 +230,7 @@ function VehicleDetailPage() {
           }}
         >
           <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
-            <DialogHeader><DialogTitle>Edit vehicle</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>Edit vehicle</DialogTitle><DialogDescription className="sr-only">Update this vehicle's details.</DialogDescription></DialogHeader>
             {defaults && (
               <VehicleForm
                 defaults={defaults}
