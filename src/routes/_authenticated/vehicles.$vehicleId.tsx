@@ -15,7 +15,7 @@ import { VehicleForm } from "@/components/vehicles/vehicle-form";
 import {
   vehicleToFormDefaults, splitVehiclePayload, mergeMetadata, uploadVehiclePhoto,
   getVehiclePhotoUrl, expiryStatus, expiryLabel,
-  vehicleTypeLabel, vehicleStatusLabel, fuelTypeLabel,
+  vehicleTypeLabel, vehicleStatusLabel, fuelTypeLabel, fetchVehicleOccupancy,
   type VehicleFormValues, type VehicleRow, type VehicleStatus,
 } from "@/lib/vehicles";
 
