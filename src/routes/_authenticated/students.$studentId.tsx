@@ -378,10 +378,6 @@ function AssignDialog({
 }) {
   const [selected, setSelected] = useState<string>(value ?? "none");
   useEffect(() => { setSelected(value ?? "none"); }, [value, open]);
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader>
   const empty = options.length === 0;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
