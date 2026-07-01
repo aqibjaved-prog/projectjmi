@@ -8,12 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Pencil, Power, Trash2 } from "lucide-react";
+import { ArrowLeft, Pencil, Power, Trash2, User } from "lucide-react";
 import { toast } from "sonner";
 import { DriverForm } from "@/components/drivers/driver-form";
 import {
-  driverToFormDefaults, licenseStatus, licenseStatusLabel, mergeMetadata,
-  splitDriverPayload, type DriverFormValues, type DriverRow,
+  driverToFormDefaults, getDriverPhotoUrl, licenseStatus, licenseStatusLabel,
+  mergeMetadata, splitDriverPayload, uploadDriverPhoto,
+  type DriverFormValues, type DriverRow,
 } from "@/lib/drivers";
 
 type Detail = DriverRow & { schools?: { id: string; name: string } | null };
@@ -46,6 +47,12 @@ function DriverDetailPage() {
     },
   });
 
+  const { data: photoUrl } = useQuery({
+    enabled: !!driver?.metadata?.photo_path,
+    queryKey: ["driver-photo", driverId, driver?.metadata?.photo_path],
+    queryFn: () => getDriverPhotoUrl(driver?.metadata?.photo_path ?? null),
+  });
+
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["driver", driverId] });
     qc.invalidateQueries({ queryKey: ["drivers-list"] });
@@ -54,13 +61,19 @@ function DriverDetailPage() {
   };
 
   const update = useMutation({
-    mutationFn: async (values: DriverFormValues) => {
-      const { columns, metadata } = splitDriverPayload(values);
-      const merged = mergeMetadata(driver?.metadata ?? null, metadata);
+    mutationFn: async ({ values, photo }: { values: DriverFormValues; photo: File | null }) => {
+      if (!driver) throw new Error("Driver not loaded");
+      const existingPath = driver.metadata?.photo_path ?? null;
+      let photoPath = existingPath;
+      if (photo) {
+        photoPath = await uploadDriverPhoto(driver.school_id, driver.id, photo);
+      }
+      const { columns, metadata } = splitDriverPayload(values, photoPath);
+      const merged = mergeMetadata(driver.metadata ?? null, metadata);
       const { error } = await supabase
         .from("drivers")
         .update({ ...columns, metadata: merged })
-        .eq("id", driverId);
+        .eq("id", driver.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -104,6 +117,7 @@ function DriverDetailPage() {
 
   const ls = licenseStatus(driver.license_expiry);
   const m = driver.metadata ?? {};
+  const addressLine = [m.address, m.city, m.state, m.pincode].filter(Boolean).join(", ");
 
   return (
     <>
@@ -133,18 +147,32 @@ function DriverDetailPage() {
         <Card className="lg:col-span-2">
           <CardHeader><CardTitle>Profile</CardTitle></CardHeader>
           <CardContent>
-            <div className="flex items-start gap-4">
-              <div className="grid h-24 w-24 place-items-center rounded-full border bg-muted text-lg">
-                {(driver.full_name ?? "?").slice(0, 2).toUpperCase()}
+            <div className="flex flex-col items-start gap-4 sm:flex-row">
+              <div className="grid h-28 w-28 shrink-0 place-items-center overflow-hidden rounded-full border bg-muted text-muted-foreground">
+                {photoUrl ? (
+                  <img src={photoUrl} alt={driver.full_name} className="h-full w-full object-cover" />
+                ) : (
+                  <User className="h-12 w-12" />
+                )}
               </div>
-              <div className="flex-1 grid gap-3 sm:grid-cols-2">
+              <div className="grid flex-1 gap-3 sm:grid-cols-2">
+                <Info label="Driver ID" value={<code className="text-xs">{driver.id.slice(0, 8)}</code>} />
                 <Info label="Full name" value={driver.full_name} />
                 <Info label="Date of birth" value={m.date_of_birth} />
+                <Info label="Gender" value={m.gender} />
+                <Info label="Blood group" value={m.blood_group} />
+                <Info label="Aadhaar" value={m.aadhaar_number} />
                 <Info label="Phone" value={driver.phone} />
                 <Info label="Email" value={m.email} />
-                <Info label="Address" value={m.address} />
-                <Info label="Emergency contact" value={m.emergency_contact} />
-                <Info label="Status" value={<Badge variant={driver.is_active ? "default" : "secondary"}>{driver.is_active ? "Active" : "Inactive"}</Badge>} />
+                <Info label="Address" value={addressLine || "—"} />
+                <Info
+                  label="Status"
+                  value={
+                    <Badge variant={driver.is_active ? "default" : "secondary"}>
+                      {driver.is_active ? "Active" : "Inactive"}
+                    </Badge>
+                  }
+                />
                 <Info label="Created" value={new Date(driver.created_at).toLocaleString()} />
                 <Info label="Last updated" value={new Date(driver.updated_at).toLocaleString()} />
               </div>
@@ -159,11 +187,30 @@ function DriverDetailPage() {
             <Info label="Class" value={m.license_class} />
             <Info label="Issue date" value={m.license_issue_date} />
             <Info label="Expiry date" value={driver.license_expiry} />
-            <Info label="License status" value={
-              <Badge variant={ls === "expired" ? "destructive" : ls === "expiring" ? "secondary" : "outline"}>
-                {licenseStatusLabel(ls)}
-              </Badge>
-            } />
+            <Info label="Experience" value={m.experience_years != null ? `${m.experience_years} years` : "—"} />
+            <Info
+              label="License status"
+              value={
+                <Badge variant={ls === "expired" ? "destructive" : ls === "expiring" ? "secondary" : "outline"}>
+                  {licenseStatusLabel(ls)}
+                </Badge>
+              }
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>Emergency contact</CardTitle></CardHeader>
+          <CardContent className="grid gap-3">
+            <Info label="Name" value={m.emergency_contact_name} />
+            <Info label="Phone" value={m.emergency_contact_number ?? m.emergency_contact} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>Employment</CardTitle></CardHeader>
+          <CardContent className="grid gap-3">
+            <Info label="Joining date" value={m.joining_date} />
           </CardContent>
         </Card>
 
@@ -177,15 +224,22 @@ function DriverDetailPage() {
         </Card>
       </div>
 
-      <Dialog open={editOpen} onOpenChange={(o) => { setEditOpen(o); if (!o) navigate({ to: "/drivers/$driverId", params: { driverId }, search: { edit: undefined } }); }}>
+      <Dialog
+        open={editOpen}
+        onOpenChange={(o) => {
+          setEditOpen(o);
+          if (!o) navigate({ to: "/drivers/$driverId", params: { driverId }, search: { edit: undefined } });
+        }}
+      >
         <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
           <DialogHeader><DialogTitle>Edit driver</DialogTitle></DialogHeader>
           {defaults && (
             <DriverForm
               defaultValues={defaults}
+              existingPhotoUrl={photoUrl ?? null}
               submitting={update.isPending}
               submitLabel="Save changes"
-              onSubmit={(v) => update.mutate(v)}
+              onSubmit={(values, photo) => update.mutate({ values, photo })}
             />
           )}
         </DialogContent>
