@@ -200,13 +200,16 @@ function TripsPage() {
         at: new Date().toISOString(),
       }];
 
-      const { error } = await supabase.from("trips" as never).insert({
+      const { error } = await (supabase.from("trips" as never) as unknown as {
+        insert: (p: unknown) => Promise<{ error: unknown }>;
+      }).insert({
         ...payload,
         school_id: activeSchoolId,
         stop_progress,
         timeline,
       });
-      if (error) throw error;
+      if (error) throw error as Error;
+
     },
     onSuccess: () => { toast.success("Trip created"); invalidate(); setCreateOpen(false); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed to create trip"),
