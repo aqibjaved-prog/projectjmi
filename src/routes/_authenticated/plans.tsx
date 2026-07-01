@@ -99,7 +99,7 @@ function PlansPage() {
               <Button><Plus className="mr-2 h-4 w-4" /> New plan</Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
-              <DialogHeader><DialogTitle>Create plan</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>Create plan</DialogTitle><DialogDescription className="sr-only">Configure a new subscription plan.</DialogDescription></DialogHeader>
               <PlanForm submitLabel="Create plan" submitting={create.isPending} onSubmit={(v) => create.mutate(v)} />
             </DialogContent>
           </Dialog>
