@@ -104,7 +104,7 @@ const MODULES: Array<{ name: string; status: "Complete" | "In Progress" | "Plann
   { name: "School Admin Management", status: "Complete", notes: "Super-admin creates accounts; password reset; tenant assignment." },
   { name: "Student Management", status: "Complete", notes: "31 fields, QR generation, CSV/Excel/PDF import/export, photo upload." },
   { name: "Driver Management", status: "Complete", notes: "Profile photo, license tracking with <30-day warnings, import/export." },
-  { name: "Vehicle Management", status: "Planned", notes: "Fleet inventory, capacity, maintenance." },
+  { name: "Vehicle Management", status: "Complete", notes: "Full fleet CRUD, photo upload, insurance/fitness/pollution expiry tracking, import/export, super-admin read-only cross-tenant view." },
   { name: "Route Management", status: "Planned", notes: "Stops, timing, driver/vehicle assignment." },
   { name: "Parent Management", status: "Planned", notes: "Invite parents, link children." },
   { name: "Trip Management", status: "Planned", notes: "Live trips, QR check-in/out, speed logs." },
@@ -125,7 +125,7 @@ const FUTURE_MODULES = [
 const PENDING_TASKS = [
   "Configure custom sender domain and branded auth emails",
   "Implement password reset email delivery (deferred by user)",
-  "Build Vehicle, Route, Parent, Trip, QR Logs modules",
+  "Build Route, Parent, Trip, QR Logs modules",
   "Wire assign-route / assign-vehicle actions on student & driver profiles",
   "Add analytics & reporting dashboards",
 ];
