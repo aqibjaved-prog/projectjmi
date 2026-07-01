@@ -65,7 +65,7 @@ function MissingKeyPlaceholder() {
 }
 
 function MapEditor({
-  start, end, stops, color = "#3b82f6",
+  start, end, stops, color = "#3b82f6", maxStops,
   onStartChange, onEndChange, onStopsChange, onSummaryChange,
 }: Props) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -73,13 +73,14 @@ function MapEditor({
   const startMarkerRef = useRef<google.maps.Marker | null>(null);
   const endMarkerRef = useRef<google.maps.Marker | null>(null);
   const stopMarkersRef = useRef<google.maps.Marker[]>([]);
-  const rendererRef = useRef<google.maps.DirectionsRenderer | null>(null);
-  const directionsRef = useRef<google.maps.DirectionsService | null>(null);
-  const geocoderRef = useRef<google.maps.Geocoder | null>(null);
+  const polylineRef = useRef<google.maps.Polyline | null>(null);
   const clickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
+  const geocodeCacheRef = useRef<Map<string, string>>(new Map());
+  const directionsReqRef = useRef(0);
 
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [computing, setComputing] = useState(false);
   const [summary, setSummary] = useState<{ distanceKm: number | null; durationMin: number | null }>({
     distanceKm: null, durationMin: null,
   });
@@ -104,11 +105,8 @@ function MapEditor({
           fullscreenControl: false,
         });
         mapRef.current = map;
-        directionsRef.current = new g.maps.DirectionsService();
-        geocoderRef.current = new g.maps.Geocoder();
-        rendererRef.current = new g.maps.DirectionsRenderer({
-          map, suppressMarkers: true,
-          polylineOptions: { strokeColor: color, strokeWeight: 5, strokeOpacity: 0.85 },
+        polylineRef.current = new g.maps.Polyline({
+          map, path: [], strokeColor: color, strokeWeight: 5, strokeOpacity: 0.85,
         });
         clickListenerRef.current = map.addListener("click", (e: google.maps.MapMouseEvent) => {
           if (!e.latLng) return;
@@ -126,25 +124,26 @@ function MapEditor({
 
   // Update polyline color when it changes
   useEffect(() => {
-    rendererRef.current?.setOptions({
-      polylineOptions: { strokeColor: color, strokeWeight: 5, strokeOpacity: 0.85 },
-    });
+    polylineRef.current?.setOptions({ strokeColor: color });
   }, [color]);
 
   const handleMapClick = async (lat: number, lng: number) => {
     const { start: s, end: e, stops: st, onStartChange: oS, onEndChange: oE, onStopsChange: oSt } = latest.current;
-    const address = await reverseGeocode(lat, lng);
+    const address = await reverseLookup(lat, lng);
     if (s.lat == null) { oS({ address, lat, lng }); return; }
     if (e.lat == null) { oE({ address, lat, lng }); return; }
     const stop = { ...newStop(st.length), name: address || `Stop ${st.length + 1}`, address, lat, lng };
     oSt([...st, stop]);
   };
 
-  const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
-    if (!geocoderRef.current) return "";
+  const reverseLookup = async (lat: number, lng: number): Promise<string> => {
+    const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+    const cached = geocodeCacheRef.current.get(key);
+    if (cached !== undefined) return cached;
     try {
-      const res = await geocoderRef.current.geocode({ location: { lat, lng } });
-      return res.results?.[0]?.formatted_address ?? "";
+      const { address } = await reverseGeocodeFn({ data: { lat, lng } });
+      geocodeCacheRef.current.set(key, address);
+      return address;
     } catch { return ""; }
   };
 
