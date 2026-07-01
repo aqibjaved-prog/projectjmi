@@ -50,6 +50,13 @@ function VehicleDetailPage() {
     },
   });
 
+  const { data: occupancy } = useQuery({
+    enabled: !!vehicle?.school_id,
+    queryKey: ["vehicle-occupancy", vehicle?.school_id],
+    queryFn: () => fetchVehicleOccupancy(vehicle?.school_id),
+  });
+  const occ = vehicle ? occupancy?.get(vehicle.id) : undefined;
+
   const { data: photoUrl } = useQuery({
     enabled: !!vehicle?.metadata?.photo_path,
     queryKey: ["vehicle-photo", vehicleId, vehicle?.metadata?.photo_path],
