@@ -278,7 +278,7 @@ function SchoolDetailPage() {
         }}
       >
         <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>Edit school</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Edit school</DialogTitle><DialogDescription className="sr-only">Update this school's information.</DialogDescription></DialogHeader>
           <SchoolForm
             submitLabel="Save changes"
             submitting={update.isPending}
