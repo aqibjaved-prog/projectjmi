@@ -12,7 +12,7 @@ export function isGoogleMapsConfigured(): boolean {
   return Boolean(BROWSER_KEY);
 }
 
-type GoogleNs = typeof globalThis extends { google: infer G } ? G : typeof google;
+type GoogleNs = typeof google;
 let loaderPromise: Promise<GoogleNs> | null = null;
 
 export function loadGoogleMaps(
