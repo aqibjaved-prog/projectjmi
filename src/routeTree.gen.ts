@@ -32,8 +32,10 @@ import { Route as AuthenticatedDriversRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedStudentsIndexRouteImport } from './routes/_authenticated/students.index'
 import { Route as AuthenticatedSchoolsIndexRouteImport } from './routes/_authenticated/schools.index'
+import { Route as AuthenticatedDriversIndexRouteImport } from './routes/_authenticated/drivers.index'
 import { Route as AuthenticatedStudentsStudentIdRouteImport } from './routes/_authenticated/students.$studentId'
 import { Route as AuthenticatedSchoolsSchoolIdRouteImport } from './routes/_authenticated/schools.$schoolId'
+import { Route as AuthenticatedDriversDriverIdRouteImport } from './routes/_authenticated/drivers.$driverId'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -155,6 +157,12 @@ const AuthenticatedSchoolsIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedSchoolsRoute,
   } as any)
+const AuthenticatedDriversIndexRoute =
+  AuthenticatedDriversIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedDriversRoute,
+  } as any)
 const AuthenticatedStudentsStudentIdRoute =
   AuthenticatedStudentsStudentIdRouteImport.update({
     id: '/$studentId',
@@ -167,13 +175,19 @@ const AuthenticatedSchoolsSchoolIdRoute =
     path: '/$schoolId',
     getParentRoute: () => AuthenticatedSchoolsRoute,
   } as any)
+const AuthenticatedDriversDriverIdRoute =
+  AuthenticatedDriversDriverIdRouteImport.update({
+    id: '/$driverId',
+    path: '/$driverId',
+    getParentRoute: () => AuthenticatedDriversRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/drivers': typeof AuthenticatedDriversRoute
+  '/drivers': typeof AuthenticatedDriversRouteWithChildren
   '/my-children': typeof AuthenticatedMyChildrenRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/parents': typeof AuthenticatedParentsRoute
@@ -189,8 +203,10 @@ export interface FileRoutesByFullPath {
   '/subscriptions': typeof AuthenticatedSubscriptionsRoute
   '/trips': typeof AuthenticatedTripsRoute
   '/vehicles': typeof AuthenticatedVehiclesRoute
+  '/drivers/$driverId': typeof AuthenticatedDriversDriverIdRoute
   '/schools/$schoolId': typeof AuthenticatedSchoolsSchoolIdRoute
   '/students/$studentId': typeof AuthenticatedStudentsStudentIdRoute
+  '/drivers/': typeof AuthenticatedDriversIndexRoute
   '/schools/': typeof AuthenticatedSchoolsIndexRoute
   '/students/': typeof AuthenticatedStudentsIndexRoute
 }
@@ -199,7 +215,6 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/drivers': typeof AuthenticatedDriversRoute
   '/my-children': typeof AuthenticatedMyChildrenRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/parents': typeof AuthenticatedParentsRoute
@@ -213,8 +228,10 @@ export interface FileRoutesByTo {
   '/subscriptions': typeof AuthenticatedSubscriptionsRoute
   '/trips': typeof AuthenticatedTripsRoute
   '/vehicles': typeof AuthenticatedVehiclesRoute
+  '/drivers/$driverId': typeof AuthenticatedDriversDriverIdRoute
   '/schools/$schoolId': typeof AuthenticatedSchoolsSchoolIdRoute
   '/students/$studentId': typeof AuthenticatedStudentsStudentIdRoute
+  '/drivers': typeof AuthenticatedDriversIndexRoute
   '/schools': typeof AuthenticatedSchoolsIndexRoute
   '/students': typeof AuthenticatedStudentsIndexRoute
 }
@@ -225,7 +242,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
-  '/_authenticated/drivers': typeof AuthenticatedDriversRoute
+  '/_authenticated/drivers': typeof AuthenticatedDriversRouteWithChildren
   '/_authenticated/my-children': typeof AuthenticatedMyChildrenRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/parents': typeof AuthenticatedParentsRoute
@@ -241,8 +258,10 @@ export interface FileRoutesById {
   '/_authenticated/subscriptions': typeof AuthenticatedSubscriptionsRoute
   '/_authenticated/trips': typeof AuthenticatedTripsRoute
   '/_authenticated/vehicles': typeof AuthenticatedVehiclesRoute
+  '/_authenticated/drivers/$driverId': typeof AuthenticatedDriversDriverIdRoute
   '/_authenticated/schools/$schoolId': typeof AuthenticatedSchoolsSchoolIdRoute
   '/_authenticated/students/$studentId': typeof AuthenticatedStudentsStudentIdRoute
+  '/_authenticated/drivers/': typeof AuthenticatedDriversIndexRoute
   '/_authenticated/schools/': typeof AuthenticatedSchoolsIndexRoute
   '/_authenticated/students/': typeof AuthenticatedStudentsIndexRoute
 }
@@ -269,8 +288,10 @@ export interface FileRouteTypes {
     | '/subscriptions'
     | '/trips'
     | '/vehicles'
+    | '/drivers/$driverId'
     | '/schools/$schoolId'
     | '/students/$studentId'
+    | '/drivers/'
     | '/schools/'
     | '/students/'
   fileRoutesByTo: FileRoutesByTo
@@ -279,7 +300,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/reset-password'
     | '/dashboard'
-    | '/drivers'
     | '/my-children'
     | '/notifications'
     | '/parents'
@@ -293,8 +313,10 @@ export interface FileRouteTypes {
     | '/subscriptions'
     | '/trips'
     | '/vehicles'
+    | '/drivers/$driverId'
     | '/schools/$schoolId'
     | '/students/$studentId'
+    | '/drivers'
     | '/schools'
     | '/students'
   id:
@@ -320,8 +342,10 @@ export interface FileRouteTypes {
     | '/_authenticated/subscriptions'
     | '/_authenticated/trips'
     | '/_authenticated/vehicles'
+    | '/_authenticated/drivers/$driverId'
     | '/_authenticated/schools/$schoolId'
     | '/_authenticated/students/$studentId'
+    | '/_authenticated/drivers/'
     | '/_authenticated/schools/'
     | '/_authenticated/students/'
   fileRoutesById: FileRoutesById
@@ -496,6 +520,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSchoolsIndexRouteImport
       parentRoute: typeof AuthenticatedSchoolsRoute
     }
+    '/_authenticated/drivers/': {
+      id: '/_authenticated/drivers/'
+      path: '/'
+      fullPath: '/drivers/'
+      preLoaderRoute: typeof AuthenticatedDriversIndexRouteImport
+      parentRoute: typeof AuthenticatedDriversRoute
+    }
     '/_authenticated/students/$studentId': {
       id: '/_authenticated/students/$studentId'
       path: '/$studentId'
@@ -510,8 +541,28 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSchoolsSchoolIdRouteImport
       parentRoute: typeof AuthenticatedSchoolsRoute
     }
+    '/_authenticated/drivers/$driverId': {
+      id: '/_authenticated/drivers/$driverId'
+      path: '/$driverId'
+      fullPath: '/drivers/$driverId'
+      preLoaderRoute: typeof AuthenticatedDriversDriverIdRouteImport
+      parentRoute: typeof AuthenticatedDriversRoute
+    }
   }
 }
+
+interface AuthenticatedDriversRouteChildren {
+  AuthenticatedDriversDriverIdRoute: typeof AuthenticatedDriversDriverIdRoute
+  AuthenticatedDriversIndexRoute: typeof AuthenticatedDriversIndexRoute
+}
+
+const AuthenticatedDriversRouteChildren: AuthenticatedDriversRouteChildren = {
+  AuthenticatedDriversDriverIdRoute: AuthenticatedDriversDriverIdRoute,
+  AuthenticatedDriversIndexRoute: AuthenticatedDriversIndexRoute,
+}
+
+const AuthenticatedDriversRouteWithChildren =
+  AuthenticatedDriversRoute._addFileChildren(AuthenticatedDriversRouteChildren)
 
 interface AuthenticatedSchoolsRouteChildren {
   AuthenticatedSchoolsSchoolIdRoute: typeof AuthenticatedSchoolsSchoolIdRoute
@@ -543,7 +594,7 @@ const AuthenticatedStudentsRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
-  AuthenticatedDriversRoute: typeof AuthenticatedDriversRoute
+  AuthenticatedDriversRoute: typeof AuthenticatedDriversRouteWithChildren
   AuthenticatedMyChildrenRoute: typeof AuthenticatedMyChildrenRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedParentsRoute: typeof AuthenticatedParentsRoute
@@ -563,7 +614,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
-  AuthenticatedDriversRoute: AuthenticatedDriversRoute,
+  AuthenticatedDriversRoute: AuthenticatedDriversRouteWithChildren,
   AuthenticatedMyChildrenRoute: AuthenticatedMyChildrenRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedParentsRoute: AuthenticatedParentsRoute,
@@ -593,3 +644,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
