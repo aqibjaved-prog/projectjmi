@@ -382,6 +382,9 @@ function VehiclesPage() {
         <StatCard label="Fitness expiring" value={totals.fitness} icon={AlertTriangle} loading={isLoading} tone="warning" />
         <StatCard label="Pollution expiring" value={totals.pollution} icon={AlertTriangle} loading={isLoading} tone="warning" />
         <StatCard label="Service due" value={totals.service} icon={Wrench} loading={isLoading} tone="warning" />
+        <StatCard label="Total capacity" value={totals.totalCapacity} icon={Bus} loading={isLoading} />
+        <StatCard label="Occupied seats" value={totals.occupiedSeats ?? "—"} icon={CheckCircle2} loading={isLoading} />
+        <StatCard label="Available seats" value={totals.availableSeats ?? "—"} icon={CheckCircle2} loading={isLoading} tone="success" />
       </div>
 
       <Card className="mt-4">
