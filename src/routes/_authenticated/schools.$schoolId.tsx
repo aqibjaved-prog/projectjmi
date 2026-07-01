@@ -888,3 +888,135 @@ function PlanColumn({
     </div>
   );
 }
+
+/* -------------------- Overview UI helpers -------------------- */
+
+function daysBetween(target: string): number {
+  const ms = new Date(target).getTime() - Date.now();
+  return Math.ceil(ms / 86_400_000);
+}
+
+function SubStatusBadge({ sub }: { sub: SubRow }) {
+  const expiry = expiryState(sub.current_period_end);
+  if (sub.status === "suspended") {
+    return <Badge className="gap-1 bg-slate-700 text-white hover:bg-slate-700"><Ban className="h-3 w-3" /> Suspended</Badge>;
+  }
+  if (sub.status === "cancelled" as SubscriptionStatus) {
+    return <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" /> Cancelled</Badge>;
+  }
+  if (expiry === "expired") {
+    return <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" /> Expired</Badge>;
+  }
+  if (expiry === "expiring_soon") {
+    return <Badge className="gap-1 bg-orange-500 text-white hover:bg-orange-500"><AlertTriangle className="h-3 w-3" /> Expiring soon</Badge>;
+  }
+  if (sub.status === "trialing") {
+    return <Badge className="gap-1 bg-amber-500 text-white hover:bg-amber-500"><Clock className="h-3 w-3" /> Trial</Badge>;
+  }
+  return <Badge className="gap-1 bg-emerald-600 text-white hover:bg-emerald-600"><CheckCircle2 className="h-3 w-3" /> Active</Badge>;
+}
+
+function PaymentBadge({ status }: { status: PaymentStatus }) {
+  const map: Record<string, string> = {
+    paid: "bg-emerald-600 text-white hover:bg-emerald-600",
+    pending: "bg-amber-500 text-white hover:bg-amber-500",
+    overdue: "bg-red-600 text-white hover:bg-red-600",
+    failed: "bg-red-600 text-white hover:bg-red-600",
+    cancelled: "bg-slate-500 text-white hover:bg-slate-500",
+  };
+  return <Badge className={`capitalize ${map[status] ?? ""}`}>{status}</Badge>;
+}
+
+function OverviewRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <>
+      <div className="text-muted-foreground">{label}</div>
+      <div className="text-right font-medium">{children}</div>
+    </>
+  );
+}
+
+function UsageBar({ label, metric }: { label: string; metric: UsageMetric | undefined }) {
+  const m = metric ?? { used: 0, limit: null };
+  const unlimited = m.limit == null;
+  const pct = unlimited ? 0 : Math.min(100, Math.round((m.used / Math.max(m.limit!, 1)) * 100));
+  const tone =
+    unlimited ? "" :
+    pct >= 100 ? "[&>div]:bg-red-600" :
+    pct >= 80 ? "[&>div]:bg-orange-500" :
+    "[&>div]:bg-emerald-600";
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-xs">
+        <span className="font-medium">{label}</span>
+        <span className="tabular-nums text-muted-foreground">
+          {unlimited ? `${m.used} / Unlimited` : `${m.used} / ${m.limit}${!unlimited ? ` · ${pct}%` : ""}`}
+        </span>
+      </div>
+      {unlimited ? (
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <InfinityIcon className="h-3 w-3" /> Unlimited
+        </div>
+      ) : (
+        <Progress value={pct} className={tone} />
+      )}
+    </div>
+  );
+}
+
+function SubscriptionOverview({
+  sub,
+  currentPlan,
+  usage,
+}: {
+  sub: SubRow;
+  currentPlan: Plan | null;
+  usage: PlanUsage | undefined;
+}) {
+  const end = sub.current_period_end;
+  const start = sub.current_period_start;
+  const daysLeft = end ? daysBetween(end) : null;
+  const expiry = expiryState(end);
+  const planName = currentPlan?.name ?? sub.plan_name ?? "—";
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-y-1.5 text-sm">
+        <OverviewRow label="Current plan">{planName}</OverviewRow>
+        <OverviewRow label="Billing cycle"><span className="capitalize">{sub.billing_cycle}</span></OverviewRow>
+        <OverviewRow label="Start date">{start ? new Date(start).toLocaleDateString() : "—"}</OverviewRow>
+        <OverviewRow label="End date">{end ? new Date(end).toLocaleDateString() : "—"}</OverviewRow>
+        <OverviewRow label="Days remaining">
+          {daysLeft == null ? "—" :
+            daysLeft < 0 ? <span className="text-destructive">Expired {Math.abs(daysLeft)} day{Math.abs(daysLeft) === 1 ? "" : "s"} ago</span> :
+            <span className={daysLeft <= 7 ? "text-orange-600 dark:text-orange-400" : ""}>{daysLeft} day{daysLeft === 1 ? "" : "s"}</span>
+          }
+        </OverviewRow>
+        <OverviewRow label="Next renewal">{sub.renewal_date ? new Date(sub.renewal_date).toLocaleDateString() : (end ? new Date(end).toLocaleDateString() : "—")}</OverviewRow>
+        <OverviewRow label="Payment status"><PaymentBadge status={sub.payment_status} /></OverviewRow>
+        <OverviewRow label="Amount">{sub.currency} {(sub.amount_cents / 100).toFixed(2)}</OverviewRow>
+      </div>
+
+      {expiry === "expired" && end && (
+        <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/5 p-2.5 text-xs text-destructive">
+          <AlertTriangle className="h-4 w-4" />
+          Expired on {new Date(end).toLocaleDateString()} ({Math.abs(daysLeft ?? 0)} day{Math.abs(daysLeft ?? 0) === 1 ? "" : "s"} ago).
+        </div>
+      )}
+      {expiry === "expiring_soon" && daysLeft != null && daysLeft >= 0 && (
+        <div className="flex items-center gap-2 rounded-md border border-orange-500/40 bg-orange-500/5 p-2.5 text-xs text-orange-700 dark:text-orange-400">
+          <CalendarDays className="h-4 w-4" />
+          Subscription expires in {daysLeft} day{daysLeft === 1 ? "" : "s"}.
+        </div>
+      )}
+
+      <div className="space-y-3 rounded-md border p-3">
+        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Resource usage</div>
+        <UsageBar label="Students" metric={usage?.students} />
+        <UsageBar label="Vehicles" metric={usage?.vehicles} />
+        <UsageBar label="Drivers" metric={usage?.drivers} />
+        <UsageBar label="Routes" metric={usage?.routes} />
+      </div>
+    </div>
+  );
+}
