@@ -167,6 +167,7 @@ export function RouteForm({ defaults, drivers = [], vehicles = [], submitting, s
             end={end}
             stops={stops}
             color={values.route_color || ROUTE_COLORS[0]}
+            maxStops={toNum(values.max_students)}
             onStartChange={setStart}
             onEndChange={setEnd}
             onStopsChange={setStops}
