@@ -91,7 +91,10 @@ function StudentDetailPage() {
       setEditOpen(false);
       navigate({ to: "/students/$studentId", params: { studentId }, search: { edit: undefined } });
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+    onError: (e) => {
+      if (isCapacityError(e)) toast.error("This vehicle has reached its maximum seating capacity.");
+      else toast.error(e instanceof Error ? e.message : "Failed");
+    },
   });
 
   const toggleActive = useMutation({
