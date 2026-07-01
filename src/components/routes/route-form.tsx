@@ -225,7 +225,7 @@ export function RouteForm({ defaults, drivers = [], vehicles = [], submitting, s
                       key={f._key}
                       id={f.id}
                       index={i}
-                      value={f as unknown as RouteFormValues["stops"][number]}
+                      value={f as unknown as StopValue}
                       onChange={(v) => update(i, v as never)}
                       onRemove={() => remove(i)}
                     />
@@ -249,14 +249,14 @@ function SortableStop({
 }: {
   id: string;
   index: number;
-  value: RouteFormValues["stops"][number];
-  onChange: (v: RouteFormValues["stops"][number]) => void;
+  value: StopValue;
+  onChange: (v: StopValue) => void;
   onRemove: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1 };
 
-  const set = <K extends keyof RouteFormValues["stops"][number]>(k: K, v: RouteFormValues["stops"][number][K]) =>
+  const set = <K extends keyof StopValue>(k: K, v: StopValue[K]) =>
     onChange({ ...value, [k]: v });
 
   return (
