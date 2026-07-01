@@ -205,6 +205,7 @@ function MapEditor({
           const lat = e.latLng.lat(), lng = e.latLng.lng();
           const address = await reverseLookup(lat, lng);
           latest.current.onStartChange({ address, lat, lng });
+          if (latest.current.stops.length > 0) latest.current.onStopsChange(clearRouteTimetable(latest.current.stops));
         });
       }
       startMarkerRef.current.setPosition({ lat: start.lat, lng: start.lng });
@@ -223,6 +224,7 @@ function MapEditor({
           const lat = e.latLng.lat(), lng = e.latLng.lng();
           const address = await reverseLookup(lat, lng);
           latest.current.onEndChange({ address, lat, lng });
+          if (latest.current.stops.length > 0) latest.current.onStopsChange(clearRouteTimetable(latest.current.stops));
         });
       }
       endMarkerRef.current.setPosition({ lat: end.lat, lng: end.lng });
@@ -245,7 +247,7 @@ function MapEditor({
         const address = await reverseLookup(lat, lng);
         const next = latest.current.stops.map((x, idx) =>
           idx === i ? { ...x, lat, lng, address } : x);
-        latest.current.onStopsChange(next);
+        latest.current.onStopsChange(clearRouteTimetable(next));
       });
       stopMarkersRef.current.push(marker);
     });
@@ -533,6 +535,7 @@ function MapEditor({
                     defaultDwell={dwellDefault}
                     onChange={(patch) => updateStop(i, patch)}
                     onRemove={() => removeStop(i)}
+                    previousName={i === 0 ? "School" : (stops[i - 1]?.name || `Stop ${i}`)}
                   />
                 ))}
               </div>
