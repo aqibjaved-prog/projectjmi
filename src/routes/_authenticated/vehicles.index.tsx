@@ -342,7 +342,7 @@ function VehiclesPage() {
                   <Button disabled={!activeSchoolId}><Plus className="mr-2 h-4 w-4" /> Add vehicle</Button>
                 </DialogTrigger>
                 <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
-                  <DialogHeader><DialogTitle>Add vehicle</DialogTitle></DialogHeader>
+                  <DialogHeader><DialogTitle>Add vehicle</DialogTitle><DialogDescription className="sr-only">Register a new vehicle for this school.</DialogDescription></DialogHeader>
                   {activeSchoolId && (
                     <VehicleForm
                       submitting={create.isPending}
