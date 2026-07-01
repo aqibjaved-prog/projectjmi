@@ -505,10 +505,14 @@ function SubscriptionPanel({ schoolId, sub }: { schoolId: string; sub: SubRow | 
           </Select>
         </div>
         <div className="flex flex-wrap gap-2 pt-2">
-          <Button onClick={() => assign.mutate("assign")} disabled={assign.isPending || !planId} className="flex-1">
-            {assign.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {sub ? "Change plan" : "Assign plan"}
-          </Button>
+          {sub ? (
+            <ChangePlanDialog schoolId={schoolId} sub={sub} plans={plans ?? []} />
+          ) : (
+            <Button onClick={() => assign.mutate("assign")} disabled={assign.isPending || !planId} className="flex-1">
+              {assign.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Assign plan
+            </Button>
+          )}
           {sub && (
             <Button variant="outline" onClick={() => assign.mutate("renew")} disabled={assign.isPending}>
               <RefreshCw className="mr-2 h-4 w-4" /> Renew
