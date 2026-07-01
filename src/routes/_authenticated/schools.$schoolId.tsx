@@ -459,7 +459,6 @@ function SubscriptionPanel({ schoolId, sub }: { schoolId: string; sub: SubRow | 
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
-  });
 
   return (
     <Card>
