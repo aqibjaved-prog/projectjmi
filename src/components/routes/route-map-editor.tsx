@@ -162,7 +162,7 @@ function MapEditor({
         startMarkerRef.current.addListener("dragend", async (e: google.maps.MapMouseEvent) => {
           if (!e.latLng) return;
           const lat = e.latLng.lat(), lng = e.latLng.lng();
-          const address = await reverseGeocode(lat, lng);
+          const address = await reverseLookup(lat, lng);
           latest.current.onStartChange({ address, lat, lng });
         });
       }
@@ -180,7 +180,7 @@ function MapEditor({
         endMarkerRef.current.addListener("dragend", async (e: google.maps.MapMouseEvent) => {
           if (!e.latLng) return;
           const lat = e.latLng.lat(), lng = e.latLng.lng();
-          const address = await reverseGeocode(lat, lng);
+          const address = await reverseLookup(lat, lng);
           latest.current.onEndChange({ address, lat, lng });
         });
       }
@@ -201,7 +201,7 @@ function MapEditor({
       marker.addListener("dragend", async (e: google.maps.MapMouseEvent) => {
         if (!e.latLng) return;
         const lat = e.latLng.lat(), lng = e.latLng.lng();
-        const address = await reverseGeocode(lat, lng);
+        const address = await reverseLookup(lat, lng);
         const next = latest.current.stops.map((x, idx) =>
           idx === i ? { ...x, lat, lng, address } : x);
         latest.current.onStopsChange(next);
@@ -218,40 +218,50 @@ function MapEditor({
     if (has) map.fitBounds(bounds, 60);
 
     // Compute directions if we have start + end
-    void computeDirections();
+    void runDirections();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, start.lat, start.lng, end.lat, end.lng, stops]);
 
-  const computeDirections = async () => {
-    const svc = directionsRef.current;
-    const renderer = rendererRef.current;
-    if (!svc || !renderer) return;
+  const runDirections = async () => {
+    const poly = polylineRef.current;
+    if (!poly) return;
     if (start.lat == null || start.lng == null || end.lat == null || end.lng == null) {
-      renderer.setDirections({ routes: [] } as unknown as google.maps.DirectionsResult);
+      poly.setPath([]);
       setSummary({ distanceKm: null, durationMin: null });
       onSummaryChange?.({ distanceKm: null, durationMin: null });
       return;
     }
     const waypoints = stops
       .filter((s) => s.lat != null && s.lng != null)
-      .map((s) => ({ location: { lat: s.lat as number, lng: s.lng as number }, stopover: true }));
+      .map((s) => ({ lat: s.lat as number, lng: s.lng as number }));
+    const reqId = ++directionsReqRef.current;
+    setComputing(true);
     try {
-      const res = await svc.route({
-        origin: { lat: start.lat, lng: start.lng },
-        destination: { lat: end.lat, lng: end.lng },
-        waypoints,
-        optimizeWaypoints: false,
-        travelMode: google.maps.TravelMode.DRIVING,
+      const res = await computeDirections({
+        data: {
+          origin: { lat: start.lat, lng: start.lng },
+          destination: { lat: end.lat, lng: end.lng },
+          waypoints,
+        },
       });
-      renderer.setDirections(res);
-      const leg = res.routes[0]?.legs ?? [];
-      const meters = leg.reduce((a, l) => a + (l.distance?.value ?? 0), 0);
-      const seconds = leg.reduce((a, l) => a + (l.duration?.value ?? 0), 0);
-      const s = { distanceKm: +(meters / 1000).toFixed(2), durationMin: Math.round(seconds / 60) };
+      if (reqId !== directionsReqRef.current) return;
+      const g = (window as unknown as { google: typeof google }).google;
+      if (res.encodedPolyline && g?.maps?.geometry?.encoding) {
+        const path = g.maps.geometry.encoding.decodePath(res.encodedPolyline);
+        poly.setPath(path);
+      } else {
+        poly.setPath([]);
+      }
+      const s = {
+        distanceKm: +(res.distanceMeters / 1000).toFixed(2),
+        durationMin: Math.round(res.durationSeconds / 60),
+      };
       setSummary(s);
       onSummaryChange?.(s);
     } catch {
-      // ignore route errors (e.g. no roads)
+      poly.setPath([]);
+    } finally {
+      if (reqId === directionsReqRef.current) setComputing(false);
     }
   };
 
