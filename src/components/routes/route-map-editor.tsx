@@ -165,10 +165,10 @@ function MapEditor({
   const handleMapClick = async (lat: number, lng: number) => {
     const { start: s, end: e, stops: st, onStartChange: oS, onEndChange: oE, onStopsChange: oSt } = latest.current;
     const address = await reverseLookup(lat, lng);
-    if (s.lat == null) { oS({ address, lat, lng }); return; }
-    if (e.lat == null) { oE({ address, lat, lng }); return; }
+    if (s.lat == null) { oS({ address, lat, lng }); if (st.length > 0) oSt(clearRouteTimetable(st)); return; }
+    if (e.lat == null) { oE({ address, lat, lng }); if (st.length > 0) oSt(clearRouteTimetable(st)); return; }
     const stop = { ...newStop(st.length), name: address || `Stop ${st.length + 1}`, address, lat, lng };
-    oSt([...st, stop]);
+    oSt(clearRouteTimetable([...st, stop]));
   };
 
   const reverseLookup = async (lat: number, lng: number): Promise<string> => {
@@ -426,8 +426,8 @@ function MapEditor({
           <Label className="text-xs">Starting point</Label>
           <PlaceInput
             value={start.address}
-            onPlace={onStartChange}
-            onClear={() => onStartChange({ address: "", lat: null, lng: null })}
+            onPlace={handleStartChange}
+            onClear={() => handleStartChange({ address: "", lat: null, lng: null })}
             placeholder="Search starting location…"
           />
         </div>
@@ -435,8 +435,8 @@ function MapEditor({
           <Label className="text-xs">Ending point</Label>
           <PlaceInput
             value={end.address}
-            onPlace={onEndChange}
-            onClear={() => onEndChange({ address: "", lat: null, lng: null })}
+            onPlace={handleEndChange}
+            onClear={() => handleEndChange({ address: "", lat: null, lng: null })}
             placeholder="Search ending location…"
           />
         </div>
@@ -470,9 +470,9 @@ function MapEditor({
         <Badge variant="secondary" className="gap-1">
           <MapPin className="h-3 w-3" /> {stops.length} stop{stops.length === 1 ? "" : "s"}
         </Badge>
-        {computing && (
+        {waitingForGoogleRoute && (
           <Badge variant="outline" className="gap-1">
-            <Loader2 className="h-3 w-3 animate-spin" /> Calculating route…
+            {computing ? <Loader2 className="h-3 w-3 animate-spin" /> : <AlertCircle className="h-3 w-3" />} {WAITING_FOR_GOOGLE_ROUTE}
           </Badge>
         )}
         {summary.distanceKm != null && summary.distanceKm > 50 && (
@@ -508,9 +508,12 @@ function MapEditor({
           <Label className="text-sm font-medium">Stops</Label>
           <Button
             type="button" size="sm" variant="outline"
-            onClick={() => onStopsChange([...stops, newStop(stops.length)])}
+            onClick={() => onStopsChange(clearRouteTimetable([...stops, newStop(stops.length)]))}
           >
             <Plus className="mr-1 h-4 w-4" /> Add stop
+          </Button>
+          <Button type="button" size="sm" variant="outline" onClick={rebuildRoute}>
+            <RotateCcw className="mr-1 h-4 w-4" /> Recalculate Route
           </Button>
         </div>
         {stops.length === 0 ? (
