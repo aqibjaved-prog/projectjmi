@@ -178,7 +178,7 @@ function SchoolAdminsPage() {
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Edit school admin</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Edit school admin</DialogTitle><DialogDescription className="sr-only">Update this administrator's details.</DialogDescription></DialogHeader>
           {editing && (
             <EditForm
               admin={editing}
