@@ -163,7 +163,7 @@ function StudentsPage() {
       invalidate();
       setCreateOpen(false);
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+    onError: (e) => toast.error(planLimitMessage(e) ?? (e instanceof Error ? e.message : "Failed")),
   });
 
   const setActive = useMutation({
@@ -175,7 +175,7 @@ function StudentsPage() {
       toast.success(v.is_active ? "Student activated" : "Student deactivated");
       invalidate();
     },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+    onError: (e) => toast.error(planLimitMessage(e) ?? (e instanceof Error ? e.message : "Failed")),
   });
 
   const remove = useMutation({
@@ -220,7 +220,7 @@ function StudentsPage() {
       return payload.length;
     },
     onSuccess: (n) => { toast.success(`Imported ${n} students`); invalidate(); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Import failed"),
+    onError: (e) => toast.error(planLimitMessage(e) ?? (e instanceof Error ? e.message : "Import failed")),
   });
 
   const onFile = async (e: ChangeEvent<HTMLInputElement>) => {

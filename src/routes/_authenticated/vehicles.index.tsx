@@ -243,7 +243,7 @@ function VehiclesPage() {
       return payload.length;
     },
     onSuccess: (n) => { toast.success(`Imported ${n} vehicles`); invalidate(); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Import failed"),
+    onError: (e) => toast.error(planLimitMessage(e) ?? (e instanceof Error ? e.message : "Import failed")),
   });
 
   const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
