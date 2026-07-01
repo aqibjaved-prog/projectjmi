@@ -336,46 +336,39 @@ function SubscriptionPanel({ schoolId, sub }: { schoolId: string; sub: SubRow | 
     },
   });
 
+  // Selection is local — nothing is saved until the user assigns/applies.
   const [planId, setPlanId] = useState<string>(sub?.plan_id ?? "");
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(sub?.payment_status ?? "pending");
   const [start, setStart] = useState(sub?.current_period_start?.slice(0, 10) ?? new Date().toISOString().slice(0, 10));
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const selectedPlan = useMemo(() => plans?.find((p) => p.id === planId), [plans, planId]);
+  const currentPlan = useMemo(
+    () => plans?.find((p) => p.id === sub?.plan_id) ?? null,
+    [plans, sub?.plan_id],
+  );
+
+  const isSamePlan = Boolean(sub && selectedPlan && sub.plan_id === selectedPlan.id);
 
   const computedEnd = useMemo(() => {
     if (!selectedPlan) return sub?.current_period_end?.slice(0, 10) ?? "";
-    return periodEndFor(new Date(start), selectedPlan.billing_cycle, selectedPlan.duration_days)
-      .toISOString().slice(0, 10);
+    try {
+      return periodEndFor(new Date(start), selectedPlan.billing_cycle, selectedPlan.duration_days)
+        .toISOString().slice(0, 10);
+    } catch {
+      return sub?.current_period_end?.slice(0, 10) ?? "";
+    }
   }, [selectedPlan, start, sub?.current_period_end]);
 
-  const [end, setEnd] = useState(sub?.current_period_end?.slice(0, 10) ?? "");
-  const effectiveEnd = end || computedEnd;
-
-  const assign = useMutation({
-    mutationFn: async (action: "assign" | "renew") => {
-      const plan = selectedPlan ?? plans?.find((p) => p.id === sub?.plan_id);
+  // Initial assignment (only used when the school has no subscription yet).
+  const assignInitial = useMutation({
+    mutationFn: async () => {
+      const plan = selectedPlan;
       if (!plan) throw new Error("Pick a plan first");
-      const startDate = action === "renew" && sub?.current_period_end
-        ? new Date(sub.current_period_end)
-        : new Date(start);
+      const startDate = new Date(start);
       const endDate = periodEndFor(startDate, plan.billing_cycle, plan.duration_days);
-      const fromTier = sub?.subscription_plans?.tier ?? null;
-      const toTier = plan.tier;
-      let actionLabel: string = action;
-      if (action === "assign" && sub) {
-        const order = ["trial", "basic", "standard", "premium"];
-        const fromIdx = fromTier ? order.indexOf(fromTier) : -1;
-        const toIdx = order.indexOf(toTier);
-        if (toIdx > fromIdx) actionLabel = "upgraded";
-        else if (toIdx < fromIdx) actionLabel = "downgraded";
-        else actionLabel = "updated";
-      } else if (action === "assign") {
-        actionLabel = "created";
-      } else {
-        actionLabel = "renewed";
-      }
       const status: SubscriptionStatus = plan.tier === "trial" ? "trialing" : "active";
-      const payload = {
+      const { error } = await supabase.from("subscriptions").insert({
         school_id: schoolId,
         plan_id: plan.id,
         plan_name: plan.code,
@@ -388,22 +381,16 @@ function SubscriptionPanel({ schoolId, sub }: { schoolId: string; sub: SubRow | 
         current_period_start: startDate.toISOString(),
         current_period_end: endDate.toISOString(),
         renewal_date: endDate.toISOString(),
-      };
-      if (sub) {
-        const { error } = await supabase.from("subscriptions").update(payload).eq("id", sub.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("subscriptions").insert(payload);
-        if (error) throw error;
-      }
+      });
+      if (error) throw error;
       await supabase.from("subscription_history").insert({
         school_id: schoolId,
-        subscription_id: sub?.id ?? null,
-        from_plan: sub?.plan_name ?? null,
+        subscription_id: null,
+        from_plan: null,
         to_plan: plan.code,
-        from_cycle: sub?.billing_cycle ?? null,
+        from_cycle: null,
         to_cycle: plan.billing_cycle,
-        action: actionLabel,
+        action: "created",
         amount_cents: plan.price_cents,
         currency: plan.currency,
         period_start: startDate.toISOString(),
@@ -411,22 +398,59 @@ function SubscriptionPanel({ schoolId, sub }: { schoolId: string; sub: SubRow | 
       });
     },
     onSuccess: () => {
-      toast.success("Subscription saved");
-      qc.invalidateQueries({ queryKey: ["school", schoolId] });
-      qc.invalidateQueries({ queryKey: ["schools-with-subs"] });
-      qc.invalidateQueries({ queryKey: ["subscriptions"] });
-      qc.invalidateQueries({ queryKey: ["platform-stats"] });
-      qc.invalidateQueries({ queryKey: ["sub-history", schoolId] });
+      toast.success("Subscription created");
+      invalidateSubscriptionQueries(qc, schoolId);
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
+  // Renew: extends existing subscription using the CURRENT plan only.
+  const renew = useMutation({
+    mutationFn: async () => {
+      if (!sub) throw new Error("No subscription to renew");
+      const plan = currentPlan ?? plans?.find((p) => p.id === sub.plan_id);
+      if (!plan) throw new Error("Current plan not found");
+      const startDate = sub.current_period_end ? new Date(sub.current_period_end) : new Date();
+      const endDate = periodEndFor(startDate, plan.billing_cycle, plan.duration_days);
+      const { error } = await supabase
+        .from("subscriptions")
+        .update({
+          current_period_start: startDate.toISOString(),
+          current_period_end: endDate.toISOString(),
+          renewal_date: endDate.toISOString(),
+          status: plan.tier === "trial" ? "trialing" : "active",
+        })
+        .eq("id", sub.id);
+      if (error) throw error;
+      await supabase.from("subscription_history").insert({
+        school_id: schoolId,
+        subscription_id: sub.id,
+        from_plan: plan.code,
+        to_plan: plan.code,
+        from_cycle: plan.billing_cycle,
+        to_cycle: plan.billing_cycle,
+        action: "renewed",
+        amount_cents: plan.price_cents,
+        currency: plan.currency,
+        period_start: startDate.toISOString(),
+        period_end: endDate.toISOString(),
+        notes: "Renewed with existing plan",
+      });
+    },
+    onSuccess: () => {
+      toast.success("Subscription renewed");
+      invalidateSubscriptionQueries(qc, schoolId);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  // Recalculate: uses CURRENT plan only, never changes plan.
   const recalc = useMutation({
     mutationFn: async () => {
       if (!sub) throw new Error("No subscription to recalculate");
-      const plan = selectedPlan ?? plans?.find((p) => p.id === sub.plan_id);
-      if (!plan) throw new Error("Plan not found");
-      const startDate = sub.current_period_start ? new Date(sub.current_period_start) : new Date(start);
+      const plan = currentPlan ?? plans?.find((p) => p.id === sub.plan_id);
+      if (!plan) throw new Error("Current plan not found");
+      const startDate = sub.current_period_start ? new Date(sub.current_period_start) : new Date();
       const endDate = periodEndFor(startDate, plan.billing_cycle, plan.duration_days);
       const { error } = await supabase
         .from("subscriptions")
@@ -440,26 +464,26 @@ function SubscriptionPanel({ schoolId, sub }: { schoolId: string; sub: SubRow | 
       await supabase.from("subscription_history").insert({
         school_id: schoolId,
         subscription_id: sub.id,
-        from_plan: sub.plan_name,
+        from_plan: plan.code,
         to_plan: plan.code,
-        from_cycle: sub.billing_cycle,
+        from_cycle: plan.billing_cycle,
         to_cycle: plan.billing_cycle,
         action: "recalculated",
         amount_cents: plan.price_cents,
         currency: plan.currency,
         period_start: startDate.toISOString(),
         period_end: endDate.toISOString(),
-        notes: `Recalculated using plan duration (${plan.billing_cycle}${plan.duration_days ? `, ${plan.duration_days}d` : ""})`,
+        notes: `Recalculated using current plan duration (${plan.billing_cycle}${plan.duration_days ? `, ${plan.duration_days}d` : ""})`,
       });
     },
     onSuccess: () => {
-      toast.success("Dates recalculated from plan duration");
-      qc.invalidateQueries({ queryKey: ["school", schoolId] });
-      qc.invalidateQueries({ queryKey: ["subscriptions"] });
-      qc.invalidateQueries({ queryKey: ["sub-history", schoolId] });
+      toast.success("Dates recalculated from current plan");
+      invalidateSubscriptionQueries(qc, schoolId);
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
+
+  const applyDisabled = !sub || !selectedPlan || isSamePlan;
 
   return (
     <Card>
@@ -472,58 +496,89 @@ function SubscriptionPanel({ schoolId, sub }: { schoolId: string; sub: SubRow | 
       <CardContent className="space-y-3">
         <div className="space-y-1.5">
           <Label>Plan</Label>
-          <Select value={planId} onValueChange={(v) => { setPlanId(v); setEnd(""); }}>
+          <Select value={planId} onValueChange={setPlanId}>
             <SelectTrigger><SelectValue placeholder="Choose a plan" /></SelectTrigger>
             <SelectContent>
               {plans?.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
-                  {p.name} — {formatPrice(p)}
+                  {p.name} — {formatPrice(p)}{sub?.plan_id === p.id ? " · current" : ""}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          {sub && isSamePlan && (
+            <p className="text-xs text-muted-foreground">This school is already using this plan.</p>
+          )}
+          {sub && selectedPlan && !isSamePlan && (
+            <p className="text-xs text-muted-foreground">
+              Selection only — click <span className="font-medium">Apply Plan Change</span> to migrate.
+            </p>
+          )}
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label>Starts on</Label>
-            <Input type="date" value={start} onChange={(e) => { setStart(e.target.value); setEnd(""); }} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Ends on</Label>
-            <Input type="date" value={effectiveEnd} onChange={(e) => setEnd(e.target.value)} />
-          </div>
-        </div>
-        <div className="space-y-1.5">
-          <Label>Payment status</Label>
-          <Select value={paymentStatus} onValueChange={(v) => setPaymentStatus(v as PaymentStatus)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="paid">Paid</SelectItem>
-              <SelectItem value="overdue">Overdue</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+
+        {!sub && (
+          <>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>Starts on</Label>
+                <Input type="date" value={start} onChange={(e) => setStart(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Ends on (computed)</Label>
+                <Input readOnly value={computedEnd || "—"} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Payment status</Label>
+              <Select value={paymentStatus} onValueChange={(v) => setPaymentStatus(v as PaymentStatus)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="overdue">Overdue</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        )}
+
         <div className="flex flex-wrap gap-2 pt-2">
-          {sub ? (
-            <ChangePlanDialog schoolId={schoolId} sub={sub} plans={plans ?? []} />
-          ) : (
-            <Button onClick={() => assign.mutate("assign")} disabled={assign.isPending || !planId} className="flex-1">
-              {assign.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {!sub ? (
+            <Button
+              onClick={() => assignInitial.mutate()}
+              disabled={assignInitial.isPending || !planId}
+              className="flex-1"
+            >
+              {assignInitial.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Assign plan
+            </Button>
+          ) : (
+            <Button
+              className="flex-1"
+              onClick={() => setConfirmOpen(true)}
+              disabled={applyDisabled}
+              title={isSamePlan ? "This school is already using this plan." : undefined}
+            >
+              <Repeat className="mr-2 h-4 w-4" /> Apply Plan Change
             </Button>
           )}
           {sub && (
-            <Button variant="outline" onClick={() => assign.mutate("renew")} disabled={assign.isPending}>
-              <RefreshCw className="mr-2 h-4 w-4" /> Renew
+            <Button
+              variant="outline"
+              onClick={() => renew.mutate()}
+              disabled={renew.isPending}
+              title="Extend the current subscription using the same plan"
+            >
+              {renew.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+              Renew
             </Button>
           )}
           {sub && (
             <Button
               variant="outline"
               onClick={() => recalc.mutate()}
-              disabled={recalc.isPending || assign.isPending}
-              title="Recompute end date from the plan's configured duration"
+              disabled={recalc.isPending}
+              title="Recompute end date from the current plan's configured duration"
             >
               {recalc.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
               Recalculate dates
@@ -531,8 +586,30 @@ function SubscriptionPanel({ schoolId, sub }: { schoolId: string; sub: SubRow | 
           )}
         </div>
       </CardContent>
+
+      {sub && selectedPlan && !isSamePlan && (
+        <ApplyPlanChangeDialog
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          schoolId={schoolId}
+          sub={sub}
+          currentPlan={currentPlan}
+          newPlan={selectedPlan}
+        />
+      )}
     </Card>
   );
+}
+
+function invalidateSubscriptionQueries(qc: ReturnType<typeof useQueryClient>, schoolId: string) {
+  qc.invalidateQueries({ queryKey: ["school", schoolId] });
+  qc.invalidateQueries({ queryKey: ["school-stats", schoolId] });
+  qc.invalidateQueries({ queryKey: ["schools-with-subs"] });
+  qc.invalidateQueries({ queryKey: ["subscriptions"] });
+  qc.invalidateQueries({ queryKey: ["platform-stats"] });
+  qc.invalidateQueries({ queryKey: ["sub-history", schoolId] });
+  qc.invalidateQueries({ queryKey: ["plan-usage"] });
+  qc.invalidateQueries({ queryKey: ["plans-active"] });
 }
 
 function SubscriptionHistory({ schoolId }: { schoolId: string }) {
