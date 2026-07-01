@@ -17,6 +17,9 @@ import {
   routeSchema, ROUTE_TYPES, ROUTE_COLORS, routeTypeLabel, newStop,
   type RouteFormValues,
 } from "@/lib/routes";
+import type { z } from "zod";
+import { stopSchema } from "@/lib/routes";
+type StopValue = z.input<typeof stopSchema>;
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
   type DragEndEvent,
