@@ -14,11 +14,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Pencil, Power, Trash2, AlertTriangle, Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Pencil, Power, Trash2, AlertTriangle, Loader2, RefreshCw, ArrowRight, CheckCircle2, Repeat } from "lucide-react";
 import { toast } from "sonner";
 import { SchoolForm } from "@/components/schools/school-form";
 import {
-  expiryState, formatPrice, periodEndFor,
+  expiryState, formatPrice, formatLimit, periodEndFor,
+  FEATURE_KEYS, FEATURE_LABELS,
   type Plan, type BillingCycle, type PaymentStatus, type SubscriptionStatus,
 } from "@/lib/plans";
 
