@@ -45,6 +45,9 @@ const DEFAULTS: RouteFormValues = {
   driver_id: null,
   notes: "",
   stops: [],
+  default_dwell_min: "2",
+  end_leg_seconds: null,
+  end_leg_distance_m: null,
 };
 
 const toNum = (v: unknown): number | null => {
