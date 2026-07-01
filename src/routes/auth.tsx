@@ -5,7 +5,6 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -17,10 +16,9 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup" | "reset">("signin");
+  const [mode, setMode] = useState<"signin" | "reset">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -35,23 +33,13 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Welcome back!");
-      } else if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
-            data: { full_name: fullName },
-          },
-        });
-        if (error) throw error;
-        toast.success("Account created. Check your email if confirmation is required.");
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/reset-password`,
         });
         if (error) throw error;
         toast.success("Password reset email sent.");
+        setMode("signin");
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Authentication failed");
@@ -88,30 +76,13 @@ function AuthPage() {
           </div>
 
           <h1 className="text-2xl font-semibold tracking-tight">
-            {mode === "reset" ? "Reset password" : "Welcome"}
+            {mode === "reset" ? "Reset password" : "Welcome back"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {mode === "reset" ? "We'll email you a reset link." : "Sign in or create your account."}
+            {mode === "reset" ? "We'll email you a reset link." : "Sign in to access your dashboard."}
           </p>
 
-          {mode !== "reset" && (
-            <Tabs value={mode} onValueChange={(v) => setMode(v as "signin" | "signup")} className="mt-6">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">Sign in</TabsTrigger>
-                <TabsTrigger value="signup">Create account</TabsTrigger>
-              </TabsList>
-              <TabsContent value="signin" />
-              <TabsContent value="signup" />
-            </Tabs>
-          )}
-
           <form onSubmit={submit} className="mt-6 space-y-4">
-            {mode === "signup" && (
-              <div className="space-y-2">
-                <Label htmlFor="name">Full name</Label>
-                <Input id="name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
-              </div>
-            )}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
@@ -120,18 +91,16 @@ function AuthPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
-                  {mode === "signin" && (
-                    <button type="button" onClick={() => setMode("reset")} className="text-xs text-primary hover:underline">
-                      Forgot password?
-                    </button>
-                  )}
+                  <button type="button" onClick={() => setMode("reset")} className="text-xs text-primary hover:underline">
+                    Forgot password?
+                  </button>
                 </div>
-                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} autoComplete={mode === "signin" ? "current-password" : "new-password"} />
+                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} autoComplete="current-password" />
               </div>
             )}
             <Button type="submit" className="w-full" disabled={busy}>
               {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset link"}
+              {mode === "signin" ? "Sign in" : "Send reset link"}
             </Button>
             {mode === "reset" && (
               <button type="button" onClick={() => setMode("signin")} className="block w-full text-center text-sm text-muted-foreground hover:text-foreground">
@@ -141,7 +110,7 @@ function AuthPage() {
           </form>
 
           <p className="mt-8 text-center text-xs text-muted-foreground">
-            The very first account created becomes the platform Super Admin.
+            Accounts are provisioned by administrators. Contact your administrator for access.
           </p>
         </div>
       </div>
