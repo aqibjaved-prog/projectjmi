@@ -129,7 +129,9 @@ export const getDevDocsSnapshot = createServerFn({ method: "GET" })
 
       let row_count: number | null = null;
       try {
-        const { count } = await supabaseAdmin
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const client = supabaseAdmin as any;
+        const { count } = await client
           .from(name)
           .select("*", { count: "exact", head: true });
         row_count = count ?? 0;
