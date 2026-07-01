@@ -57,7 +57,7 @@ export function effectiveDwellMinutes(stop: Pick<RouteStop, "dwell_min">, defaul
   const fallback = Number.isFinite(Number(defaultDwellMin)) && Number(defaultDwellMin) >= 0
     ? Number(defaultDwellMin)
     : DEFAULT_DWELL_MIN;
-  const raw = stop.dwell_min == null || stop.dwell_min === "" ? fallback : Number(stop.dwell_min);
+  const raw = stop.dwell_min == null ? fallback : Number(stop.dwell_min);
   return Number.isFinite(raw) && raw >= 0 ? Math.round(raw) : Math.round(fallback);
 }
 
