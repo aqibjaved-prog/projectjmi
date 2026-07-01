@@ -488,7 +488,24 @@ function VehiclesPage() {
                           <div>{vehicleTypeLabel(m.vehicle_type)}</div>
                           <div className="text-xs text-muted-foreground">{[m.brand, v.model].filter(Boolean).join(" ")}</div>
                         </TableCell>
-                        <TableCell className="text-sm">{v.capacity}</TableCell>
+                        <TableCell className="text-sm">
+                          {(() => {
+                            const occ = occupancy?.get(v.id);
+                            const cap = v.capacity ?? 0;
+                            const used = occ?.occupied ?? 0;
+                            const avail = occ ? occ.available : Math.max(cap - used, 0);
+                            const full = occ ? occ.available <= 0 : false;
+                            return (
+                              <div>
+                                <div>Capacity: <span className="font-medium">{cap}</span></div>
+                                <div className="text-xs text-muted-foreground">
+                                  {occ ? <>Occupied: {used} · Available: {avail}</> : "Occupancy — select a school"}
+                                </div>
+                                {full && <Badge variant="destructive" className="mt-1">Full</Badge>}
+                              </div>
+                            );
+                          })()}
+                        </TableCell>
                         <TableCell>
                           <div className="text-xs">{v.insurance_expiry ?? "—"}</div>
                           <ExpiryBadge status={ins} />
