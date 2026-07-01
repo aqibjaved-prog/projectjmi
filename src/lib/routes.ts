@@ -125,6 +125,12 @@ export const routeSchema = z.object({
   driver_id: z.string().uuid().optional().nullable(),
   notes: optStr(2000),
   stops: z.array(stopSchema).default([]),
+  default_dwell_min: z.union([z.string(), z.number()]).optional()
+    .transform((v) => (v == null || v === "" ? "" : String(v))),
+  end_leg_seconds: z.union([z.string(), z.number()]).optional().nullable()
+    .transform((v) => (v == null || v === "" ? null : Number(v))),
+  end_leg_distance_m: z.union([z.string(), z.number()]).optional().nullable()
+    .transform((v) => (v == null || v === "" ? null : Number(v))),
 });
 
 export type RouteFormValues = z.input<typeof routeSchema>;
