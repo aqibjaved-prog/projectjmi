@@ -1,9 +1,8 @@
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
   Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
@@ -11,23 +10,11 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Card } from "@/components/ui/card";
-import { GripVertical, Plus, Trash2 } from "lucide-react";
 import {
-  routeSchema, ROUTE_TYPES, ROUTE_COLORS, routeTypeLabel, newStop,
-  type RouteFormValues,
+  routeSchema, ROUTE_TYPES, ROUTE_COLORS, routeTypeLabel,
+  type RouteFormValues, type RouteStop,
 } from "@/lib/routes";
-import type { z } from "zod";
-import { stopSchema } from "@/lib/routes";
-type StopValue = z.input<typeof stopSchema>;
-import {
-  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext, arrayMove, useSortable, verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { RouteMapEditor, type RoutePoint } from "@/components/routes/route-map-editor";
 
 interface Props {
   defaults?: Partial<RouteFormValues>;
@@ -60,26 +47,60 @@ const DEFAULTS: RouteFormValues = {
   stops: [],
 };
 
+const toNum = (v: unknown): number | null => {
+  if (v == null || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
+
 export function RouteForm({ defaults, drivers = [], vehicles = [], submitting, submitLabel = "Save", onSubmit }: Props) {
   const form = useForm<RouteFormValues>({
     resolver: zodResolver(routeSchema),
     defaultValues: { ...DEFAULTS, ...defaults },
   });
 
-  const { fields, append, remove, move, update } = useFieldArray({
-    control: form.control,
-    name: "stops",
-    keyName: "_key",
-  });
+  const values = form.watch();
+  const start: RoutePoint = {
+    address: values.starting_point ?? "",
+    lat: toNum(values.start_lat),
+    lng: toNum(values.start_lng),
+  };
+  const end: RoutePoint = {
+    address: values.ending_point ?? "",
+    lat: toNum(values.end_lat),
+    lng: toNum(values.end_lng),
+  };
+  const stops: RouteStop[] = (values.stops ?? []).map((s, i) => ({
+    id: s.id,
+    name: s.name,
+    order: typeof s.order === "number" ? s.order : i,
+    address: (s.address as string | null | undefined) ?? "",
+    lat: toNum(s.lat),
+    lng: toNum(s.lng),
+    arrival_time: (s.arrival_time as string | null | undefined) ?? "",
+    departure_time: (s.departure_time as string | null | undefined) ?? "",
+  }));
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
-
-  const onDragEnd = (e: DragEndEvent) => {
-    const { active, over } = e;
-    if (!over || active.id === over.id) return;
-    const oldIndex = fields.findIndex((f) => f.id === active.id);
-    const newIndex = fields.findIndex((f) => f.id === over.id);
-    if (oldIndex >= 0 && newIndex >= 0) move(oldIndex, newIndex);
+  const setStart = (p: RoutePoint) => {
+    form.setValue("starting_point", p.address, { shouldDirty: true });
+    form.setValue("start_lat", p.lat == null ? "" : String(p.lat), { shouldDirty: true });
+    form.setValue("start_lng", p.lng == null ? "" : String(p.lng), { shouldDirty: true });
+  };
+  const setEnd = (p: RoutePoint) => {
+    form.setValue("ending_point", p.address, { shouldDirty: true });
+    form.setValue("end_lat", p.lat == null ? "" : String(p.lat), { shouldDirty: true });
+    form.setValue("end_lng", p.lng == null ? "" : String(p.lng), { shouldDirty: true });
+  };
+  const setStops = (next: RouteStop[]) => {
+    form.setValue(
+      "stops",
+      next.map((s, i) => ({ ...s, order: i })) as RouteFormValues["stops"],
+      { shouldDirty: true },
+    );
+  };
+  const setSummary = (s: { distanceKm: number | null; durationMin: number | null }) => {
+    form.setValue("total_distance", s.distanceKm == null ? "" : String(s.distanceKm), { shouldDirty: true });
+    form.setValue("estimated_duration", s.durationMin == null ? "" : String(s.durationMin), { shouldDirty: true });
   };
 
   return (
@@ -106,30 +127,6 @@ export function RouteForm({ defaults, drivers = [], vehicles = [], submitting, s
               <FormMessage />
             </FormItem>
           )} />
-          <FormField name="starting_point" control={form.control} render={({ field }) => (
-            <FormItem><FormLabel>Starting point</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-          )} />
-          <FormField name="ending_point" control={form.control} render={({ field }) => (
-            <FormItem><FormLabel>Ending point</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-          )} />
-          <FormField name="start_lat" control={form.control} render={({ field }) => (
-            <FormItem><FormLabel>Start latitude</FormLabel><FormControl><Input {...field} inputMode="decimal" placeholder="12.9716" /></FormControl><FormMessage /></FormItem>
-          )} />
-          <FormField name="start_lng" control={form.control} render={({ field }) => (
-            <FormItem><FormLabel>Start longitude</FormLabel><FormControl><Input {...field} inputMode="decimal" placeholder="77.5946" /></FormControl><FormMessage /></FormItem>
-          )} />
-          <FormField name="end_lat" control={form.control} render={({ field }) => (
-            <FormItem><FormLabel>End latitude</FormLabel><FormControl><Input {...field} inputMode="decimal" /></FormControl><FormMessage /></FormItem>
-          )} />
-          <FormField name="end_lng" control={form.control} render={({ field }) => (
-            <FormItem><FormLabel>End longitude</FormLabel><FormControl><Input {...field} inputMode="decimal" /></FormControl><FormMessage /></FormItem>
-          )} />
-          <FormField name="total_distance" control={form.control} render={({ field }) => (
-            <FormItem><FormLabel>Total distance (km)</FormLabel><FormControl><Input {...field} inputMode="decimal" /></FormControl><FormMessage /></FormItem>
-          )} />
-          <FormField name="estimated_duration" control={form.control} render={({ field }) => (
-            <FormItem><FormLabel>Estimated duration (min)</FormLabel><FormControl><Input {...field} inputMode="numeric" /></FormControl><FormMessage /></FormItem>
-          )} />
           <FormField name="pickup_start_time" control={form.control} render={({ field }) => (
             <FormItem><FormLabel>Pickup start</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
           )} />
@@ -155,6 +152,26 @@ export function RouteForm({ defaults, drivers = [], vehicles = [], submitting, s
               <FormMessage />
             </FormItem>
           )} />
+        </div>
+
+        {/* Map + places + stops */}
+        <div className="rounded-lg border p-4">
+          <div className="mb-3 flex items-baseline justify-between">
+            <h4 className="text-sm font-semibold">Route on map</h4>
+            <span className="text-xs text-muted-foreground">
+              Distance &amp; duration are calculated automatically from Google Maps.
+            </span>
+          </div>
+          <RouteMapEditor
+            start={start}
+            end={end}
+            stops={stops}
+            color={values.route_color || ROUTE_COLORS[0]}
+            onStartChange={setStart}
+            onEndChange={setEnd}
+            onStopsChange={setStops}
+            onSummaryChange={setSummary}
+          />
         </div>
 
         {/* Assignments */}
@@ -204,101 +221,10 @@ export function RouteForm({ defaults, drivers = [], vehicles = [], submitting, s
           <FormItem><FormLabel>Notes</FormLabel><FormControl><Textarea rows={3} {...field} /></FormControl><FormMessage /></FormItem>
         )} />
 
-        {/* Stops */}
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <Label className="text-sm font-medium">Stops</Label>
-            <Button type="button" size="sm" variant="outline" onClick={() => append(newStop(fields.length))}>
-              <Plus className="mr-1 h-4 w-4" /> Add stop
-            </Button>
-          </div>
-          {fields.length === 0 ? (
-            <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
-              No stops yet. Click "Add stop" to build the route.
-            </p>
-          ) : (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-              <SortableContext items={fields.map((f) => f.id)} strategy={verticalListSortingStrategy}>
-                <div className="space-y-2">
-                  {fields.map((f, i) => (
-                    <SortableStop
-                      key={f._key}
-                      id={f.id}
-                      index={i}
-                      value={f as unknown as StopValue}
-                      onChange={(v) => update(i, v as never)}
-                      onRemove={() => remove(i)}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-          )}
-        </div>
-
         <div className="flex justify-end gap-2 pt-2">
           <Button type="submit" disabled={submitting}>{submitting ? "Saving…" : submitLabel}</Button>
         </div>
       </form>
     </Form>
-  );
-}
-
-function SortableStop({
-  id, index, value, onChange, onRemove,
-}: {
-  id: string;
-  index: number;
-  value: StopValue;
-  onChange: (v: StopValue) => void;
-  onRemove: () => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1 };
-
-  const set = <K extends keyof StopValue>(k: K, v: StopValue[K]) =>
-    onChange({ ...value, [k]: v });
-
-  return (
-    <Card ref={setNodeRef} style={style} className="p-3">
-      <div className="flex items-start gap-2">
-        <button type="button" className="mt-2 cursor-grab text-muted-foreground touch-none" {...attributes} {...listeners}>
-          <GripVertical className="h-4 w-4" />
-        </button>
-        <div className="grid flex-1 gap-2 md:grid-cols-6">
-          <div className="md:col-span-1">
-            <Label className="text-xs">#</Label>
-            <div className="mt-1 flex h-9 items-center rounded-md border bg-muted/40 px-3 text-sm">{index + 1}</div>
-          </div>
-          <div className="md:col-span-2">
-            <Label className="text-xs">Stop name *</Label>
-            <Input value={value.name} onChange={(e) => set("name", e.target.value)} />
-          </div>
-          <div className="md:col-span-3">
-            <Label className="text-xs">Address</Label>
-            <Input value={value.address ?? ""} onChange={(e) => set("address", e.target.value)} />
-          </div>
-          <div>
-            <Label className="text-xs">Latitude</Label>
-            <Input inputMode="decimal" value={value.lat as unknown as string ?? ""} onChange={(e) => set("lat", e.target.value as unknown as number)} />
-          </div>
-          <div>
-            <Label className="text-xs">Longitude</Label>
-            <Input inputMode="decimal" value={value.lng as unknown as string ?? ""} onChange={(e) => set("lng", e.target.value as unknown as number)} />
-          </div>
-          <div>
-            <Label className="text-xs">Arrival</Label>
-            <Input type="time" value={value.arrival_time ?? ""} onChange={(e) => set("arrival_time", e.target.value)} />
-          </div>
-          <div>
-            <Label className="text-xs">Departure</Label>
-            <Input type="time" value={value.departure_time ?? ""} onChange={(e) => set("departure_time", e.target.value)} />
-          </div>
-        </div>
-        <Button type="button" variant="ghost" size="icon" onClick={onRemove} className="mt-1 text-destructive">
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
-    </Card>
   );
 }
