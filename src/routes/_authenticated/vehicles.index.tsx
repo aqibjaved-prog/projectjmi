@@ -175,6 +175,10 @@ function VehiclesPage() {
   const create = useMutation({
     mutationFn: async ({ values, photo }: { values: VehicleFormValues; photo: File | null }) => {
       if (!activeSchoolId) throw new Error("No school selected.");
+      if (planUsage) {
+        const err = preflightCheck(planUsage.vehicles);
+        if (err) throw new Error("PLAN_LIMIT_VEHICLES: " + err);
+      }
       const { columns, metadata } = splitVehiclePayload(values);
       const { data: inserted, error } = await supabase
         .from("vehicles")
@@ -394,6 +398,8 @@ function VehiclesPage() {
         <StatCard label="Occupied seats" value={totals.occupiedSeats ?? "—"} icon={CheckCircle2} loading={isLoading} />
         <StatCard label="Available seats" value={totals.availableSeats ?? "—"} icon={CheckCircle2} loading={isLoading} tone="success" />
       </div>
+
+      {planUsage ? <PlanUsageCard usage={planUsage} /> : null}
 
       <Card className="mt-4">
         <CardContent className="p-0">

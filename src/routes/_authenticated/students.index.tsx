@@ -159,6 +159,10 @@ function StudentsPage() {
     mutationFn: async (values: StudentFormValues & { photo_url?: string | null }) => {
       const target = activeSchoolId;
       if (!target) throw new Error("Select a school first.");
+      if (planUsage && (values.is_active !== false)) {
+        const err = preflightCheck(planUsage.students);
+        if (err) throw new Error("PLAN_LIMIT_STUDENTS: " + err);
+      }
       const payload = cleanNullable({
         ...values,
         school_id: target,
@@ -357,6 +361,8 @@ function StudentsPage() {
         <StatCard label="Active" value={totals.active} icon={CheckCircle2} loading={isLoading} tone="success" />
         <StatCard label="Inactive" value={totals.inactive} icon={XCircle} loading={isLoading} tone="warning" />
       </div>
+
+      {planUsage ? <PlanUsageCard usage={planUsage} /> : null}
 
       <Card className="mt-4">
         <CardContent className="p-0">
