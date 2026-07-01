@@ -73,9 +73,13 @@ function SchoolAdminsPage() {
   const createMut = useMutation({
     mutationFn: (data: { email: string; password: string; fullName: string; phone?: string; schoolId: string }) =>
       createFn({ data }),
-    onSuccess: () => { toast.success("School admin created"); invalidate(); setCreateOpen(false); },
+    onSuccess: (res) => {
+      if (!res.ok) { toast.error(res.error); return; }
+      toast.success("School admin created"); invalidate(); setCreateOpen(false);
+    },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   const updateMut = useMutation({
     mutationFn: (data: { userId: string; fullName?: string; phone?: string | null; schoolId?: string }) =>
