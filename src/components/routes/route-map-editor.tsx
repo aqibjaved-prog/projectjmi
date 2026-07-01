@@ -269,19 +269,24 @@ function MapEditor({
   const runDirections = async () => {
     const poly = polylineRef.current;
     if (!poly) return;
-    if (start.lat == null || start.lng == null || end.lat == null || end.lng == null) {
+    const curStops = latest.current.stops;
+    const hasIncompletePoint = curStops.some((s) => s.lat == null || s.lng == null);
+    if (start.lat == null || start.lng == null || end.lat == null || end.lng == null || hasIncompletePoint) {
       poly.setPath([]);
       setSummary({ distanceKm: null, durationMin: null });
       setEndLeg(null);
+      setDirectionsError(hasIncompletePoint || curStops.length > 0);
       onSummaryChange?.({ distanceKm: null, durationMin: null });
       onEndLegChange?.({ seconds: null, meters: null });
+      const cleared = clearRouteTimetable(curStops);
+      if (!stopsEqual(cleared, curStops)) latest.current.onStopsChange(cleared);
       return;
     }
-    const waypoints = stops
-      .filter((s) => s.lat != null && s.lng != null)
+    const waypoints = curStops
       .map((s) => ({ lat: s.lat as number, lng: s.lng as number }));
     const reqId = ++directionsReqRef.current;
     setComputing(true);
+    setDirectionsError(false);
     try {
       const res = await computeDirections({
         data: {
@@ -300,7 +305,7 @@ function MapEditor({
       }
       const s = {
         distanceKm: +(res.distanceMeters / 1000).toFixed(2),
-        durationMin: Math.round(res.durationSeconds / 60),
+        durationMin: res.durationSeconds == null ? null : Math.round(res.durationSeconds / 60),
       };
       setSummary(s);
       onSummaryChange?.(s);
@@ -309,27 +314,44 @@ function MapEditor({
       // For N stops, legs length = N + 1. Last one is end leg.
       const legs = res.legs ?? [];
       const cur = latest.current.stops;
+      const hasMissingStopLeg = cur.some((_, i) => !hasGoogleDuration(legs[i]?.durationSeconds));
+      const hasMissingEndLeg = !hasGoogleDuration(legs[cur.length]?.durationSeconds);
+      if (legs.length < cur.length + 1 || hasMissingStopLeg || hasMissingEndLeg) {
+        setDirectionsError(true);
+        setEndLeg(null);
+        onEndLegChange?.({ seconds: null, meters: null });
+        const cleared = clearRouteTimetable(cur);
+        if (!stopsEqual(cleared, cur)) latest.current.onStopsChange(cleared);
+        return;
+      }
       const patched = cur.map((st, i) => {
         const leg = legs[i];
-        if (!leg) return st;
+        if (!leg || !hasGoogleDuration(leg.durationSeconds)) return st;
         return {
           ...st,
-          driving_seconds_from_prev: leg.durationSeconds,
+          driving_seconds_from_prev: leg.durationSeconds as number,
           distance_from_prev_m: leg.distanceMeters,
         };
       });
       const endLegInfo = legs[cur.length]
-        ? { seconds: legs[cur.length].durationSeconds, meters: legs[cur.length].distanceMeters }
+        ? { seconds: legs[cur.length].durationSeconds as number, meters: legs[cur.length].distanceMeters }
         : { seconds: null, meters: null };
       setEndLeg(endLegInfo.seconds != null
         ? { seconds: endLegInfo.seconds, meters: endLegInfo.meters as number }
         : null);
       onEndLegChange?.(endLegInfo);
-      if (JSON.stringify(patched) !== JSON.stringify(cur)) {
+      if (!stopsEqual(patched, cur)) {
         latest.current.onStopsChange(patched);
       }
     } catch {
       poly.setPath([]);
+      setDirectionsError(true);
+      setSummary({ distanceKm: null, durationMin: null });
+      setEndLeg(null);
+      onSummaryChange?.({ distanceKm: null, durationMin: null });
+      onEndLegChange?.({ seconds: null, meters: null });
+      const cleared = clearRouteTimetable(latest.current.stops);
+      if (!stopsEqual(cleared, latest.current.stops)) latest.current.onStopsChange(cleared);
     } finally {
       if (reqId === directionsReqRef.current) setComputing(false);
     }
