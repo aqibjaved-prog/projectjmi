@@ -29,6 +29,7 @@ interface Props {
   end: RoutePoint;
   stops: RouteStop[];
   color?: string;
+  maxStops?: number | null;
   onStartChange: (p: RoutePoint) => void;
   onEndChange: (p: RoutePoint) => void;
   onStopsChange: (stops: RouteStop[]) => void;
