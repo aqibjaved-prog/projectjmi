@@ -172,6 +172,11 @@ function VehicleDetailPage() {
                 <Info label="Manufacturing year" value={m.manufacturing_year} />
                 <Info label="Fuel type" value={fuelTypeLabel(m.fuel_type)} />
                 <Info label="Capacity" value={vehicle.capacity} />
+                <Info label="Occupied seats" value={occ ? occ.occupied : "—"} />
+                <Info
+                  label="Available seats"
+                  value={occ ? <>{occ.available}{occ.available <= 0 && <Badge variant="destructive" className="ml-2">Full</Badge>}</> : "—"}
+                />
                 <Info label="Color" value={vehicle.color} />
                 <Info label="GPS device ID" value={m.gps_device_id} />
                 <Info label="Status" value={<Badge>{vehicleStatusLabel(vehicle.status)}</Badge>} />
