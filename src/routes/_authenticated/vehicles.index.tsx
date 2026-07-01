@@ -35,7 +35,7 @@ import autoTable from "jspdf-autotable";
 import { VehicleForm } from "@/components/vehicles/vehicle-form";
 import {
   splitVehiclePayload, uploadVehiclePhoto, expiryStatus, expiryLabel,
-  vehicleTypeLabel, vehicleStatusLabel, fuelTypeLabel,
+  vehicleTypeLabel, vehicleStatusLabel, fuelTypeLabel, fetchVehicleOccupancy,
   VEHICLE_TYPES, VEHICLE_STATUSES, FUEL_TYPES,
   type VehicleFormValues, type VehicleRow, type VehicleType, type VehicleStatus, type FuelType,
 } from "@/lib/vehicles";
