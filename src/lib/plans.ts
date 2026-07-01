@@ -56,10 +56,22 @@ export function formatLimit(value: number | null | undefined) {
   return value.toLocaleString();
 }
 
+/**
+ * Compute the subscription period end from the plan's own configuration.
+ * - Trial: Start + plan.duration_days (must be a positive integer; no hardcoded fallback).
+ * - Monthly: Start + 1 month.
+ * - Yearly: Start + 1 year.
+ * If a caller wants to override duration for a non-trial cycle, pass durationDays.
+ */
 export function periodEndFor(start: Date, cycle: BillingCycle, durationDays?: number | null): Date {
   const end = new Date(start);
   if (cycle === "trial") {
-    end.setDate(end.getDate() + (durationDays ?? 30));
+    if (!durationDays || durationDays < 1) {
+      throw new Error("Trial plan is missing a valid Trial Duration (days). Set it on the plan before assigning.");
+    }
+    end.setDate(end.getDate() + durationDays);
+  } else if (durationDays && durationDays > 0) {
+    end.setDate(end.getDate() + durationDays);
   } else if (cycle === "yearly") {
     end.setFullYear(end.getFullYear() + 1);
   } else {
