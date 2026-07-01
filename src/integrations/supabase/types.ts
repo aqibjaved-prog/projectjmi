@@ -906,7 +906,10 @@ export type Database = {
           model: string | null
           registration_number: string
           school_id: string
+          status: string
           updated_at: string
+          vehicle_code: string | null
+          vehicle_number: string | null
         }
         Insert: {
           capacity?: number
@@ -920,7 +923,10 @@ export type Database = {
           model?: string | null
           registration_number: string
           school_id: string
+          status?: string
           updated_at?: string
+          vehicle_code?: string | null
+          vehicle_number?: string | null
         }
         Update: {
           capacity?: number
@@ -934,7 +940,10 @@ export type Database = {
           model?: string | null
           registration_number?: string
           school_id?: string
+          status?: string
           updated_at?: string
+          vehicle_code?: string | null
+          vehicle_number?: string | null
         }
         Relationships: [
           {
