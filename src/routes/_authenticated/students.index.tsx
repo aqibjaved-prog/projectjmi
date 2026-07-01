@@ -327,7 +327,7 @@ function StudentsPage() {
                   <Button disabled={!activeSchoolId}><Plus className="mr-2 h-4 w-4" /> Add student</Button>
                 </DialogTrigger>
                 <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
-                  <DialogHeader><DialogTitle>Add student</DialogTitle></DialogHeader>
+                  <DialogHeader><DialogTitle>Add student</DialogTitle><DialogDescription className="sr-only">Create a new student record for this school.</DialogDescription></DialogHeader>
                   {activeSchoolId && (
                     <StudentForm
                       schoolId={activeSchoolId}
