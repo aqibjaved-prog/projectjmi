@@ -497,12 +497,20 @@ function SubscriptionPanel({ schoolId, sub }: { schoolId: string; sub: SubRow | 
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          Subscription
-          {sub && <Badge variant="outline" className="capitalize">{sub.status}</Badge>}
+          Subscription overview
+          {sub && <SubStatusBadge sub={sub} />}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="space-y-1.5">
+      <CardContent className="space-y-4">
+        {sub ? (
+          <SubscriptionOverview sub={sub} currentPlan={currentPlan} usage={usage} />
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No subscription yet. Choose a plan below to assign one.
+          </p>
+        )}
+
+        <div className="space-y-1.5 pt-2 border-t">
           <Label>Plan</Label>
           <Select value={planId} onValueChange={setPlanId}>
             <SelectTrigger><SelectValue placeholder="Choose a plan" /></SelectTrigger>
