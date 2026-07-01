@@ -427,7 +427,7 @@ function AssignDialog({
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="none">— None —</SelectItem>
-              {options.map((o) => <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>)}
+              {options.map((o) => <SelectItem key={o.id} value={o.id} disabled={o.disabled}>{o.label}</SelectItem>)}
             </SelectContent>
           </Select>
         )}
