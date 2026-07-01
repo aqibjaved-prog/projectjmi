@@ -357,40 +357,28 @@ function MapEditor({
     }
   };
 
-  // Recompute arrival/departure whenever leg data, startTime, dwell, or manual-overrides change.
+  // Recompute the whole timetable from the master start time whenever Google leg data,
+  // start time, stop order, or dwell changes. If any Google leg is unavailable, clear
+  // all stop times instead of carrying stale values forward.
   useEffect(() => {
-    const startMin = parseHHMM(startTime);
-    if (startMin == null) return;
-    let cursor = startMin;
-    let changed = false;
-    const next = stops.map((s) => {
-      const drivingMin = s.driving_seconds_from_prev != null
-        ? s.driving_seconds_from_prev / 60 : 0;
-      cursor += drivingMin;
-      const dwell = s.dwell_min != null && s.dwell_min !== undefined
-        ? Number(s.dwell_min) : dwellDefault;
-      let arrival = s.arrival_time ?? "";
-      let departure = s.departure_time ?? "";
-      if (!s.manual_time) {
-        const a = fmtHHMM(cursor);
-        const d = fmtHHMM(cursor + dwell);
-        if (a !== arrival) { arrival = a; changed = true; }
-        if (d !== departure) { departure = d; changed = true; }
-      }
-      cursor += dwell;
-      const stopDwell = s.dwell_min == null ? dwellDefault : Number(s.dwell_min);
-      if (s.dwell_min == null && stopDwell !== dwellDefault) {
-        // keep null (means "use default")
-      }
-      return { ...s, arrival_time: arrival, departure_time: departure };
-    });
-    if (changed) latest.current.onStopsChange(next);
+    const result = calculateStopTimetable(stops, startTime, dwellDefault, { resetManualTimes: true });
+    if (!stopsEqual(result.stops, stops)) latest.current.onStopsChange(result.stops);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startTime, dwellDefault, stops.map((s) => `${s.id}:${s.driving_seconds_from_prev}:${s.dwell_min}:${s.manual_time}:${s.arrival_time}:${s.departure_time}`).join("|")]);
+  }, [startTime, dwellDefault, stops.map((s) => `${s.id}:${s.driving_seconds_from_prev}:${s.dwell_min}`).join("|")]);
 
-  const removeStop = (i: number) => onStopsChange(stops.filter((_, idx) => idx !== i));
-  const updateStop = (i: number, patch: Partial<RouteStop>) =>
-    onStopsChange(stops.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
+  const removeStop = (i: number) => onStopsChange(clearRouteTimetable(stops.filter((_, idx) => idx !== i)));
+  const updateStop = (i: number, patch: Partial<RouteStop>) => {
+    const locationChanged = "lat" in patch || "lng" in patch || "address" in patch;
+    const next = stops.map((s, idx) => (idx === i ? { ...s, ...patch } : s));
+    onStopsChange(locationChanged ? clearRouteTimetable(next) : next);
+  };
+
+  const rebuildRoute = () => {
+    const cleared = clearRouteTimetable(stops);
+    if (!stopsEqual(cleared, stops)) onStopsChange(cleared);
+    lastPosSigRef.current = "";
+    void runDirections();
+  };
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const onDragEnd = (e: DragEndEvent) => {
@@ -403,6 +391,9 @@ function MapEditor({
     onStopsChange(
       arrayMove(stops, oldIndex, newIndex).map((s, i) => ({
         ...s, order: i,
+        arrival_time: "",
+        departure_time: "",
+        manual_time: false,
         driving_seconds_from_prev: null,
         distance_from_prev_m: null,
       })),
@@ -412,16 +403,20 @@ function MapEditor({
   // Summary aggregates
   const startMin = parseHHMM(startTime);
   const totalDwellMin = stops.reduce(
-    (acc, s) => acc + (s.dwell_min == null ? dwellDefault : Number(s.dwell_min) || 0),
+    (acc, s) => acc + effectiveDwellMinutes(s, dwellDefault),
     0,
   );
   const drivingMin = summary.durationMin ?? null;
   const endLegMin = endLeg ? Math.round(endLeg.seconds / 60) : null;
+  const timetable = calculateStopTimetable(stops, startTime, dwellDefault, { resetManualTimes: true });
+  const hasPendingStopLegs = stops.length > 0 && stops.some((s) => !hasGoogleDuration(s.driving_seconds_from_prev));
+  const waitingForGoogleRoute = computing || directionsError || hasPendingStopLegs;
   const totalRouteMin = drivingMin == null ? null : drivingMin + totalDwellMin;
   const firstPickup = stops[0]?.arrival_time ?? "";
   const lastDrop = (() => {
-    if (startMin == null || drivingMin == null) return "";
-    return fmtHHMM(startMin + (totalRouteMin ?? 0));
+    if (timetable.lastDepartureMinutes == null || endLeg == null) return "";
+    const endTravel = travelSecondsToScheduleMinutes(endLeg.seconds);
+    return endTravel == null ? "" : fmtHHMM(timetable.lastDepartureMinutes + endTravel);
   })();
 
   return (
