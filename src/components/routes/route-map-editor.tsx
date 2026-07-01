@@ -105,6 +105,7 @@ function MapEditor({
     distanceKm: null, durationMin: null,
   });
   const [endLeg, setEndLeg] = useState<LegInfo | null>(null);
+  const [directionsError, setDirectionsError] = useState(false);
 
   const dwellDefault = (() => {
     const n = Number(defaultDwellMin);
@@ -115,6 +116,19 @@ function MapEditor({
   useEffect(() => {
     latest.current = { start, end, stops, onStartChange, onEndChange, onStopsChange };
   });
+
+  const clearRouteTimetable = (nextStops = latest.current.stops) =>
+    clearStopTimetable(nextStops, { clearLegs: true, resetManualTimes: true }).map((s, i) => ({ ...s, order: i }));
+
+  const handleStartChange = (p: RoutePoint) => {
+    onStartChange(p);
+    if (latest.current.stops.length > 0) onStopsChange(clearRouteTimetable());
+  };
+
+  const handleEndChange = (p: RoutePoint) => {
+    onEndChange(p);
+    if (latest.current.stops.length > 0) onStopsChange(clearRouteTimetable());
+  };
 
   // Load Maps + init
   useEffect(() => {
