@@ -169,6 +169,9 @@ function SchoolAdminDashboard() {
         <StatCard label="Today's pickups" value={data?.pickups} icon={MapPin} loading={isLoading} tone="success" />
         <StatCard label="Today's drops" value={data?.drops} icon={MapPin} loading={isLoading} />
         <StatCard label="Active vehicles" value={data?.activeVehicles} icon={Car} loading={isLoading} tone="success" />
+        <StatCard label="Total capacity" value={data?.totalCapacity} icon={Car} loading={isLoading} />
+        <StatCard label="Occupied seats" value={data?.occupiedSeats} icon={Users} loading={isLoading} />
+        <StatCard label="Available seats" value={data?.availableSeats} icon={Users} loading={isLoading} tone="success" />
         <StatCard label="Pending notifications" value={data?.unreadNotifs} icon={Bell} loading={isLoading} tone="warning" />
       </div>
       <Card className="mt-6">
