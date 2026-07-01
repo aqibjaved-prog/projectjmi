@@ -669,55 +669,40 @@ function SubscriptionHistory({ schoolId }: { schoolId: string }) {
   );
 }
 
-function ChangePlanDialog({
+function ApplyPlanChangeDialog({
+  open,
+  onOpenChange,
   schoolId,
   sub,
-  plans,
+  currentPlan,
+  newPlan,
 }: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
   schoolId: string;
   sub: SubRow;
-  plans: Plan[];
+  currentPlan: Plan | null;
+  newPlan: Plan;
 }) {
   const qc = useQueryClient();
   const { user } = useAuth();
-  const [open, setOpen] = useState(false);
-  const [newPlanId, setNewPlanId] = useState<string>("");
-  const [startDate, setStartDate] = useState<string>(new Date().toISOString().slice(0, 10));
   const [reason, setReason] = useState<string>("");
 
-  const currentPlan = useMemo(
-    () => plans.find((p) => p.id === sub.plan_id) ?? null,
-    [plans, sub.plan_id],
-  );
-  const newPlan = useMemo(
-    () => plans.find((p) => p.id === newPlanId) ?? null,
-    [plans, newPlanId],
-  );
-
+  const startDate = useMemo(() => new Date(), []);
   const computedEnd = useMemo(() => {
-    if (!newPlan) return null;
     try {
-      return periodEndFor(new Date(startDate), newPlan.billing_cycle, newPlan.duration_days);
+      return periodEndFor(startDate, newPlan.billing_cycle, newPlan.duration_days);
     } catch {
       return null;
     }
   }, [newPlan, startDate]);
 
-  const isSame = newPlan && sub.plan_id === newPlan.id;
-
   const migrate = useMutation({
     mutationFn: async () => {
-      if (!newPlan) throw new Error("Select a plan first");
-      if (sub.plan_id === newPlan.id) {
-        throw new Error("SAME_PLAN");
-      }
-      const start = new Date(startDate);
-      let end: Date;
-      try {
-        end = periodEndFor(start, newPlan.billing_cycle, newPlan.duration_days);
-      } catch (e) {
-        throw e instanceof Error ? e : new Error("Invalid plan duration");
-      }
+      if (sub.plan_id === newPlan.id) throw new Error("SAME_PLAN");
+      if (!computedEnd) throw new Error("Invalid plan duration");
+      const start = startDate;
+      const end = computedEnd;
       const order = ["trial", "basic", "standard", "premium"];
       const fromIdx = currentPlan ? order.indexOf(currentPlan.tier) : -1;
       const toIdx = order.indexOf(newPlan.tier);
@@ -767,145 +752,81 @@ function ChangePlanDialog({
       if (hErr) throw hErr;
     },
     onSuccess: () => {
-      toast.success(`Plan changed to ${newPlan?.name}`);
-      qc.invalidateQueries({ queryKey: ["school", schoolId] });
-      qc.invalidateQueries({ queryKey: ["school-stats", schoolId] });
-      qc.invalidateQueries({ queryKey: ["schools-with-subs"] });
-      qc.invalidateQueries({ queryKey: ["subscriptions"] });
-      qc.invalidateQueries({ queryKey: ["platform-stats"] });
-      qc.invalidateQueries({ queryKey: ["sub-history", schoolId] });
-      qc.invalidateQueries({ queryKey: ["plan-usage"] });
-      qc.invalidateQueries({ queryKey: ["plans-active"] });
-      setOpen(false);
-      setNewPlanId("");
+      toast.success(`Plan changed to ${newPlan.name}`);
+      invalidateSubscriptionQueries(qc, schoolId);
       setReason("");
+      onOpenChange(false);
     },
     onError: (e) => {
       const msg = e instanceof Error ? e.message : "Failed";
-      if (msg === "SAME_PLAN") {
-        toast.error("This school is already using this plan.");
-      } else {
-        toast.error(msg);
-      }
+      if (msg === "SAME_PLAN") toast.error("This school is already using this plan.");
+      else toast.error(msg);
     },
   });
 
   return (
-    <>
-      <Button className="flex-1" onClick={() => setOpen(true)}>
-        <Repeat className="mr-2 h-4 w-4" /> Change plan
-      </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Change subscription plan</DialogTitle>
-            <DialogDescription>
-              Pick a new plan and confirm. Dates, limits, and history are updated automatically.
-            </DialogDescription>
-          </DialogHeader>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Apply plan change?</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to migrate this school to this subscription plan?
+          </DialogDescription>
+        </DialogHeader>
 
-          <div className="space-y-4">
-            <div>
-              <Label className="mb-2 block">Available plans</Label>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {plans.length === 0 && (
-                  <div className="rounded-lg border p-4 text-sm text-muted-foreground">
-                    No active plans available.
-                  </div>
-                )}
-                {plans.map((p) => {
-                  const active = p.id === newPlanId;
-                  const current = p.id === sub.plan_id;
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => setNewPlanId(p.id)}
-                      className={`text-left rounded-lg border p-3 transition-colors ${
-                        active ? "border-primary ring-2 ring-primary/30" : "hover:bg-muted/40"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="font-medium">{p.name}</div>
-                        {current && <Badge variant="secondary">Current</Badge>}
-                        {active && !current && <CheckCircle2 className="h-4 w-4 text-primary" />}
-                      </div>
-                      <div className="mt-1 text-sm text-muted-foreground">
-                        {formatPrice(p)} · <span className="capitalize">{p.billing_cycle}</span>
-                      </div>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        Students: {formatLimit(p.student_limit)} · Vehicles: {formatLimit(p.vehicle_limit)}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <PlanColumn title="Current plan" plan={currentPlan} fallbackName={sub.plan_name} />
+            <PlanColumn title="New plan" plan={newPlan} highlight />
+          </div>
+
+          <div className="rounded-md border p-3 text-sm">
+            <div className="grid grid-cols-2 gap-y-1.5">
+              <span className="text-muted-foreground">Billing cycle</span>
+              <span className="text-right font-medium capitalize">{newPlan.billing_cycle}</span>
+              <span className="text-muted-foreground">Student limit</span>
+              <span className="text-right font-medium">{formatLimit(newPlan.student_limit)}</span>
+              <span className="text-muted-foreground">Vehicle limit</span>
+              <span className="text-right font-medium">{formatLimit(newPlan.vehicle_limit)}</span>
+              <span className="text-muted-foreground">Price</span>
+              <span className="text-right font-medium">{formatPrice(newPlan)}</span>
+              <span className="text-muted-foreground">Start date</span>
+              <span className="text-right font-medium">{startDate.toLocaleDateString()}</span>
+              <span className="text-muted-foreground">End date</span>
+              <span className="text-right font-medium">
+                {computedEnd ? computedEnd.toLocaleDateString() : "—"}
+              </span>
             </div>
-
-            {newPlan && (
-              <div className="rounded-lg border p-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <PlanColumn title="Current plan" plan={currentPlan} fallbackName={sub.plan_name} />
-                  <PlanColumn title="New plan" plan={newPlan} highlight />
-                </div>
-
-                {!isSame && (
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="cp-start">Start date</Label>
-                      <Input
-                        id="cp-start"
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>End date (computed)</Label>
-                      <Input
-                        readOnly
-                        value={computedEnd ? computedEnd.toISOString().slice(0, 10) : "—"}
-                      />
-                    </div>
-                    <div className="space-y-1.5 sm:col-span-2">
-                      <Label htmlFor="cp-reason">Reason (optional)</Label>
-                      <Input
-                        id="cp-reason"
-                        placeholder="e.g. Customer requested upgrade"
-                        value={reason}
-                        onChange={(e) => setReason(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {isSame && (
-                  <div className="mt-4 flex items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-sm text-amber-700 dark:text-amber-400">
-                    <AlertTriangle className="h-4 w-4" />
-                    This school is already using this plan.
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
-          <div className="mt-2 flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)} disabled={migrate.isPending}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => migrate.mutate()}
-              disabled={!newPlan || Boolean(isSame) || migrate.isPending}
-            >
-              {migrate.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              <ArrowRight className="mr-2 h-4 w-4" /> Confirm change
-            </Button>
+          <div className="space-y-1.5">
+            <Label htmlFor="cp-reason">Reason (optional)</Label>
+            <Input
+              id="cp-reason"
+              placeholder="e.g. Customer requested upgrade"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
           </div>
-        </DialogContent>
-      </Dialog>
-    </>
+        </div>
+
+        <div className="mt-2 flex justify-end gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={migrate.isPending}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => migrate.mutate()}
+            disabled={migrate.isPending || !computedEnd}
+          >
+            {migrate.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <ArrowRight className="mr-2 h-4 w-4" /> Yes, apply change
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
+
 
 function PlanColumn({
   title,
