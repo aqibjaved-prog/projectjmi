@@ -27,7 +27,9 @@ import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authen
 import { Route as AuthenticatedMyChildrenRouteImport } from './routes/_authenticated/my-children'
 import { Route as AuthenticatedDriversRouteImport } from './routes/_authenticated/drivers'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedStudentsIndexRouteImport } from './routes/_authenticated/students.index'
 import { Route as AuthenticatedSchoolsIndexRouteImport } from './routes/_authenticated/schools.index'
+import { Route as AuthenticatedStudentsStudentIdRouteImport } from './routes/_authenticated/students.$studentId'
 import { Route as AuthenticatedSchoolsSchoolIdRouteImport } from './routes/_authenticated/schools.$schoolId'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -121,11 +123,23 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedStudentsIndexRoute =
+  AuthenticatedStudentsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedStudentsRoute,
+  } as any)
 const AuthenticatedSchoolsIndexRoute =
   AuthenticatedSchoolsIndexRouteImport.update({
     id: '/',
     path: '/',
     getParentRoute: () => AuthenticatedSchoolsRoute,
+  } as any)
+const AuthenticatedStudentsStudentIdRoute =
+  AuthenticatedStudentsStudentIdRouteImport.update({
+    id: '/$studentId',
+    path: '/$studentId',
+    getParentRoute: () => AuthenticatedStudentsRoute,
   } as any)
 const AuthenticatedSchoolsSchoolIdRoute =
   AuthenticatedSchoolsSchoolIdRouteImport.update({
@@ -148,12 +162,14 @@ export interface FileRoutesByFullPath {
   '/routes': typeof AuthenticatedRoutesRoute
   '/schools': typeof AuthenticatedSchoolsRouteWithChildren
   '/settings': typeof AuthenticatedSettingsRoute
-  '/students': typeof AuthenticatedStudentsRoute
+  '/students': typeof AuthenticatedStudentsRouteWithChildren
   '/subscriptions': typeof AuthenticatedSubscriptionsRoute
   '/trips': typeof AuthenticatedTripsRoute
   '/vehicles': typeof AuthenticatedVehiclesRoute
   '/schools/$schoolId': typeof AuthenticatedSchoolsSchoolIdRoute
+  '/students/$studentId': typeof AuthenticatedStudentsStudentIdRoute
   '/schools/': typeof AuthenticatedSchoolsIndexRoute
+  '/students/': typeof AuthenticatedStudentsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -168,12 +184,13 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/routes': typeof AuthenticatedRoutesRoute
   '/settings': typeof AuthenticatedSettingsRoute
-  '/students': typeof AuthenticatedStudentsRoute
   '/subscriptions': typeof AuthenticatedSubscriptionsRoute
   '/trips': typeof AuthenticatedTripsRoute
   '/vehicles': typeof AuthenticatedVehiclesRoute
   '/schools/$schoolId': typeof AuthenticatedSchoolsSchoolIdRoute
+  '/students/$studentId': typeof AuthenticatedStudentsStudentIdRoute
   '/schools': typeof AuthenticatedSchoolsIndexRoute
+  '/students': typeof AuthenticatedStudentsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -191,12 +208,14 @@ export interface FileRoutesById {
   '/_authenticated/routes': typeof AuthenticatedRoutesRoute
   '/_authenticated/schools': typeof AuthenticatedSchoolsRouteWithChildren
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
-  '/_authenticated/students': typeof AuthenticatedStudentsRoute
+  '/_authenticated/students': typeof AuthenticatedStudentsRouteWithChildren
   '/_authenticated/subscriptions': typeof AuthenticatedSubscriptionsRoute
   '/_authenticated/trips': typeof AuthenticatedTripsRoute
   '/_authenticated/vehicles': typeof AuthenticatedVehiclesRoute
   '/_authenticated/schools/$schoolId': typeof AuthenticatedSchoolsSchoolIdRoute
+  '/_authenticated/students/$studentId': typeof AuthenticatedStudentsStudentIdRoute
   '/_authenticated/schools/': typeof AuthenticatedSchoolsIndexRoute
+  '/_authenticated/students/': typeof AuthenticatedStudentsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -219,7 +238,9 @@ export interface FileRouteTypes {
     | '/trips'
     | '/vehicles'
     | '/schools/$schoolId'
+    | '/students/$studentId'
     | '/schools/'
+    | '/students/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -234,12 +255,13 @@ export interface FileRouteTypes {
     | '/profile'
     | '/routes'
     | '/settings'
-    | '/students'
     | '/subscriptions'
     | '/trips'
     | '/vehicles'
     | '/schools/$schoolId'
+    | '/students/$studentId'
     | '/schools'
+    | '/students'
   id:
     | '__root__'
     | '/'
@@ -261,7 +283,9 @@ export interface FileRouteTypes {
     | '/_authenticated/trips'
     | '/_authenticated/vehicles'
     | '/_authenticated/schools/$schoolId'
+    | '/_authenticated/students/$studentId'
     | '/_authenticated/schools/'
+    | '/_authenticated/students/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -399,12 +423,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/students/': {
+      id: '/_authenticated/students/'
+      path: '/'
+      fullPath: '/students/'
+      preLoaderRoute: typeof AuthenticatedStudentsIndexRouteImport
+      parentRoute: typeof AuthenticatedStudentsRoute
+    }
     '/_authenticated/schools/': {
       id: '/_authenticated/schools/'
       path: '/'
       fullPath: '/schools/'
       preLoaderRoute: typeof AuthenticatedSchoolsIndexRouteImport
       parentRoute: typeof AuthenticatedSchoolsRoute
+    }
+    '/_authenticated/students/$studentId': {
+      id: '/_authenticated/students/$studentId'
+      path: '/$studentId'
+      fullPath: '/students/$studentId'
+      preLoaderRoute: typeof AuthenticatedStudentsStudentIdRouteImport
+      parentRoute: typeof AuthenticatedStudentsRoute
     }
     '/_authenticated/schools/$schoolId': {
       id: '/_authenticated/schools/$schoolId'
@@ -429,6 +467,21 @@ const AuthenticatedSchoolsRouteChildren: AuthenticatedSchoolsRouteChildren = {
 const AuthenticatedSchoolsRouteWithChildren =
   AuthenticatedSchoolsRoute._addFileChildren(AuthenticatedSchoolsRouteChildren)
 
+interface AuthenticatedStudentsRouteChildren {
+  AuthenticatedStudentsStudentIdRoute: typeof AuthenticatedStudentsStudentIdRoute
+  AuthenticatedStudentsIndexRoute: typeof AuthenticatedStudentsIndexRoute
+}
+
+const AuthenticatedStudentsRouteChildren: AuthenticatedStudentsRouteChildren = {
+  AuthenticatedStudentsStudentIdRoute: AuthenticatedStudentsStudentIdRoute,
+  AuthenticatedStudentsIndexRoute: AuthenticatedStudentsIndexRoute,
+}
+
+const AuthenticatedStudentsRouteWithChildren =
+  AuthenticatedStudentsRoute._addFileChildren(
+    AuthenticatedStudentsRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDriversRoute: typeof AuthenticatedDriversRoute
@@ -440,7 +493,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRoutesRoute: typeof AuthenticatedRoutesRoute
   AuthenticatedSchoolsRoute: typeof AuthenticatedSchoolsRouteWithChildren
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
-  AuthenticatedStudentsRoute: typeof AuthenticatedStudentsRoute
+  AuthenticatedStudentsRoute: typeof AuthenticatedStudentsRouteWithChildren
   AuthenticatedSubscriptionsRoute: typeof AuthenticatedSubscriptionsRoute
   AuthenticatedTripsRoute: typeof AuthenticatedTripsRoute
   AuthenticatedVehiclesRoute: typeof AuthenticatedVehiclesRoute
@@ -457,7 +510,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRoutesRoute: AuthenticatedRoutesRoute,
   AuthenticatedSchoolsRoute: AuthenticatedSchoolsRouteWithChildren,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
-  AuthenticatedStudentsRoute: AuthenticatedStudentsRoute,
+  AuthenticatedStudentsRoute: AuthenticatedStudentsRouteWithChildren,
   AuthenticatedSubscriptionsRoute: AuthenticatedSubscriptionsRoute,
   AuthenticatedTripsRoute: AuthenticatedTripsRoute,
   AuthenticatedVehiclesRoute: AuthenticatedVehiclesRoute,

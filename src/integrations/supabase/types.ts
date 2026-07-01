@@ -454,55 +454,103 @@ export type Database = {
       }
       students: {
         Row: {
+          admission_number: string | null
+          blood_group: string | null
           class_section: string | null
           created_at: string
+          date_of_birth: string | null
           drop_address: string | null
+          drop_lat: number | null
+          drop_lng: number | null
+          emergency_contact: string | null
+          first_name: string | null
           full_name: string
+          gender: string | null
           grade: string | null
           id: string
           is_active: boolean
+          last_name: string | null
+          parent_email: string | null
           parent_id: string | null
+          parent_name: string | null
+          parent_phone: string | null
           photo_url: string | null
           pickup_address: string | null
+          pickup_lat: number | null
+          pickup_lng: number | null
           qr_code: string | null
           roll_number: string | null
           route_id: string | null
           school_id: string
+          student_code: string | null
           updated_at: string
+          vehicle_id: string | null
         }
         Insert: {
+          admission_number?: string | null
+          blood_group?: string | null
           class_section?: string | null
           created_at?: string
+          date_of_birth?: string | null
           drop_address?: string | null
+          drop_lat?: number | null
+          drop_lng?: number | null
+          emergency_contact?: string | null
+          first_name?: string | null
           full_name: string
+          gender?: string | null
           grade?: string | null
           id?: string
           is_active?: boolean
+          last_name?: string | null
+          parent_email?: string | null
           parent_id?: string | null
+          parent_name?: string | null
+          parent_phone?: string | null
           photo_url?: string | null
           pickup_address?: string | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
           qr_code?: string | null
           roll_number?: string | null
           route_id?: string | null
           school_id: string
+          student_code?: string | null
           updated_at?: string
+          vehicle_id?: string | null
         }
         Update: {
+          admission_number?: string | null
+          blood_group?: string | null
           class_section?: string | null
           created_at?: string
+          date_of_birth?: string | null
           drop_address?: string | null
+          drop_lat?: number | null
+          drop_lng?: number | null
+          emergency_contact?: string | null
+          first_name?: string | null
           full_name?: string
+          gender?: string | null
           grade?: string | null
           id?: string
           is_active?: boolean
+          last_name?: string | null
+          parent_email?: string | null
           parent_id?: string | null
+          parent_name?: string | null
+          parent_phone?: string | null
           photo_url?: string | null
           pickup_address?: string | null
+          pickup_lat?: number | null
+          pickup_lng?: number | null
           qr_code?: string | null
           roll_number?: string | null
           route_id?: string | null
           school_id?: string
+          student_code?: string | null
           updated_at?: string
+          vehicle_id?: string | null
         }
         Relationships: [
           {
@@ -524,6 +572,13 @@ export type Database = {
             columns: ["school_id"]
             isOneToOne: false
             referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "students_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]
