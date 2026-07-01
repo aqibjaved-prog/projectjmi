@@ -120,9 +120,14 @@ export function PlanForm({ defaultValues, submitLabel, submitting, onSubmit }: P
             <Label>Trial duration (days)</Label>
             <Input
               type="number" min={1}
-              value={v.duration_days ?? 30}
-              onChange={(e) => update("duration_days", Number(e.target.value))}
+              value={v.duration_days ?? ""}
+              onChange={(e) => update("duration_days", e.target.value === "" ? null : Number(e.target.value))}
+              placeholder="e.g. 14"
+              required
             />
+            <p className="text-xs text-muted-foreground">
+              Assigned trials end at Start + this many days. Changing this later only affects new/renewed subscriptions.
+            </p>
           </div>
         )}
         <div className="flex items-center justify-between rounded-md border p-3 sm:col-span-2">
