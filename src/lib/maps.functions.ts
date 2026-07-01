@@ -31,12 +31,12 @@ const directionsInput = z.object({
 
 export interface DirectionsResult {
   distanceMeters: number;
-  durationSeconds: number;
+  durationSeconds: number | null;
   encodedPolyline: string | null;
-  legs: Array<{ distanceMeters: number; durationSeconds: number }>;
+  legs: Array<{ distanceMeters: number; durationSeconds: number | null }>;
 }
 
-function parseDurationSeconds(v: unknown): number {
+function parseDurationSeconds(v: unknown): number | null {
   if (typeof v === "number") return v;
   if (typeof v === "string") {
     const m = v.match(/^(\d+(?:\.\d+)?)s$/);
@@ -44,7 +44,7 @@ function parseDurationSeconds(v: unknown): number {
     const n = Number(v);
     if (Number.isFinite(n)) return n;
   }
-  return 0;
+  return null;
 }
 
 export const computeDirections = createServerFn({ method: "POST" })
