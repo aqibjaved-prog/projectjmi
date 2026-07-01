@@ -270,12 +270,26 @@ export type Database = {
           description: string | null
           driver_id: string | null
           drop_start_time: string | null
+          end_lat: number | null
+          end_lng: number | null
+          ending_point: string | null
+          estimated_duration: number | null
           id: string
           is_active: boolean
+          max_students: number | null
+          metadata: Json
           name: string
+          notes: string | null
           pickup_start_time: string | null
+          route_code: string | null
+          route_color: string | null
+          route_type: string
           school_id: string
+          start_lat: number | null
+          start_lng: number | null
+          starting_point: string | null
           stops: Json
+          total_distance: number | null
           updated_at: string
           vehicle_id: string | null
         }
@@ -284,12 +298,26 @@ export type Database = {
           description?: string | null
           driver_id?: string | null
           drop_start_time?: string | null
+          end_lat?: number | null
+          end_lng?: number | null
+          ending_point?: string | null
+          estimated_duration?: number | null
           id?: string
           is_active?: boolean
+          max_students?: number | null
+          metadata?: Json
           name: string
+          notes?: string | null
           pickup_start_time?: string | null
+          route_code?: string | null
+          route_color?: string | null
+          route_type?: string
           school_id: string
+          start_lat?: number | null
+          start_lng?: number | null
+          starting_point?: string | null
           stops?: Json
+          total_distance?: number | null
           updated_at?: string
           vehicle_id?: string | null
         }
@@ -298,12 +326,26 @@ export type Database = {
           description?: string | null
           driver_id?: string | null
           drop_start_time?: string | null
+          end_lat?: number | null
+          end_lng?: number | null
+          ending_point?: string | null
+          estimated_duration?: number | null
           id?: string
           is_active?: boolean
+          max_students?: number | null
+          metadata?: Json
           name?: string
+          notes?: string | null
           pickup_start_time?: string | null
+          route_code?: string | null
+          route_color?: string | null
+          route_type?: string
           school_id?: string
+          start_lat?: number | null
+          start_lng?: number | null
+          starting_point?: string | null
           stops?: Json
+          total_distance?: number | null
           updated_at?: string
           vehicle_id?: string | null
         }

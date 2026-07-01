@@ -62,7 +62,7 @@ const NAV: { label: string; items: NavItem[] }[] = [
       { title: "Drivers", url: "/drivers", icon: UserCog, roles: ["school_admin"] },
       { title: "Parents", url: "/parents", icon: Users, roles: ["school_admin"] },
       { title: "Vehicles", url: "/vehicles", icon: Car, roles: ["school_admin"] },
-      { title: "Routes", url: "/routes", icon: MapPin, roles: ["school_admin"] },
+      { title: "Routes", url: "/routes", icon: MapPin, roles: ["school_admin", "super_admin"] },
       { title: "Trips", url: "/trips", icon: Calendar, roles: ["school_admin", "driver"] },
       { title: "Reports", url: "/reports", icon: FileBarChart, roles: ["school_admin"] },
     ],
