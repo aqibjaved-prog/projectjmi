@@ -198,7 +198,7 @@ function StudentsPage() {
           school_id: target,
           first_name: (r.first_name as string) ?? null,
           last_name: (r.last_name as string) ?? null,
-          full_name: (r.full_name as string) ?? `${r.first_name ?? ""} ${r.last_name ?? ""}`.trim() || "Unnamed",
+          full_name: ((r.full_name as string) ?? `${r.first_name ?? ""} ${r.last_name ?? ""}`.trim()) || "Unnamed",
           admission_number: (r.admission_number as string) ?? null,
           roll_number: (r.roll_number as string) ?? null,
           grade: (r.grade as string) ?? (r.class as string) ?? null,
