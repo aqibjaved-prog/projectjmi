@@ -10,7 +10,17 @@ import {
   GripVertical, Clock, Route as RouteIcon, RotateCcw,
 } from "lucide-react";
 import type { RouteStop } from "@/lib/routes";
-import { newStop, parseHHMM, fmtHHMM, DEFAULT_DWELL_MIN } from "@/lib/routes";
+import {
+  calculateStopTimetable,
+  clearStopTimetable,
+  DEFAULT_DWELL_MIN,
+  effectiveDwellMinutes,
+  fmtHHMM,
+  newStop,
+  parseHHMM,
+  travelSecondsToScheduleMinutes,
+  WAITING_FOR_GOOGLE_ROUTE,
+} from "@/lib/routes";
 import { computeDirections, reverseGeocode as reverseGeocodeFn } from "@/lib/maps.functions";
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
@@ -68,6 +78,10 @@ function MissingKeyPlaceholder() {
 
 interface LegInfo { seconds: number; meters: number }
 
+const stopsEqual = (a: RouteStop[], b: RouteStop[]) => JSON.stringify(a) === JSON.stringify(b);
+const hasGoogleDuration = (seconds: number | null | undefined) =>
+  seconds != null && Number.isFinite(Number(seconds));
+
 function MapEditor({
   start, end, stops, color = "#3b82f6", maxStops,
   startTime, defaultDwellMin,
@@ -91,6 +105,7 @@ function MapEditor({
     distanceKm: null, durationMin: null,
   });
   const [endLeg, setEndLeg] = useState<LegInfo | null>(null);
+  const [directionsError, setDirectionsError] = useState(false);
 
   const dwellDefault = (() => {
     const n = Number(defaultDwellMin);
@@ -101,6 +116,19 @@ function MapEditor({
   useEffect(() => {
     latest.current = { start, end, stops, onStartChange, onEndChange, onStopsChange };
   });
+
+  const clearRouteTimetable = (nextStops = latest.current.stops) =>
+    clearStopTimetable(nextStops, { clearLegs: true, resetManualTimes: true }).map((s, i) => ({ ...s, order: i }));
+
+  const handleStartChange = (p: RoutePoint) => {
+    onStartChange(p);
+    if (latest.current.stops.length > 0) onStopsChange(clearRouteTimetable());
+  };
+
+  const handleEndChange = (p: RoutePoint) => {
+    onEndChange(p);
+    if (latest.current.stops.length > 0) onStopsChange(clearRouteTimetable());
+  };
 
   // Load Maps + init
   useEffect(() => {
@@ -137,10 +165,10 @@ function MapEditor({
   const handleMapClick = async (lat: number, lng: number) => {
     const { start: s, end: e, stops: st, onStartChange: oS, onEndChange: oE, onStopsChange: oSt } = latest.current;
     const address = await reverseLookup(lat, lng);
-    if (s.lat == null) { oS({ address, lat, lng }); return; }
-    if (e.lat == null) { oE({ address, lat, lng }); return; }
+    if (s.lat == null) { oS({ address, lat, lng }); if (st.length > 0) oSt(clearRouteTimetable(st)); return; }
+    if (e.lat == null) { oE({ address, lat, lng }); if (st.length > 0) oSt(clearRouteTimetable(st)); return; }
     const stop = { ...newStop(st.length), name: address || `Stop ${st.length + 1}`, address, lat, lng };
-    oSt([...st, stop]);
+    oSt(clearRouteTimetable([...st, stop]));
   };
 
   const reverseLookup = async (lat: number, lng: number): Promise<string> => {
@@ -177,6 +205,7 @@ function MapEditor({
           const lat = e.latLng.lat(), lng = e.latLng.lng();
           const address = await reverseLookup(lat, lng);
           latest.current.onStartChange({ address, lat, lng });
+          if (latest.current.stops.length > 0) latest.current.onStopsChange(clearRouteTimetable(latest.current.stops));
         });
       }
       startMarkerRef.current.setPosition({ lat: start.lat, lng: start.lng });
@@ -195,6 +224,7 @@ function MapEditor({
           const lat = e.latLng.lat(), lng = e.latLng.lng();
           const address = await reverseLookup(lat, lng);
           latest.current.onEndChange({ address, lat, lng });
+          if (latest.current.stops.length > 0) latest.current.onStopsChange(clearRouteTimetable(latest.current.stops));
         });
       }
       endMarkerRef.current.setPosition({ lat: end.lat, lng: end.lng });
@@ -217,7 +247,7 @@ function MapEditor({
         const address = await reverseLookup(lat, lng);
         const next = latest.current.stops.map((x, idx) =>
           idx === i ? { ...x, lat, lng, address } : x);
-        latest.current.onStopsChange(next);
+        latest.current.onStopsChange(clearRouteTimetable(next));
       });
       stopMarkersRef.current.push(marker);
     });
@@ -241,19 +271,24 @@ function MapEditor({
   const runDirections = async () => {
     const poly = polylineRef.current;
     if (!poly) return;
-    if (start.lat == null || start.lng == null || end.lat == null || end.lng == null) {
+    const curStops = latest.current.stops;
+    const hasIncompletePoint = curStops.some((s) => s.lat == null || s.lng == null);
+    if (start.lat == null || start.lng == null || end.lat == null || end.lng == null || hasIncompletePoint) {
       poly.setPath([]);
       setSummary({ distanceKm: null, durationMin: null });
       setEndLeg(null);
+      setDirectionsError(hasIncompletePoint || curStops.length > 0);
       onSummaryChange?.({ distanceKm: null, durationMin: null });
       onEndLegChange?.({ seconds: null, meters: null });
+      const cleared = clearRouteTimetable(curStops);
+      if (!stopsEqual(cleared, curStops)) latest.current.onStopsChange(cleared);
       return;
     }
-    const waypoints = stops
-      .filter((s) => s.lat != null && s.lng != null)
+    const waypoints = curStops
       .map((s) => ({ lat: s.lat as number, lng: s.lng as number }));
     const reqId = ++directionsReqRef.current;
     setComputing(true);
+    setDirectionsError(false);
     try {
       const res = await computeDirections({
         data: {
@@ -272,7 +307,7 @@ function MapEditor({
       }
       const s = {
         distanceKm: +(res.distanceMeters / 1000).toFixed(2),
-        durationMin: Math.round(res.durationSeconds / 60),
+        durationMin: res.durationSeconds == null ? null : Math.round(res.durationSeconds / 60),
       };
       setSummary(s);
       onSummaryChange?.(s);
@@ -281,66 +316,71 @@ function MapEditor({
       // For N stops, legs length = N + 1. Last one is end leg.
       const legs = res.legs ?? [];
       const cur = latest.current.stops;
+      const hasMissingStopLeg = cur.some((_, i) => !hasGoogleDuration(legs[i]?.durationSeconds));
+      const hasMissingEndLeg = !hasGoogleDuration(legs[cur.length]?.durationSeconds);
+      if (legs.length < cur.length + 1 || hasMissingStopLeg || hasMissingEndLeg) {
+        setDirectionsError(true);
+        setEndLeg(null);
+        onEndLegChange?.({ seconds: null, meters: null });
+        const cleared = clearRouteTimetable(cur);
+        if (!stopsEqual(cleared, cur)) latest.current.onStopsChange(cleared);
+        return;
+      }
       const patched = cur.map((st, i) => {
         const leg = legs[i];
-        if (!leg) return st;
+        if (!leg || !hasGoogleDuration(leg.durationSeconds)) return st;
         return {
           ...st,
-          driving_seconds_from_prev: leg.durationSeconds,
+          driving_seconds_from_prev: leg.durationSeconds as number,
           distance_from_prev_m: leg.distanceMeters,
         };
       });
       const endLegInfo = legs[cur.length]
-        ? { seconds: legs[cur.length].durationSeconds, meters: legs[cur.length].distanceMeters }
+        ? { seconds: legs[cur.length].durationSeconds as number, meters: legs[cur.length].distanceMeters }
         : { seconds: null, meters: null };
       setEndLeg(endLegInfo.seconds != null
         ? { seconds: endLegInfo.seconds, meters: endLegInfo.meters as number }
         : null);
       onEndLegChange?.(endLegInfo);
-      if (JSON.stringify(patched) !== JSON.stringify(cur)) {
+      if (!stopsEqual(patched, cur)) {
         latest.current.onStopsChange(patched);
       }
     } catch {
       poly.setPath([]);
+      setDirectionsError(true);
+      setSummary({ distanceKm: null, durationMin: null });
+      setEndLeg(null);
+      onSummaryChange?.({ distanceKm: null, durationMin: null });
+      onEndLegChange?.({ seconds: null, meters: null });
+      const cleared = clearRouteTimetable(latest.current.stops);
+      if (!stopsEqual(cleared, latest.current.stops)) latest.current.onStopsChange(cleared);
     } finally {
       if (reqId === directionsReqRef.current) setComputing(false);
     }
   };
 
-  // Recompute arrival/departure whenever leg data, startTime, dwell, or manual-overrides change.
+  // Recompute the whole timetable from the master start time whenever Google leg data,
+  // start time, stop order, or dwell changes. If any Google leg is unavailable, clear
+  // all stop times instead of carrying stale values forward.
   useEffect(() => {
-    const startMin = parseHHMM(startTime);
-    if (startMin == null) return;
-    let cursor = startMin;
-    let changed = false;
-    const next = stops.map((s) => {
-      const drivingMin = s.driving_seconds_from_prev != null
-        ? s.driving_seconds_from_prev / 60 : 0;
-      cursor += drivingMin;
-      const dwell = s.dwell_min != null && s.dwell_min !== undefined
-        ? Number(s.dwell_min) : dwellDefault;
-      let arrival = s.arrival_time ?? "";
-      let departure = s.departure_time ?? "";
-      if (!s.manual_time) {
-        const a = fmtHHMM(cursor);
-        const d = fmtHHMM(cursor + dwell);
-        if (a !== arrival) { arrival = a; changed = true; }
-        if (d !== departure) { departure = d; changed = true; }
-      }
-      cursor += dwell;
-      const stopDwell = s.dwell_min == null ? dwellDefault : Number(s.dwell_min);
-      if (s.dwell_min == null && stopDwell !== dwellDefault) {
-        // keep null (means "use default")
-      }
-      return { ...s, arrival_time: arrival, departure_time: departure };
-    });
-    if (changed) latest.current.onStopsChange(next);
+    const result = calculateStopTimetable(stops, startTime, dwellDefault, { resetManualTimes: true });
+    if (!stopsEqual(result.stops, stops)) latest.current.onStopsChange(result.stops);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startTime, dwellDefault, stops.map((s) => `${s.id}:${s.driving_seconds_from_prev}:${s.dwell_min}:${s.manual_time}:${s.arrival_time}:${s.departure_time}`).join("|")]);
+  }, [startTime, dwellDefault, stops.map((s) => `${s.id}:${s.driving_seconds_from_prev}:${s.dwell_min}:${s.arrival_time}:${s.departure_time}:${s.manual_time}`).join("|")]);
 
-  const removeStop = (i: number) => onStopsChange(stops.filter((_, idx) => idx !== i));
-  const updateStop = (i: number, patch: Partial<RouteStop>) =>
-    onStopsChange(stops.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
+  const removeStop = (i: number) => onStopsChange(clearRouteTimetable(stops.filter((_, idx) => idx !== i)));
+  const updateStop = (i: number, patch: Partial<RouteStop>) => {
+    const locationChanged = "lat" in patch || "lng" in patch || "address" in patch;
+    const next = stops.map((s, idx) => (idx === i ? { ...s, ...patch } : s));
+    onStopsChange(locationChanged ? clearRouteTimetable(next) : next);
+  };
+
+  const rebuildRoute = () => {
+    const cleared = clearRouteTimetable(stops);
+    if (!stopsEqual(cleared, stops)) onStopsChange(cleared);
+    lastPosSigRef.current = "";
+    void runDirections();
+  };
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const onDragEnd = (e: DragEndEvent) => {
@@ -353,6 +393,9 @@ function MapEditor({
     onStopsChange(
       arrayMove(stops, oldIndex, newIndex).map((s, i) => ({
         ...s, order: i,
+        arrival_time: "",
+        departure_time: "",
+        manual_time: false,
         driving_seconds_from_prev: null,
         distance_from_prev_m: null,
       })),
@@ -362,16 +405,20 @@ function MapEditor({
   // Summary aggregates
   const startMin = parseHHMM(startTime);
   const totalDwellMin = stops.reduce(
-    (acc, s) => acc + (s.dwell_min == null ? dwellDefault : Number(s.dwell_min) || 0),
+    (acc, s) => acc + effectiveDwellMinutes(s, dwellDefault),
     0,
   );
   const drivingMin = summary.durationMin ?? null;
   const endLegMin = endLeg ? Math.round(endLeg.seconds / 60) : null;
+  const timetable = calculateStopTimetable(stops, startTime, dwellDefault, { resetManualTimes: true });
+  const hasPendingStopLegs = stops.length > 0 && stops.some((s) => !hasGoogleDuration(s.driving_seconds_from_prev));
+  const waitingForGoogleRoute = computing || directionsError || hasPendingStopLegs;
   const totalRouteMin = drivingMin == null ? null : drivingMin + totalDwellMin;
   const firstPickup = stops[0]?.arrival_time ?? "";
   const lastDrop = (() => {
-    if (startMin == null || drivingMin == null) return "";
-    return fmtHHMM(startMin + (totalRouteMin ?? 0));
+    if (timetable.lastDepartureMinutes == null || endLeg == null) return "";
+    const endTravel = travelSecondsToScheduleMinutes(endLeg.seconds);
+    return endTravel == null ? "" : fmtHHMM(timetable.lastDepartureMinutes + endTravel);
   })();
 
   return (
@@ -381,8 +428,8 @@ function MapEditor({
           <Label className="text-xs">Starting point</Label>
           <PlaceInput
             value={start.address}
-            onPlace={onStartChange}
-            onClear={() => onStartChange({ address: "", lat: null, lng: null })}
+            onPlace={handleStartChange}
+            onClear={() => handleStartChange({ address: "", lat: null, lng: null })}
             placeholder="Search starting location…"
           />
         </div>
@@ -390,8 +437,8 @@ function MapEditor({
           <Label className="text-xs">Ending point</Label>
           <PlaceInput
             value={end.address}
-            onPlace={onEndChange}
-            onClear={() => onEndChange({ address: "", lat: null, lng: null })}
+            onPlace={handleEndChange}
+            onClear={() => handleEndChange({ address: "", lat: null, lng: null })}
             placeholder="Search ending location…"
           />
         </div>
@@ -425,9 +472,9 @@ function MapEditor({
         <Badge variant="secondary" className="gap-1">
           <MapPin className="h-3 w-3" /> {stops.length} stop{stops.length === 1 ? "" : "s"}
         </Badge>
-        {computing && (
+        {waitingForGoogleRoute && (
           <Badge variant="outline" className="gap-1">
-            <Loader2 className="h-3 w-3 animate-spin" /> Calculating route…
+            {computing ? <Loader2 className="h-3 w-3 animate-spin" /> : <AlertCircle className="h-3 w-3" />} {WAITING_FOR_GOOGLE_ROUTE}
           </Badge>
         )}
         {summary.distanceKm != null && summary.distanceKm > 50 && (
@@ -463,9 +510,12 @@ function MapEditor({
           <Label className="text-sm font-medium">Stops</Label>
           <Button
             type="button" size="sm" variant="outline"
-            onClick={() => onStopsChange([...stops, newStop(stops.length)])}
+            onClick={() => onStopsChange(clearRouteTimetable([...stops, newStop(stops.length)]))}
           >
             <Plus className="mr-1 h-4 w-4" /> Add stop
+          </Button>
+          <Button type="button" size="sm" variant="outline" onClick={rebuildRoute}>
+            <RotateCcw className="mr-1 h-4 w-4" /> Recalculate Route
           </Button>
         </div>
         {stops.length === 0 ? (
@@ -485,6 +535,7 @@ function MapEditor({
                     defaultDwell={dwellDefault}
                     onChange={(patch) => updateStop(i, patch)}
                     onRemove={() => removeStop(i)}
+                    previousName={i === 0 ? "School" : (stops[i - 1]?.name || `Stop ${i}`)}
                   />
                 ))}
               </div>
@@ -508,7 +559,7 @@ function SummaryCell({ label, value, icon }: { label: string; value: string; ico
 }
 
 function SortableStopRow({
-  id, index, stop, defaultDwell, onChange, onRemove,
+  id, index, stop, defaultDwell, onChange, onRemove, previousName,
 }: {
   id: string;
   index: number;
@@ -516,6 +567,7 @@ function SortableStopRow({
   defaultDwell: number;
   onChange: (patch: Partial<RouteStop>) => void;
   onRemove: () => void;
+  previousName: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1 };
@@ -596,11 +648,9 @@ function SortableStopRow({
         </Button>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-2 pl-6 text-[11px] text-muted-foreground">
-        {driveMin != null && (
-          <Badge variant="outline" className="gap-1 font-normal">
-            <Navigation className="h-3 w-3" /> {driveMin} min from previous
-          </Badge>
-        )}
+        <Badge variant="outline" className="gap-1 font-normal">
+          <Navigation className="h-3 w-3" /> {previousName} → {stop.name || `Stop ${index + 1}`}: {driveMin != null ? `Travel: ${driveMin} min` : WAITING_FOR_GOOGLE_ROUTE}
+        </Badge>
         {distKm != null && (
           <Badge variant="outline" className="gap-1 font-normal">
             <RouteIcon className="h-3 w-3" /> {distKm} km

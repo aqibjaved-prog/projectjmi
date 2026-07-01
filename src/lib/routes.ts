@@ -30,6 +30,7 @@ export function routeStatusLabel(s: boolean | null | undefined): string {
 /* -------------------- Time helpers -------------------- */
 
 export const DEFAULT_DWELL_MIN = 2;
+export const WAITING_FOR_GOOGLE_ROUTE = "Waiting for Google route...";
 
 export function parseHHMM(v: string | null | undefined): number | null {
   if (!v) return null;
@@ -45,6 +46,95 @@ export function fmtHHMM(totalMin: number | null | undefined): string {
   const t = ((Math.round(totalMin) % (24 * 60)) + 24 * 60) % (24 * 60);
   const h = Math.floor(t / 60), m = t % 60;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+export function travelSecondsToScheduleMinutes(seconds: number | null | undefined): number | null {
+  if (seconds == null || !Number.isFinite(Number(seconds))) return null;
+  return Math.ceil(Math.max(0, Number(seconds)) / 60);
+}
+
+export function effectiveDwellMinutes(stop: Pick<RouteStop, "dwell_min">, defaultDwellMin = DEFAULT_DWELL_MIN): number {
+  const fallback = Number.isFinite(Number(defaultDwellMin)) && Number(defaultDwellMin) >= 0
+    ? Number(defaultDwellMin)
+    : DEFAULT_DWELL_MIN;
+  const raw = stop.dwell_min == null ? fallback : Number(stop.dwell_min);
+  return Number.isFinite(raw) && raw >= 0 ? Math.round(raw) : Math.round(fallback);
+}
+
+export function clearStopTimetable(
+  stops: RouteStop[],
+  options: { clearLegs?: boolean; resetManualTimes?: boolean } = {},
+): RouteStop[] {
+  return stops.map((s) => ({
+    ...s,
+    arrival_time: "",
+    departure_time: "",
+    ...(options.clearLegs ? { driving_seconds_from_prev: null, distance_from_prev_m: null } : {}),
+    ...(options.resetManualTimes ? { manual_time: false } : {}),
+  }));
+}
+
+export function calculateStopTimetable(
+  stops: RouteStop[],
+  startTime: string | null | undefined,
+  defaultDwellMin = DEFAULT_DWELL_MIN,
+  options: { respectManualTimes?: boolean; resetManualTimes?: boolean } = {},
+): { stops: RouteStop[]; complete: boolean; totalDwellMinutes: number; lastDepartureMinutes: number | null } {
+  const startMin = parseHHMM(startTime);
+  if (startMin == null) {
+    return {
+      stops: clearStopTimetable(stops, { resetManualTimes: options.resetManualTimes }),
+      complete: false,
+      totalDwellMinutes: 0,
+      lastDepartureMinutes: null,
+    };
+  }
+
+  let cursor = startMin;
+  let complete = true;
+  let totalDwellMinutes = 0;
+
+  const next = stops.map((s) => {
+    const travelMin = travelSecondsToScheduleMinutes(s.driving_seconds_from_prev);
+    const dwell = effectiveDwellMinutes(s, defaultDwellMin);
+    totalDwellMinutes += dwell;
+
+    if (travelMin == null || !complete) {
+      complete = false;
+      return {
+        ...s,
+        arrival_time: "",
+        departure_time: "",
+        ...(options.resetManualTimes ? { manual_time: false } : {}),
+      };
+    }
+
+    const googleArrival = cursor + travelMin;
+    let arrival = googleArrival;
+    if (options.respectManualTimes && s.manual_time) {
+      const manualArrival = parseHHMM(s.arrival_time);
+      const manualDeparture = parseHHMM(s.departure_time);
+      if (manualArrival != null) arrival = manualArrival;
+      else if (manualDeparture != null) arrival = manualDeparture - dwell;
+    }
+
+    const departure = arrival + dwell;
+    cursor = departure;
+
+    return {
+      ...s,
+      arrival_time: fmtHHMM(arrival),
+      departure_time: fmtHHMM(departure),
+      ...(options.resetManualTimes ? { manual_time: false } : {}),
+    };
+  });
+
+  return {
+    stops: next,
+    complete,
+    totalDwellMinutes,
+    lastDepartureMinutes: complete ? cursor : null,
+  };
 }
 
 /* -------------------- Stops -------------------- */
