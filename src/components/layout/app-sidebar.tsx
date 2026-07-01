@@ -52,7 +52,7 @@ const NAV: { label: string; items: NavItem[] }[] = [
   {
     label: "School",
     items: [
-      { title: "Students", url: "/students", icon: Users, roles: ["school_admin"] },
+      { title: "Students", url: "/students", icon: Users, roles: ["super_admin", "school_admin"] },
       { title: "Parents", url: "/parents", icon: Users, roles: ["school_admin"] },
       { title: "Drivers", url: "/drivers", icon: UserCog, roles: ["school_admin"] },
       { title: "Vehicles", url: "/vehicles", icon: Car, roles: ["school_admin"] },
