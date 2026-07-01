@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Bus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { ROLE_HOME } from "@/lib/role-access";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Sign in — School Van Guardian" }] }),
