@@ -105,6 +105,14 @@ export function RouteForm({ defaults, drivers = [], vehicles = [], submitting, s
     form.setValue("total_distance", s.distanceKm == null ? "" : String(s.distanceKm), { shouldDirty: true });
     form.setValue("estimated_duration", s.durationMin == null ? "" : String(s.durationMin), { shouldDirty: true });
   };
+  const setEndLeg = (info: { seconds: number | null; meters: number | null }) => {
+    form.setValue("end_leg_seconds", info.seconds, { shouldDirty: true });
+    form.setValue("end_leg_distance_m", info.meters, { shouldDirty: true });
+  };
+  const dwellDefault = (() => {
+    const n = Number(values.default_dwell_min);
+    return Number.isFinite(n) && n >= 0 ? n : 2;
+  })();
 
   return (
     <Form {...form}>
