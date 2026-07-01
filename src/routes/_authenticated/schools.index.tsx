@@ -150,22 +150,24 @@ function SchoolsPage() {
         .limit(1)
         .maybeSingle();
       const start = new Date();
-      const end = periodEndFor(start, trial?.billing_cycle ?? "trial", trial?.duration_days ?? 30);
-      await supabase.from("subscriptions").insert({
-        school_id: data.id,
-        plan_id: trial?.id ?? null,
-        plan_name: trial?.code ?? "trial",
-        billing_cycle: trial?.billing_cycle ?? "trial",
-        status: "trialing",
-        payment_status: "pending",
-        seats: 0,
-        amount_cents: trial?.price_cents ?? 0,
-        currency: trial?.currency ?? "USD",
-        current_period_start: start.toISOString(),
-        current_period_end: end.toISOString(),
-        renewal_date: end.toISOString(),
-      });
-      if (trial) {
+      const end = trial && trial.duration_days && trial.duration_days >= 1
+        ? periodEndFor(start, trial.billing_cycle, trial.duration_days)
+        : null;
+      if (trial && end) {
+        await supabase.from("subscriptions").insert({
+          school_id: data.id,
+          plan_id: trial.id,
+          plan_name: trial.code,
+          billing_cycle: trial.billing_cycle,
+          status: "trialing",
+          payment_status: "pending",
+          seats: 0,
+          amount_cents: trial.price_cents,
+          currency: trial.currency,
+          current_period_start: start.toISOString(),
+          current_period_end: end.toISOString(),
+          renewal_date: end.toISOString(),
+        });
         await supabase.from("subscription_history").insert({
           school_id: data.id,
           to_plan: trial.code,
@@ -175,7 +177,7 @@ function SchoolsPage() {
           currency: trial.currency,
           period_start: start.toISOString(),
           period_end: end.toISOString(),
-          notes: "Initial trial assigned on school creation",
+          notes: `Initial trial assigned on school creation (${trial.duration_days} day${trial.duration_days === 1 ? "" : "s"})`,
         });
       }
       return data;

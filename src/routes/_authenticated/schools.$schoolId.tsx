@@ -420,6 +420,46 @@ function SubscriptionPanel({ schoolId, sub }: { schoolId: string; sub: SubRow | 
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
+  const recalc = useMutation({
+    mutationFn: async () => {
+      if (!sub) throw new Error("No subscription to recalculate");
+      const plan = selectedPlan ?? plans?.find((p) => p.id === sub.plan_id);
+      if (!plan) throw new Error("Plan not found");
+      const startDate = sub.current_period_start ? new Date(sub.current_period_start) : new Date(start);
+      const endDate = periodEndFor(startDate, plan.billing_cycle, plan.duration_days);
+      const { error } = await supabase
+        .from("subscriptions")
+        .update({
+          current_period_start: startDate.toISOString(),
+          current_period_end: endDate.toISOString(),
+          renewal_date: endDate.toISOString(),
+        })
+        .eq("id", sub.id);
+      if (error) throw error;
+      await supabase.from("subscription_history").insert({
+        school_id: schoolId,
+        subscription_id: sub.id,
+        from_plan: sub.plan_name,
+        to_plan: plan.code,
+        from_cycle: sub.billing_cycle,
+        to_cycle: plan.billing_cycle,
+        action: "recalculated",
+        amount_cents: plan.price_cents,
+        currency: plan.currency,
+        period_start: startDate.toISOString(),
+        period_end: endDate.toISOString(),
+        notes: `Recalculated using plan duration (${plan.billing_cycle}${plan.duration_days ? `, ${plan.duration_days}d` : ""})`,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Dates recalculated from plan duration");
+      qc.invalidateQueries({ queryKey: ["school", schoolId] });
+      qc.invalidateQueries({ queryKey: ["subscriptions"] });
+      qc.invalidateQueries({ queryKey: ["sub-history", schoolId] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
   return (
     <Card>
       <CardHeader>
@@ -471,6 +511,17 @@ function SubscriptionPanel({ schoolId, sub }: { schoolId: string; sub: SubRow | 
           {sub && (
             <Button variant="outline" onClick={() => assign.mutate("renew")} disabled={assign.isPending}>
               <RefreshCw className="mr-2 h-4 w-4" /> Renew
+            </Button>
+          )}
+          {sub && (
+            <Button
+              variant="outline"
+              onClick={() => recalc.mutate()}
+              disabled={recalc.isPending || assign.isPending}
+              title="Recompute end date from the plan's configured duration"
+            >
+              {recalc.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+              Recalculate dates
             </Button>
           )}
         </div>
