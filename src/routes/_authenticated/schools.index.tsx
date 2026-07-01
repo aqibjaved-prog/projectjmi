@@ -204,7 +204,7 @@ function SchoolsPage() {
               <Button><Plus className="mr-2 h-4 w-4" /> Add school</Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
-              <DialogHeader><DialogTitle>Create school</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>Create school</DialogTitle><DialogDescription className="sr-only">Add a new school to the platform.</DialogDescription></DialogHeader>
               <SchoolForm
                 submitLabel="Create school"
                 submitting={create.isPending}
