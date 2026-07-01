@@ -26,9 +26,11 @@ import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedPlansRouteImport } from './routes/_authenticated/plans'
 import { Route as AuthenticatedParentsRouteImport } from './routes/_authenticated/parents'
+import { Route as AuthenticatedParentRouteImport } from './routes/_authenticated/parent'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedMyChildrenRouteImport } from './routes/_authenticated/my-children'
 import { Route as AuthenticatedDriversRouteImport } from './routes/_authenticated/drivers'
+import { Route as AuthenticatedDriverRouteImport } from './routes/_authenticated/driver'
 import { Route as AuthenticatedDevDocsRouteImport } from './routes/_authenticated/dev-docs'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedVehiclesIndexRouteImport } from './routes/_authenticated/vehicles.index'
@@ -131,6 +133,11 @@ const AuthenticatedParentsRoute = AuthenticatedParentsRouteImport.update({
   path: '/parents',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedParentRoute = AuthenticatedParentRouteImport.update({
+  id: '/parent',
+  path: '/parent',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedNotificationsRoute =
   AuthenticatedNotificationsRouteImport.update({
     id: '/notifications',
@@ -145,6 +152,11 @@ const AuthenticatedMyChildrenRoute = AuthenticatedMyChildrenRouteImport.update({
 const AuthenticatedDriversRoute = AuthenticatedDriversRouteImport.update({
   id: '/drivers',
   path: '/drivers',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDriverRoute = AuthenticatedDriverRouteImport.update({
+  id: '/driver',
+  path: '/driver',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDevDocsRoute = AuthenticatedDevDocsRouteImport.update({
@@ -235,9 +247,11 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/dev-docs': typeof AuthenticatedDevDocsRoute
+  '/driver': typeof AuthenticatedDriverRoute
   '/drivers': typeof AuthenticatedDriversRouteWithChildren
   '/my-children': typeof AuthenticatedMyChildrenRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
+  '/parent': typeof AuthenticatedParentRoute
   '/parents': typeof AuthenticatedParentsRoute
   '/plans': typeof AuthenticatedPlansRoute
   '/profile': typeof AuthenticatedProfileRoute
@@ -270,8 +284,10 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/dev-docs': typeof AuthenticatedDevDocsRoute
+  '/driver': typeof AuthenticatedDriverRoute
   '/my-children': typeof AuthenticatedMyChildrenRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
+  '/parent': typeof AuthenticatedParentRoute
   '/parents': typeof AuthenticatedParentsRoute
   '/plans': typeof AuthenticatedPlansRoute
   '/profile': typeof AuthenticatedProfileRoute
@@ -301,9 +317,11 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/dev-docs': typeof AuthenticatedDevDocsRoute
+  '/_authenticated/driver': typeof AuthenticatedDriverRoute
   '/_authenticated/drivers': typeof AuthenticatedDriversRouteWithChildren
   '/_authenticated/my-children': typeof AuthenticatedMyChildrenRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
+  '/_authenticated/parent': typeof AuthenticatedParentRoute
   '/_authenticated/parents': typeof AuthenticatedParentsRoute
   '/_authenticated/plans': typeof AuthenticatedPlansRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
@@ -338,9 +356,11 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/dashboard'
     | '/dev-docs'
+    | '/driver'
     | '/drivers'
     | '/my-children'
     | '/notifications'
+    | '/parent'
     | '/parents'
     | '/plans'
     | '/profile'
@@ -373,8 +393,10 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/dashboard'
     | '/dev-docs'
+    | '/driver'
     | '/my-children'
     | '/notifications'
+    | '/parent'
     | '/parents'
     | '/plans'
     | '/profile'
@@ -403,9 +425,11 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/dashboard'
     | '/_authenticated/dev-docs'
+    | '/_authenticated/driver'
     | '/_authenticated/drivers'
     | '/_authenticated/my-children'
     | '/_authenticated/notifications'
+    | '/_authenticated/parent'
     | '/_authenticated/parents'
     | '/_authenticated/plans'
     | '/_authenticated/profile'
@@ -561,6 +585,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedParentsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/parent': {
+      id: '/_authenticated/parent'
+      path: '/parent'
+      fullPath: '/parent'
+      preLoaderRoute: typeof AuthenticatedParentRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/notifications': {
       id: '/_authenticated/notifications'
       path: '/notifications'
@@ -580,6 +611,13 @@ declare module '@tanstack/react-router' {
       path: '/drivers'
       fullPath: '/drivers'
       preLoaderRoute: typeof AuthenticatedDriversRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/driver': {
+      id: '/_authenticated/driver'
+      path: '/driver'
+      fullPath: '/driver'
+      preLoaderRoute: typeof AuthenticatedDriverRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dev-docs': {
@@ -768,9 +806,11 @@ const AuthenticatedVehiclesRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDevDocsRoute: typeof AuthenticatedDevDocsRoute
+  AuthenticatedDriverRoute: typeof AuthenticatedDriverRoute
   AuthenticatedDriversRoute: typeof AuthenticatedDriversRouteWithChildren
   AuthenticatedMyChildrenRoute: typeof AuthenticatedMyChildrenRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
+  AuthenticatedParentRoute: typeof AuthenticatedParentRoute
   AuthenticatedParentsRoute: typeof AuthenticatedParentsRoute
   AuthenticatedPlansRoute: typeof AuthenticatedPlansRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
@@ -789,9 +829,11 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDevDocsRoute: AuthenticatedDevDocsRoute,
+  AuthenticatedDriverRoute: AuthenticatedDriverRoute,
   AuthenticatedDriversRoute: AuthenticatedDriversRouteWithChildren,
   AuthenticatedMyChildrenRoute: AuthenticatedMyChildrenRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
+  AuthenticatedParentRoute: AuthenticatedParentRoute,
   AuthenticatedParentsRoute: AuthenticatedParentsRoute,
   AuthenticatedPlansRoute: AuthenticatedPlansRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
