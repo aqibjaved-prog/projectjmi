@@ -95,6 +95,14 @@ function VehiclesPage() {
     },
   });
 
+  // Occupancy per school (super admin gets a map only when a specific school is selected).
+  const occupancyScope = isSuper ? (schoolFilter !== "all" ? schoolFilter : null) : (schoolId ?? null);
+  const { data: occupancy } = useQuery({
+    enabled: !!occupancyScope,
+    queryKey: ["vehicle-occupancy", occupancyScope],
+    queryFn: () => fetchVehicleOccupancy(occupancyScope),
+  });
+
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
     return (vehicles ?? []).filter((v) => {
