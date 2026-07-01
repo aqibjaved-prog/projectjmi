@@ -138,16 +138,25 @@ function VehiclesPage() {
         const s = expiryStatus(getDate(v));
         return s === "expiring" || s === "expired";
       });
+    const activeVehicles = list.filter((v) => v.status === "active");
+    const totalCapacity = activeVehicles.reduce((sum, v) => sum + (v.capacity ?? 0), 0);
+    const occupiedSeats = occupancy
+      ? activeVehicles.reduce((sum, v) => sum + (occupancy.get(v.id)?.occupied ?? 0), 0)
+      : null;
+    const availableSeats = occupiedSeats == null ? null : Math.max(totalCapacity - occupiedSeats, 0);
     return {
       total: list.length,
-      active: count((v) => v.status === "active"),
+      active: activeVehicles.length,
       maintenance: count((v) => v.status === "maintenance"),
       insurance: flagged((v) => v.insurance_expiry),
       fitness: flagged((v) => v.fitness_expiry),
       pollution: flagged((v) => v.metadata?.pollution_expiry),
       service: flagged((v) => v.metadata?.service_due_date),
+      totalCapacity,
+      occupiedSeats,
+      availableSeats,
     };
-  }, [vehicles]);
+  }, [vehicles, occupancy]);
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["vehicles-list"] });
