@@ -169,7 +169,7 @@ function PlansPage() {
 
       <Dialog open={!!editPlan} onOpenChange={(o) => !o && setEditPlan(null)}>
         <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>Edit plan</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Edit plan</DialogTitle><DialogDescription className="sr-only">Update the selected subscription plan.</DialogDescription></DialogHeader>
           {editPlan && (
             <PlanForm
               defaultValues={editPlan}
