@@ -38,6 +38,7 @@ import { Route as AuthenticatedSchoolsIndexRouteImport } from './routes/_authent
 import { Route as AuthenticatedRoutesIndexRouteImport } from './routes/_authenticated/routes.index'
 import { Route as AuthenticatedDriversIndexRouteImport } from './routes/_authenticated/drivers.index'
 import { Route as AuthenticatedVehiclesVehicleIdRouteImport } from './routes/_authenticated/vehicles.$vehicleId'
+import { Route as AuthenticatedTripsTripIdRouteImport } from './routes/_authenticated/trips.$tripId'
 import { Route as AuthenticatedStudentsStudentIdRouteImport } from './routes/_authenticated/students.$studentId'
 import { Route as AuthenticatedSchoolsSchoolIdRouteImport } from './routes/_authenticated/schools.$schoolId'
 import { Route as AuthenticatedRoutesRouteIdRouteImport } from './routes/_authenticated/routes.$routeId'
@@ -197,6 +198,12 @@ const AuthenticatedVehiclesVehicleIdRoute =
     path: '/$vehicleId',
     getParentRoute: () => AuthenticatedVehiclesRoute,
   } as any)
+const AuthenticatedTripsTripIdRoute =
+  AuthenticatedTripsTripIdRouteImport.update({
+    id: '/$tripId',
+    path: '/$tripId',
+    getParentRoute: () => AuthenticatedTripsRoute,
+  } as any)
 const AuthenticatedStudentsStudentIdRoute =
   AuthenticatedStudentsStudentIdRouteImport.update({
     id: '/$studentId',
@@ -248,6 +255,7 @@ export interface FileRoutesByFullPath {
   '/routes/$routeId': typeof AuthenticatedRoutesRouteIdRoute
   '/schools/$schoolId': typeof AuthenticatedSchoolsSchoolIdRoute
   '/students/$studentId': typeof AuthenticatedStudentsStudentIdRoute
+  '/trips/$tripId': typeof AuthenticatedTripsTripIdRoute
   '/vehicles/$vehicleId': typeof AuthenticatedVehiclesVehicleIdRoute
   '/drivers/': typeof AuthenticatedDriversIndexRoute
   '/routes/': typeof AuthenticatedRoutesIndexRoute
@@ -276,6 +284,7 @@ export interface FileRoutesByTo {
   '/routes/$routeId': typeof AuthenticatedRoutesRouteIdRoute
   '/schools/$schoolId': typeof AuthenticatedSchoolsSchoolIdRoute
   '/students/$studentId': typeof AuthenticatedStudentsStudentIdRoute
+  '/trips/$tripId': typeof AuthenticatedTripsTripIdRoute
   '/vehicles/$vehicleId': typeof AuthenticatedVehiclesVehicleIdRoute
   '/drivers': typeof AuthenticatedDriversIndexRoute
   '/routes': typeof AuthenticatedRoutesIndexRoute
@@ -312,6 +321,7 @@ export interface FileRoutesById {
   '/_authenticated/routes/$routeId': typeof AuthenticatedRoutesRouteIdRoute
   '/_authenticated/schools/$schoolId': typeof AuthenticatedSchoolsSchoolIdRoute
   '/_authenticated/students/$studentId': typeof AuthenticatedStudentsStudentIdRoute
+  '/_authenticated/trips/$tripId': typeof AuthenticatedTripsTripIdRoute
   '/_authenticated/vehicles/$vehicleId': typeof AuthenticatedVehiclesVehicleIdRoute
   '/_authenticated/drivers/': typeof AuthenticatedDriversIndexRoute
   '/_authenticated/routes/': typeof AuthenticatedRoutesIndexRoute
@@ -348,6 +358,7 @@ export interface FileRouteTypes {
     | '/routes/$routeId'
     | '/schools/$schoolId'
     | '/students/$studentId'
+    | '/trips/$tripId'
     | '/vehicles/$vehicleId'
     | '/drivers/'
     | '/routes/'
@@ -376,6 +387,7 @@ export interface FileRouteTypes {
     | '/routes/$routeId'
     | '/schools/$schoolId'
     | '/students/$studentId'
+    | '/trips/$tripId'
     | '/vehicles/$vehicleId'
     | '/drivers'
     | '/routes'
@@ -411,6 +423,7 @@ export interface FileRouteTypes {
     | '/_authenticated/routes/$routeId'
     | '/_authenticated/schools/$schoolId'
     | '/_authenticated/students/$studentId'
+    | '/_authenticated/trips/$tripId'
     | '/_authenticated/vehicles/$vehicleId'
     | '/_authenticated/drivers/'
     | '/_authenticated/routes/'
@@ -632,6 +645,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedVehiclesVehicleIdRouteImport
       parentRoute: typeof AuthenticatedVehiclesRoute
     }
+    '/_authenticated/trips/$tripId': {
+      id: '/_authenticated/trips/$tripId'
+      path: '/$tripId'
+      fullPath: '/trips/$tripId'
+      preLoaderRoute: typeof AuthenticatedTripsTripIdRouteImport
+      parentRoute: typeof AuthenticatedTripsRoute
+    }
     '/_authenticated/students/$studentId': {
       id: '/_authenticated/students/$studentId'
       path: '/$studentId'
@@ -718,10 +738,12 @@ const AuthenticatedStudentsRouteWithChildren =
   )
 
 interface AuthenticatedTripsRouteChildren {
+  AuthenticatedTripsTripIdRoute: typeof AuthenticatedTripsTripIdRoute
   AuthenticatedTripsIndexRoute: typeof AuthenticatedTripsIndexRoute
 }
 
 const AuthenticatedTripsRouteChildren: AuthenticatedTripsRouteChildren = {
+  AuthenticatedTripsTripIdRoute: AuthenticatedTripsTripIdRoute,
   AuthenticatedTripsIndexRoute: AuthenticatedTripsIndexRoute,
 }
 
