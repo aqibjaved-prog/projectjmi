@@ -16,6 +16,11 @@ import {
   ShieldCheck,
   User,
   BookOpen,
+  Navigation as NavigationIcon,
+  QrCode,
+  History,
+  Baby,
+  Radio,
   type LucideIcon,
 } from "lucide-react";
 import {
