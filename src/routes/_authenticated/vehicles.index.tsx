@@ -105,6 +105,12 @@ function VehiclesPage() {
     queryFn: () => fetchVehicleOccupancy(occupancyScope),
   });
 
+  const { data: planUsage } = useQuery({
+    enabled: !!occupancyScope,
+    queryKey: ["plan-usage", occupancyScope],
+    queryFn: () => fetchPlanUsage(occupancyScope),
+  });
+
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
     return (vehicles ?? []).filter((v) => {

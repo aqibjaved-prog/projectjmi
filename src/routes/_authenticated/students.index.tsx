@@ -94,6 +94,13 @@ function StudentsPage() {
     },
   });
 
+  const usageScope = isSuper ? (schoolFilter !== "all" ? schoolFilter : null) : (schoolId ?? null);
+  const { data: planUsage } = useQuery({
+    enabled: !!usageScope,
+    queryKey: ["plan-usage", usageScope],
+    queryFn: () => fetchPlanUsage(usageScope),
+  });
+
   const classes = useMemo(
     () => Array.from(new Set((students ?? []).map((s) => s.grade).filter(Boolean))) as string[],
     [students],
