@@ -139,10 +139,23 @@ export function RouteForm({ defaults, drivers = [], vehicles = [], submitting, s
             </FormItem>
           )} />
           <FormField name="pickup_start_time" control={form.control} render={({ field }) => (
-            <FormItem><FormLabel>Pickup start</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
+            <FormItem>
+              <FormLabel>Route start time</FormLabel>
+              <FormControl><Input type="time" {...field} /></FormControl>
+              <p className="text-[11px] text-muted-foreground">Arrival &amp; departure times auto-fill from Google ETAs.</p>
+              <FormMessage />
+            </FormItem>
           )} />
           <FormField name="drop_start_time" control={form.control} render={({ field }) => (
-            <FormItem><FormLabel>Drop start</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
+            <FormItem><FormLabel>Drop start (afternoon)</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
+          )} />
+          <FormField name="default_dwell_min" control={form.control} render={({ field }) => (
+            <FormItem>
+              <FormLabel>Default stop dwell (min)</FormLabel>
+              <FormControl><Input type="number" min={0} {...field} placeholder="2" /></FormControl>
+              <p className="text-[11px] text-muted-foreground">Applied when a stop has no custom dwell.</p>
+              <FormMessage />
+            </FormItem>
           )} />
           <FormField name="max_students" control={form.control} render={({ field }) => (
             <FormItem><FormLabel>Maximum students</FormLabel><FormControl><Input {...field} inputMode="numeric" placeholder="e.g. 40" /></FormControl><FormMessage /></FormItem>
