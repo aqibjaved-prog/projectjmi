@@ -193,11 +193,26 @@ function DriversPage() {
   });
 
   const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("drivers").delete().eq("id", id);
-      if (error) throw error;
+    mutationFn: async (row: DriverListRow) => {
+      const { deletePortalAccount } = await import("@/lib/portal-accounts.functions");
+      const res = await deletePortalAccount({
+        data: { kind: "driver", recordId: row.id, schoolId: row.school_id },
+      });
+      if (!res.ok) throw new Error(res.error);
     },
-    onSuccess: () => { toast.success("Driver deleted"); invalidate(); },
+    onSuccess: () => { toast.success("Driver deleted. Login access revoked."); invalidate(); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  const restore = useMutation({
+    mutationFn: async (row: DriverListRow) => {
+      const { restorePortalAccount } = await import("@/lib/portal-accounts.functions");
+      const res = await restorePortalAccount({
+        data: { kind: "driver", recordId: row.id, schoolId: row.school_id },
+      });
+      if (!res.ok) throw new Error(res.error);
+    },
+    onSuccess: () => { toast.success("Driver restored"); invalidate(); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
