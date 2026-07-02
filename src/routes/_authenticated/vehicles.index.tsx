@@ -484,10 +484,13 @@ function VehiclesPage() {
                   <TableRow>
                     <TableHead>Vehicle</TableHead>
                     <TableHead>Type</TableHead>
-                    <TableHead>Occupancy</TableHead>
+                    <TableHead>Assigned driver</TableHead>
+                    <TableHead>Assigned route</TableHead>
+                    <TableHead>Today's trip</TableHead>
+                    <TableHead>Students</TableHead>
+                    <TableHead>Availability</TableHead>
                     <TableHead>Insurance</TableHead>
                     <TableHead>Fitness</TableHead>
-                    <TableHead>Pollution</TableHead>
                     {isSuper && <TableHead>School</TableHead>}
                     <TableHead>Status</TableHead>
                     <TableHead className="w-12" />
@@ -498,7 +501,8 @@ function VehiclesPage() {
                     const m = v.metadata ?? {};
                     const ins = expiryStatus(v.insurance_expiry);
                     const fit = expiryStatus(v.fitness_expiry);
-                    const pol = expiryStatus(m.pollution_expiry);
+                    const a = assignments?.get(v.id);
+                    const availability = vehicleAvailability(v.status, a);
                     return (
                       <TableRow key={v.id}>
                         <TableCell>
@@ -514,23 +518,51 @@ function VehiclesPage() {
                           <div className="text-xs text-muted-foreground">{[m.brand, v.model].filter(Boolean).join(" ")}</div>
                         </TableCell>
                         <TableCell className="text-sm">
+                          {a?.driver ? (
+                            <Link to="/drivers/$driverId" params={{ driverId: a.driver.id }} className="hover:underline">
+                              {a.driver.full_name}
+                            </Link>
+                          ) : (
+                            <span className="text-muted-foreground">No driver assigned</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {a?.route ? (
+                            <Link to="/routes/$routeId" params={{ routeId: a.route.id }} className="hover:underline">
+                              {a.route.name}
+                              {a.route.route_code && <div className="text-xs text-muted-foreground">{a.route.route_code}</div>}
+                            </Link>
+                          ) : (
+                            <span className="text-muted-foreground">No route assigned</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {a?.todayTrip ? (
+                            <Link to="/trips/$tripId" params={{ tripId: a.todayTrip.id }} className="hover:underline">
+                              <div>{a.todayTrip.name ?? a.todayTrip.trip_code ?? "Trip"}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {a.todayTrip.expected_start_time ?? "—"} · {a.todayTrip.status.replace("_", " ")}
+                              </div>
+                            </Link>
+                          ) : (
+                            <span className="text-muted-foreground">No active trip</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">
                           {(() => {
                             const occ = occupancy?.get(v.id);
                             const cap = v.capacity ?? 0;
                             const used = occ?.occupied ?? 0;
-                            const avail = occ ? occ.available : Math.max(cap - used, 0);
-                            const full = occ ? occ.available <= 0 : false;
+                            const pct = cap > 0 ? Math.round((used / cap) * 100) : 0;
                             return (
                               <div>
-                                <div>Capacity: <span className="font-medium">{cap}</span></div>
-                                <div className="text-xs text-muted-foreground">
-                                  {occ ? <>Occupied: {used} · Available: {avail}</> : "Occupancy — select a school"}
-                                </div>
-                                {full && <Badge variant="destructive" className="mt-1">Full</Badge>}
+                                <div className="font-medium">{occ ? `${used} / ${cap}` : `— / ${cap}`}</div>
+                                <div className="text-xs text-muted-foreground">{occ ? `${pct}% utilised` : "select a school"}</div>
                               </div>
                             );
                           })()}
                         </TableCell>
+                        <TableCell><AvailabilityBadge availability={availability} /></TableCell>
                         <TableCell>
                           <div className="text-xs">{v.insurance_expiry ?? "—"}</div>
                           <ExpiryBadge status={ins} />
@@ -539,13 +571,10 @@ function VehiclesPage() {
                           <div className="text-xs">{v.fitness_expiry ?? "—"}</div>
                           <ExpiryBadge status={fit} />
                         </TableCell>
-                        <TableCell>
-                          <div className="text-xs">{m.pollution_expiry ?? "—"}</div>
-                          <ExpiryBadge status={pol} />
-                        </TableCell>
                         {isSuper && <TableCell className="text-sm">{v.schools?.name ?? "—"}</TableCell>}
                         <TableCell>
                           <StatusBadge status={v.status} />
+
                         </TableCell>
                         <TableCell>
                           <DropdownMenu>
