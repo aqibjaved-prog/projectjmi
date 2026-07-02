@@ -25,8 +25,12 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   MoreHorizontal, Plus, ChevronLeft, ChevronRight, Eye, Pencil, Power, Trash2,
-  Upload, Download, IdCard, CheckCircle2, XCircle, AlertTriangle,
+  Upload, Download, IdCard, CheckCircle2, XCircle, AlertTriangle, RotateCcw,
 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
@@ -44,10 +48,10 @@ export const Route = createFileRoute("/_authenticated/drivers/")({
 });
 
 const PAGE_SIZE = 10;
-type StatusFilter = "all" | "active" | "inactive";
+type StatusFilter = "all" | "active" | "inactive" | "deleted";
 type LicenseFilter = "all" | "valid" | "expiring" | "expired" | "unknown";
 
-type DriverListRow = DriverRow & { schools?: { id: string; name: string } | null };
+type DriverListRow = DriverRow & { schools?: { id: string; name: string } | null; deleted_at?: string | null };
 
 function DriversPage() {
   const { primaryRole, schoolId } = useAuth();
@@ -60,6 +64,7 @@ function DriversPage() {
   const [licenseFilter, setLicenseFilter] = useState<LicenseFilter>("all");
   const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<DriverListRow | null>(null);
 
   const isSuper = primaryRole === "super_admin";
   const canManage = primaryRole === "school_admin" || isSuper;
@@ -92,6 +97,9 @@ function DriversPage() {
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
     return (drivers ?? []).filter((row) => {
+      const isDeleted = !!row.deleted_at;
+      if (status === "deleted") { if (!isDeleted) return false; }
+      else if (isDeleted) return false;
       if (s) {
         const meta = row.metadata ?? {};
         const blob = `${row.full_name} ${row.phone ?? ""} ${row.license_number ?? ""} ${meta.email ?? ""}`.toLowerCase();
@@ -186,11 +194,26 @@ function DriversPage() {
   });
 
   const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("drivers").delete().eq("id", id);
-      if (error) throw error;
+    mutationFn: async (row: DriverListRow) => {
+      const { deletePortalAccount } = await import("@/lib/portal-accounts.functions");
+      const res = await deletePortalAccount({
+        data: { kind: "driver", recordId: row.id, schoolId: row.school_id },
+      });
+      if (!res.ok) throw new Error(res.error);
     },
-    onSuccess: () => { toast.success("Driver deleted"); invalidate(); },
+    onSuccess: () => { toast.success("Driver deleted. Login access revoked."); invalidate(); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
+  });
+
+  const restore = useMutation({
+    mutationFn: async (row: DriverListRow) => {
+      const { restorePortalAccount } = await import("@/lib/portal-accounts.functions");
+      const res = await restorePortalAccount({
+        data: { kind: "driver", recordId: row.id, schoolId: row.school_id },
+      });
+      if (!res.ok) throw new Error(res.error);
+    },
+    onSuccess: () => { toast.success("Driver restored"); invalidate(); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
@@ -411,6 +434,7 @@ function DriversPage() {
                 <SelectItem value="all">All statuses</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="deleted">Deleted</SelectItem>
               </SelectContent>
             </Select>
             <Select value={licenseFilter} onValueChange={(v: LicenseFilter) => { setLicenseFilter(v); setPage(1); }}>
@@ -489,9 +513,13 @@ function DriversPage() {
                         </TableCell>
                         {isSuper && <TableCell className="text-sm">{d.schools?.name ?? "—"}</TableCell>}
                         <TableCell>
-                          <Badge variant={d.is_active ? "default" : "secondary"}>
-                            {d.is_active ? "Active" : "Inactive"}
-                          </Badge>
+                          {d.deleted_at ? (
+                            <Badge variant="destructive">Deleted</Badge>
+                          ) : (
+                            <Badge variant={d.is_active ? "default" : "secondary"}>
+                              {d.is_active ? "Active" : "Inactive"}
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell>
                           <DropdownMenu>
@@ -499,26 +527,35 @@ function DriversPage() {
                               <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem asChild>
-                                <Link to="/drivers/$driverId" params={{ driverId: d.id }} search={{}}>
-                                  <Eye className="mr-2 h-4 w-4" /> View details
-                                </Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem asChild>
-                                <Link to="/drivers/$driverId" params={{ driverId: d.id }} search={{ edit: 1 }}>
-                                  <Pencil className="mr-2 h-4 w-4" /> Edit
-                                </Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => setActive.mutate({ id: d.id, is_active: !d.is_active })}>
-                                <Power className="mr-2 h-4 w-4" /> {d.is_active ? "Deactivate" : "Activate"}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onClick={() => { if (confirm(`Delete ${d.full_name}?`)) remove.mutate(d.id); }}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete
-                              </DropdownMenuItem>
+                              {!d.deleted_at && (
+                                <>
+                                  <DropdownMenuItem asChild>
+                                    <Link to="/drivers/$driverId" params={{ driverId: d.id }} search={{}}>
+                                      <Eye className="mr-2 h-4 w-4" /> View details
+                                    </Link>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem asChild>
+                                    <Link to="/drivers/$driverId" params={{ driverId: d.id }} search={{ edit: 1 }}>
+                                      <Pencil className="mr-2 h-4 w-4" /> Edit
+                                    </Link>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => setActive.mutate({ id: d.id, is_active: !d.is_active })}>
+                                    <Power className="mr-2 h-4 w-4" /> {d.is_active ? "Deactivate" : "Activate"}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-destructive"
+                                    onClick={() => setConfirmDelete(d)}
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {d.deleted_at && (
+                                <DropdownMenuItem onClick={() => restore.mutate(d)}>
+                                  <RotateCcw className="mr-2 h-4 w-4" /> Restore driver
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -543,6 +580,32 @@ function DriversPage() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Driver</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will also disable the driver's login account. {confirmDelete?.full_name} will
+              immediately lose access to the Driver Portal and any active sessions will be revoked.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (confirmDelete) {
+                  remove.mutate(confirmDelete);
+                  setConfirmDelete(null);
+                }
+              }}
+            >
+              Delete Driver
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

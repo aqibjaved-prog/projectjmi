@@ -18,6 +18,8 @@ export type Database = {
         Row: {
           assigned_vehicle_id: string | null
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           full_name: string
           id: string
           is_active: boolean
@@ -32,6 +34,8 @@ export type Database = {
         Insert: {
           assigned_vehicle_id?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           full_name: string
           id?: string
           is_active?: boolean
@@ -46,6 +50,8 @@ export type Database = {
         Update: {
           assigned_vehicle_id?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           full_name?: string
           id?: string
           is_active?: boolean

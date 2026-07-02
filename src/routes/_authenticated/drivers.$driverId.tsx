@@ -7,6 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Pencil, Power, Trash2, User } from "lucide-react";
 import { toast } from "sonner";
@@ -31,6 +35,7 @@ function DriverDetailPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [editOpen, setEditOpen] = useState(!!search.edit);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   useEffect(() => { setEditOpen(!!search.edit); }, [search.edit]);
 
@@ -143,11 +148,15 @@ function DriverDetailPage() {
 
   const remove = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("drivers").delete().eq("id", driverId);
-      if (error) throw error;
+      if (!driver) throw new Error("Driver not loaded");
+      const { deletePortalAccount } = await import("@/lib/portal-accounts.functions");
+      const res = await deletePortalAccount({
+        data: { kind: "driver", recordId: driver.id, schoolId: driver.school_id },
+      });
+      if (!res.ok) throw new Error(res.error);
     },
     onSuccess: () => {
-      toast.success("Driver deleted");
+      toast.success("Driver deleted. Login access revoked.");
       invalidate();
       navigate({ to: "/drivers" });
     },
@@ -179,7 +188,7 @@ function DriverDetailPage() {
             <Button onClick={() => setEditOpen(true)}><Pencil className="mr-2 h-4 w-4" /> Edit</Button>
             <Button
               variant="destructive"
-              onClick={() => { if (confirm(`Delete ${driver.full_name}?`)) remove.mutate(); }}
+              onClick={() => setConfirmDeleteOpen(true)}
             >
               <Trash2 className="mr-2 h-4 w-4" /> Delete
             </Button>
@@ -292,6 +301,27 @@ function DriverDetailPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Driver</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will also disable the driver's login account. {driver.full_name} will
+              immediately lose access to the Driver Portal and any active sessions will be revoked.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { setConfirmDeleteOpen(false); remove.mutate(); }}
+            >
+              Delete Driver
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
