@@ -35,12 +35,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<UserRoleRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadRoles = async (uid: string) => {
-    const { data } = await supabase
+  const loadRoles = async (uid: string, email?: string | null) => {
+    const { data, error } = await supabase
       .from("user_roles")
       .select("role, school_id")
       .eq("user_id", uid);
-    setRoles((data as UserRoleRow[]) ?? []);
+    const rows = (data as UserRoleRow[]) ?? [];
+    setRoles(rows);
+    if (import.meta.env.DEV) {
+      const primary = pickPrimary(rows);
+      const target = primary
+        ? { super_admin: "/dashboard", school_admin: "/dashboard", driver: "/driver/dashboard", parent: "/parent/dashboard" }[primary]
+        : "(no role)";
+      // eslint-disable-next-line no-console
+      console.info("[auth] role lookup", {
+        user_id: uid,
+        email: email ?? null,
+        matched_table: rows.length ? "public.user_roles" : "none",
+        roles: rows,
+        primary_role: primary,
+        school_id: rows.find((r) => r.role === primary)?.school_id ?? null,
+        redirect_target: target,
+        error: error?.message ?? null,
+      });
+    }
   };
 
   useEffect(() => {
