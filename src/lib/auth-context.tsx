@@ -88,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshRoles = async () => {
-    if (user) await loadRoles(user.id);
+    if (user) await loadRoles(user.id, user.email);
   };
 
   const primaryRole = pickPrimary(roles);
