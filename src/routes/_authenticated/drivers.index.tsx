@@ -64,6 +64,7 @@ function DriversPage() {
   const [licenseFilter, setLicenseFilter] = useState<LicenseFilter>("all");
   const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<DriverListRow | null>(null);
 
   const isSuper = primaryRole === "super_admin";
   const canManage = primaryRole === "school_admin" || isSuper;
