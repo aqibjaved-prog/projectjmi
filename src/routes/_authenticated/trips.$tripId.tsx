@@ -346,8 +346,9 @@ function TripDetailPage() {
         </TabsContent>
 
         <TabsContent value="stops">
-          <StopTable trip={trip} canManage={canManage} onArrive={(id) => markStop.mutate({ stopId: id, action: "arrive" })} onDepart={(id) => markStop.mutate({ stopId: id, action: "depart" })} onCounts={(id, boarded, missing) => markStop.mutate({ stopId: id, action: "depart", boarded, missing })} />
+          <StopTable trip={trip} canManage={false} onArrive={() => {}} onDepart={() => {}} onCounts={() => {}} />
         </TabsContent>
+
 
         <TabsContent value="timeline">
           <Card>
