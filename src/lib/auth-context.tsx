@@ -40,7 +40,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .from("user_roles")
       .select("role, school_id")
       .eq("user_id", uid);
-    setRoles((data as UserRoleRow[]) ?? []);
+    const roleRows = (data as UserRoleRow[]) ?? [];
+
+    // Enforce driver account lifecycle: block disabled or soft-deleted drivers.
+    if (roleRows.some((r) => r.role === "driver")) {
+      const { data: drv } = await supabase
+        .from("drivers")
+        .select("id, is_active, deleted_at")
+        .eq("user_id", uid)
+        .maybeSingle();
+      const blocked = !drv || drv.deleted_at != null || drv.is_active === false;
+      if (blocked) {
+        await supabase.auth.signOut();
+        setRoles([]);
+        setSession(null);
+        setUser(null);
+        const { toast } = await import("sonner");
+        toast.error("Your account has been disabled. Please contact your school administrator.");
+        return;
+      }
+    }
+
+    setRoles(roleRows);
   };
 
   useEffect(() => {
