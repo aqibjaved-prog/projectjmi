@@ -48,10 +48,10 @@ export const Route = createFileRoute("/_authenticated/drivers/")({
 });
 
 const PAGE_SIZE = 10;
-type StatusFilter = "all" | "active" | "inactive";
+type StatusFilter = "all" | "active" | "inactive" | "deleted";
 type LicenseFilter = "all" | "valid" | "expiring" | "expired" | "unknown";
 
-type DriverListRow = DriverRow & { schools?: { id: string; name: string } | null };
+type DriverListRow = DriverRow & { schools?: { id: string; name: string } | null; deleted_at?: string | null };
 
 function DriversPage() {
   const { primaryRole, schoolId } = useAuth();
