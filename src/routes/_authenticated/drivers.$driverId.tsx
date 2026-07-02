@@ -301,6 +301,27 @@ function DriverDetailPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Driver</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will also disable the driver's login account. {driver.full_name} will
+              immediately lose access to the Driver Portal and any active sessions will be revoked.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { setConfirmDeleteOpen(false); remove.mutate(); }}
+            >
+              Delete Driver
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
