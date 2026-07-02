@@ -513,9 +513,13 @@ function DriversPage() {
                         </TableCell>
                         {isSuper && <TableCell className="text-sm">{d.schools?.name ?? "—"}</TableCell>}
                         <TableCell>
-                          <Badge variant={d.is_active ? "default" : "secondary"}>
-                            {d.is_active ? "Active" : "Inactive"}
-                          </Badge>
+                          {d.deleted_at ? (
+                            <Badge variant="destructive">Deleted</Badge>
+                          ) : (
+                            <Badge variant={d.is_active ? "default" : "secondary"}>
+                              {d.is_active ? "Active" : "Inactive"}
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell>
                           <DropdownMenu>
@@ -523,26 +527,35 @@ function DriversPage() {
                               <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem asChild>
-                                <Link to="/drivers/$driverId" params={{ driverId: d.id }} search={{}}>
-                                  <Eye className="mr-2 h-4 w-4" /> View details
-                                </Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem asChild>
-                                <Link to="/drivers/$driverId" params={{ driverId: d.id }} search={{ edit: 1 }}>
-                                  <Pencil className="mr-2 h-4 w-4" /> Edit
-                                </Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => setActive.mutate({ id: d.id, is_active: !d.is_active })}>
-                                <Power className="mr-2 h-4 w-4" /> {d.is_active ? "Deactivate" : "Activate"}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onClick={() => { if (confirm(`Delete ${d.full_name}?`)) remove.mutate(d.id); }}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete
-                              </DropdownMenuItem>
+                              {!d.deleted_at && (
+                                <>
+                                  <DropdownMenuItem asChild>
+                                    <Link to="/drivers/$driverId" params={{ driverId: d.id }} search={{}}>
+                                      <Eye className="mr-2 h-4 w-4" /> View details
+                                    </Link>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem asChild>
+                                    <Link to="/drivers/$driverId" params={{ driverId: d.id }} search={{ edit: 1 }}>
+                                      <Pencil className="mr-2 h-4 w-4" /> Edit
+                                    </Link>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => setActive.mutate({ id: d.id, is_active: !d.is_active })}>
+                                    <Power className="mr-2 h-4 w-4" /> {d.is_active ? "Deactivate" : "Activate"}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-destructive"
+                                    onClick={() => setConfirmDelete(d)}
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {d.deleted_at && (
+                                <DropdownMenuItem onClick={() => restore.mutate(d)}>
+                                  <RotateCcw className="mr-2 h-4 w-4" /> Restore driver
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
