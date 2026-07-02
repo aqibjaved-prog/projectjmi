@@ -658,6 +658,14 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge variant={variant}>{vehicleStatusLabel(status)}</Badge>;
 }
 
+function AvailabilityBadge({ availability }: { availability: VehicleAvailability }) {
+  const variant =
+    availability === "available" ? "default" :
+    availability === "in_use" ? "secondary" :
+    availability === "maintenance" ? "outline" : "outline";
+  return <Badge variant={variant}>{vehicleAvailabilityLabel(availability)}</Badge>;
+}
+
 function triggerDownload(href: string, filename: string) {
   const a = document.createElement("a");
   a.href = href;
