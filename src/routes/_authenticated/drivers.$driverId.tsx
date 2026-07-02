@@ -143,11 +143,15 @@ function DriverDetailPage() {
 
   const remove = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("drivers").delete().eq("id", driverId);
-      if (error) throw error;
+      if (!driver) throw new Error("Driver not loaded");
+      const { deletePortalAccount } = await import("@/lib/portal-accounts.functions");
+      const res = await deletePortalAccount({
+        data: { kind: "driver", recordId: driver.id, schoolId: driver.school_id },
+      });
+      if (!res.ok) throw new Error(res.error);
     },
     onSuccess: () => {
-      toast.success("Driver deleted");
+      toast.success("Driver deleted. Login access revoked.");
       invalidate();
       navigate({ to: "/drivers" });
     },
