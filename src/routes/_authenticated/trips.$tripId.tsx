@@ -28,6 +28,7 @@ import {
   normalizeTrip, tripStatusLabel, tripTypeLabel, tripFormToPayload, delayMinutes, delayLabel,
   type TripRow, type TripStopProgress, type TripFormValues, type TripLiveLocation,
 } from "@/lib/trips";
+import { assertVehicleAvailableForTrip } from "@/lib/vehicles";
 import { TripForm } from "@/components/trips/trip-form";
 import { isGoogleMapsConfigured, loadGoogleMaps } from "@/lib/google-maps-loader";
 
@@ -126,6 +127,7 @@ function TripDetailPage() {
   const startTrip = useMutation({
     mutationFn: async () => {
       if (!trip) throw new Error("Trip not loaded");
+      await assertVehicleAvailableForTrip(trip.vehicle_id, trip.id);
       const snapshot = {
         route_name: trip.routes?.name ?? null,
         driver_name: trip.drivers?.full_name ?? null,

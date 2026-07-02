@@ -36,8 +36,10 @@ import { VehicleForm } from "@/components/vehicles/vehicle-form";
 import {
   splitVehiclePayload, uploadVehiclePhoto, expiryStatus, expiryLabel,
   vehicleTypeLabel, vehicleStatusLabel, fuelTypeLabel, fetchVehicleOccupancy,
+  fetchVehicleAssignments, vehicleAvailability, vehicleAvailabilityLabel,
   VEHICLE_TYPES, VEHICLE_STATUSES, FUEL_TYPES,
   type VehicleFormValues, type VehicleRow, type VehicleType, type VehicleStatus, type FuelType,
+  type VehicleAvailability,
 } from "@/lib/vehicles";
 import { fetchPlanUsage, planLimitMessage, preflightCheck } from "@/lib/plan-limits";
 import { PlanUsageCard } from "@/components/plan-usage-card";
@@ -105,6 +107,13 @@ function VehiclesPage() {
     queryFn: () => fetchVehicleOccupancy(occupancyScope),
   });
 
+  const { data: assignments } = useQuery({
+    enabled: !!occupancyScope,
+    queryKey: ["vehicle-assignments", occupancyScope],
+    queryFn: () => fetchVehicleAssignments(occupancyScope),
+    refetchInterval: 20_000,
+  });
+
   const { data: planUsage } = useQuery({
     enabled: !!occupancyScope,
     queryKey: ["plan-usage", occupancyScope],
@@ -168,6 +177,8 @@ function VehiclesPage() {
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["vehicles-list"] });
+    qc.invalidateQueries({ queryKey: ["vehicle-assignments"] });
+    qc.invalidateQueries({ queryKey: ["vehicle-occupancy"] });
     qc.invalidateQueries({ queryKey: ["school-stats"] });
     qc.invalidateQueries({ queryKey: ["platform-stats"] });
   };
@@ -473,10 +484,13 @@ function VehiclesPage() {
                   <TableRow>
                     <TableHead>Vehicle</TableHead>
                     <TableHead>Type</TableHead>
-                    <TableHead>Occupancy</TableHead>
+                    <TableHead>Assigned driver</TableHead>
+                    <TableHead>Assigned route</TableHead>
+                    <TableHead>Today's trip</TableHead>
+                    <TableHead>Students</TableHead>
+                    <TableHead>Availability</TableHead>
                     <TableHead>Insurance</TableHead>
                     <TableHead>Fitness</TableHead>
-                    <TableHead>Pollution</TableHead>
                     {isSuper && <TableHead>School</TableHead>}
                     <TableHead>Status</TableHead>
                     <TableHead className="w-12" />
@@ -487,7 +501,8 @@ function VehiclesPage() {
                     const m = v.metadata ?? {};
                     const ins = expiryStatus(v.insurance_expiry);
                     const fit = expiryStatus(v.fitness_expiry);
-                    const pol = expiryStatus(m.pollution_expiry);
+                    const a = assignments?.get(v.id);
+                    const availability = vehicleAvailability(v.status, a);
                     return (
                       <TableRow key={v.id}>
                         <TableCell>
@@ -503,23 +518,51 @@ function VehiclesPage() {
                           <div className="text-xs text-muted-foreground">{[m.brand, v.model].filter(Boolean).join(" ")}</div>
                         </TableCell>
                         <TableCell className="text-sm">
+                          {a?.driver ? (
+                            <Link to="/drivers/$driverId" params={{ driverId: a.driver.id }} className="hover:underline">
+                              {a.driver.full_name}
+                            </Link>
+                          ) : (
+                            <span className="text-muted-foreground">No driver assigned</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {a?.route ? (
+                            <Link to="/routes/$routeId" params={{ routeId: a.route.id }} className="hover:underline">
+                              {a.route.name}
+                              {a.route.route_code && <div className="text-xs text-muted-foreground">{a.route.route_code}</div>}
+                            </Link>
+                          ) : (
+                            <span className="text-muted-foreground">No route assigned</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {a?.todayTrip ? (
+                            <Link to="/trips/$tripId" params={{ tripId: a.todayTrip.id }} className="hover:underline">
+                              <div>{a.todayTrip.name ?? a.todayTrip.trip_code ?? "Trip"}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {a.todayTrip.expected_start_time ?? "—"} · {a.todayTrip.status.replace("_", " ")}
+                              </div>
+                            </Link>
+                          ) : (
+                            <span className="text-muted-foreground">No active trip</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">
                           {(() => {
                             const occ = occupancy?.get(v.id);
                             const cap = v.capacity ?? 0;
                             const used = occ?.occupied ?? 0;
-                            const avail = occ ? occ.available : Math.max(cap - used, 0);
-                            const full = occ ? occ.available <= 0 : false;
+                            const pct = cap > 0 ? Math.round((used / cap) * 100) : 0;
                             return (
                               <div>
-                                <div>Capacity: <span className="font-medium">{cap}</span></div>
-                                <div className="text-xs text-muted-foreground">
-                                  {occ ? <>Occupied: {used} · Available: {avail}</> : "Occupancy — select a school"}
-                                </div>
-                                {full && <Badge variant="destructive" className="mt-1">Full</Badge>}
+                                <div className="font-medium">{occ ? `${used} / ${cap}` : `— / ${cap}`}</div>
+                                <div className="text-xs text-muted-foreground">{occ ? `${pct}% utilised` : "select a school"}</div>
                               </div>
                             );
                           })()}
                         </TableCell>
+                        <TableCell><AvailabilityBadge availability={availability} /></TableCell>
                         <TableCell>
                           <div className="text-xs">{v.insurance_expiry ?? "—"}</div>
                           <ExpiryBadge status={ins} />
@@ -528,13 +571,10 @@ function VehiclesPage() {
                           <div className="text-xs">{v.fitness_expiry ?? "—"}</div>
                           <ExpiryBadge status={fit} />
                         </TableCell>
-                        <TableCell>
-                          <div className="text-xs">{m.pollution_expiry ?? "—"}</div>
-                          <ExpiryBadge status={pol} />
-                        </TableCell>
                         {isSuper && <TableCell className="text-sm">{v.schools?.name ?? "—"}</TableCell>}
                         <TableCell>
                           <StatusBadge status={v.status} />
+
                         </TableCell>
                         <TableCell>
                           <DropdownMenu>
@@ -616,6 +656,14 @@ function ExpiryBadge({ status }: { status: ReturnType<typeof expiryStatus> }) {
 function StatusBadge({ status }: { status: string }) {
   const variant = status === "active" ? "default" : status === "maintenance" ? "secondary" : "outline";
   return <Badge variant={variant}>{vehicleStatusLabel(status)}</Badge>;
+}
+
+function AvailabilityBadge({ availability }: { availability: VehicleAvailability }) {
+  const variant =
+    availability === "available" ? "default" :
+    availability === "in_use" ? "secondary" :
+    availability === "maintenance" ? "outline" : "outline";
+  return <Badge variant={variant}>{vehicleAvailabilityLabel(availability)}</Badge>;
 }
 
 function triggerDownload(href: string, filename: string) {

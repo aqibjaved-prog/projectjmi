@@ -9,6 +9,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useDriverTrips, patchDriverTrip } from "@/lib/driver-portal";
 import { tripStatusLabel, tripTypeLabel, makeEvent, type TripRow } from "@/lib/trips";
+import { assertVehicleAvailableForTrip } from "@/lib/vehicles";
 import { CheckCircle2, Pause, Play, Square, Timer } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/driver/today")({
@@ -27,6 +28,7 @@ function TodayPage() {
 
   const start = useMutation({
     mutationFn: async (trip: TripRow) => {
+      await assertVehicleAvailableForTrip(trip.vehicle_id, trip.id);
       const timeline = [...trip.timeline, makeEvent("trip.started", "Driver started the trip")];
       const snapshot = {
         ...(trip.snapshot ?? {}),

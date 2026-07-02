@@ -9,13 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Pencil, Trash2, Power, Wrench, Bus } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, Power, Wrench, Bus, User, Route as RouteIcon, MapPin, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { VehicleForm } from "@/components/vehicles/vehicle-form";
 import {
   vehicleToFormDefaults, splitVehiclePayload, mergeMetadata, uploadVehiclePhoto,
   getVehiclePhotoUrl, expiryStatus, expiryLabel,
   vehicleTypeLabel, vehicleStatusLabel, fuelTypeLabel, fetchVehicleOccupancy,
+  fetchVehicleAssignments, vehicleAvailability, vehicleAvailabilityLabel,
   type VehicleFormValues, type VehicleRow, type VehicleStatus,
 } from "@/lib/vehicles";
 
@@ -57,6 +58,14 @@ function VehicleDetailPage() {
   });
   const occ = vehicle ? occupancy?.get(vehicle.id) : undefined;
 
+  const { data: assignments } = useQuery({
+    enabled: !!vehicle?.school_id,
+    queryKey: ["vehicle-assignments", vehicle?.school_id],
+    queryFn: () => fetchVehicleAssignments(vehicle?.school_id),
+    refetchInterval: 15_000,
+  });
+  const assignment = vehicle ? assignments?.get(vehicle.id) : undefined;
+
   const { data: photoUrl } = useQuery({
     enabled: !!vehicle?.metadata?.photo_path,
     queryKey: ["vehicle-photo", vehicleId, vehicle?.metadata?.photo_path],
@@ -66,6 +75,8 @@ function VehicleDetailPage() {
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["vehicle", vehicleId] });
     qc.invalidateQueries({ queryKey: ["vehicles-list"] });
+    qc.invalidateQueries({ queryKey: ["vehicle-assignments"] });
+    qc.invalidateQueries({ queryKey: ["vehicle-occupancy"] });
   };
 
   const update = useMutation({
@@ -186,6 +197,89 @@ function VehicleDetailPage() {
             </div>
           </CardContent>
         </Card>
+
+        <Card className="lg:col-span-3">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Assignments</CardTitle>
+            <Badge variant={vehicleAvailability(vehicle.status, assignment) === "in_use" ? "secondary" : "default"}>
+              {vehicleAvailabilityLabel(vehicleAvailability(vehicle.status, assignment))}
+            </Badge>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <div className="mb-1 flex items-center gap-1 text-xs uppercase tracking-wide text-muted-foreground"><User className="h-3.5 w-3.5" /> Assigned driver</div>
+                {assignment?.driver ? (
+                  <>
+                    <div className="text-sm font-medium">{assignment.driver.full_name}</div>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Phone className="h-3 w-3" /> {assignment.driver.phone ?? "—"}
+                    </div>
+                    <Button size="sm" variant="outline" className="mt-2" asChild>
+                      <Link to="/drivers/$driverId" params={{ driverId: assignment.driver.id }}>View driver</Link>
+                    </Button>
+                  </>
+                ) : (
+                  <div className="text-sm text-muted-foreground">No driver assigned</div>
+                )}
+              </div>
+              <div>
+                <div className="mb-1 flex items-center gap-1 text-xs uppercase tracking-wide text-muted-foreground"><RouteIcon className="h-3.5 w-3.5" /> Assigned route</div>
+                {assignment?.route ? (
+                  <>
+                    <div className="text-sm font-medium">{assignment.route.name}</div>
+                    <div className="text-xs text-muted-foreground">{assignment.route.route_code ?? "—"}</div>
+                    <Button size="sm" variant="outline" className="mt-2" asChild>
+                      <Link to="/routes/$routeId" params={{ routeId: assignment.route.id }}>View route</Link>
+                    </Button>
+                  </>
+                ) : (
+                  <div className="text-sm text-muted-foreground">No route assigned</div>
+                )}
+              </div>
+              <div>
+                <div className="mb-1 flex items-center gap-1 text-xs uppercase tracking-wide text-muted-foreground"><MapPin className="h-3.5 w-3.5" /> Active trip</div>
+                {assignment?.todayTrip ? (
+                  <>
+                    <div className="text-sm font-medium">{assignment.todayTrip.name ?? assignment.todayTrip.trip_code ?? "Trip"}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {assignment.todayTrip.trip_type} · {assignment.todayTrip.expected_start_time ?? "—"} → {assignment.todayTrip.expected_end_time ?? "—"}
+                    </div>
+                    <div className="text-xs"><Badge variant="outline" className="mt-1">{assignment.todayTrip.status.replace("_", " ")}</Badge></div>
+                    <Button size="sm" variant="outline" className="mt-2" asChild>
+                      <Link to="/trips/$tripId" params={{ tripId: assignment.todayTrip.id }}>View trip</Link>
+                    </Button>
+                  </>
+                ) : (
+                  <div className="text-sm text-muted-foreground">No active trip</div>
+                )}
+              </div>
+              <div>
+                <div className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">Students &amp; capacity</div>
+                {(() => {
+                  const cap = vehicle.capacity ?? 0;
+                  const used = occ?.occupied ?? 0;
+                  const pct = cap > 0 ? Math.round((used / cap) * 100) : 0;
+                  return (
+                    <>
+                      <div className="text-sm font-medium">{occ ? `${used} / ${cap} students` : `— / ${cap}`}</div>
+                      <div className="text-xs text-muted-foreground">Utilisation: {occ ? `${pct}%` : "—"}</div>
+                      {occ && cap > 0 && (
+                        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
+                          <div
+                            className={`h-full ${pct >= 100 ? "bg-destructive" : pct >= 80 ? "bg-amber-500" : "bg-primary"}`}
+                            style={{ width: `${Math.min(pct, 100)}%` }}
+                          />
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
 
         <Card>
           <CardHeader><CardTitle>Identifiers</CardTitle></CardHeader>
