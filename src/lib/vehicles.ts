@@ -263,3 +263,143 @@ export function isCapacityError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err ?? "");
   return msg.toLowerCase().includes("maximum seating capacity");
 }
+
+/* -------------------- Assignments (driver / route / trips) -------------------- */
+
+export interface VehicleAssignmentRow {
+  route: { id: string; name: string; route_code: string | null; driver_id: string | null } | null;
+  driver: { id: string; full_name: string; phone: string | null } | null;
+  todayTrip: {
+    id: string;
+    trip_code: string | null;
+    name: string | null;
+    status: string;
+    trip_type: string;
+    expected_start_time: string | null;
+    expected_end_time: string | null;
+    driver_id: string | null;
+  } | null;
+  activeTripId: string | null;
+}
+
+/**
+ * Resolves each vehicle's assigned route + driver (via routes.vehicle_id) and
+ * today's / currently-active trip (via trips.vehicle_id). Returns a map keyed
+ * by vehicle_id. RLS is preserved — only vehicles the caller can already read
+ * are considered.
+ */
+export async function fetchVehicleAssignments(
+  schoolId: string | null | undefined,
+): Promise<Map<string, VehicleAssignmentRow>> {
+  const map = new Map<string, VehicleAssignmentRow>();
+  if (!schoolId) return map;
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  const [routesRes, tripsRes] = await Promise.all([
+    supabase
+      .from("routes")
+      .select("id,name,route_code,vehicle_id,driver_id,drivers:driver_id(id,full_name,phone)")
+      .eq("school_id", schoolId)
+      .not("vehicle_id", "is", null),
+    supabase
+      .from("trips" as never)
+      .select("id,trip_code,name,status,trip_type,trip_date,expected_start_time,expected_end_time,vehicle_id,driver_id,drivers:driver_id(id,full_name,phone)")
+      .eq("school_id", schoolId)
+      .not("vehicle_id", "is", null)
+      .or(`trip_date.eq.${today},status.in.(in_progress,paused)`)
+      .order("expected_start_time", { ascending: true }),
+  ]);
+
+  const routes = (routesRes.data ?? []) as any[];
+  const trips = (tripsRes.data ?? []) as any[];
+
+  for (const r of routes) {
+    if (!r.vehicle_id) continue;
+    const existing = map.get(r.vehicle_id) ?? emptyAssignment();
+    existing.route = { id: r.id, name: r.name, route_code: r.route_code, driver_id: r.driver_id ?? null };
+    if (r.drivers) {
+      existing.driver = { id: r.drivers.id, full_name: r.drivers.full_name, phone: r.drivers.phone ?? null };
+    }
+    map.set(r.vehicle_id, existing);
+  }
+
+  for (const t of trips) {
+    if (!t.vehicle_id) continue;
+    const existing = map.get(t.vehicle_id) ?? emptyAssignment();
+    const isActive = t.status === "in_progress" || t.status === "paused";
+    if (isActive && !existing.activeTripId) existing.activeTripId = t.id;
+    if (t.trip_date === today && !existing.todayTrip) {
+      existing.todayTrip = {
+        id: t.id,
+        trip_code: t.trip_code,
+        name: t.name,
+        status: t.status,
+        trip_type: t.trip_type,
+        expected_start_time: t.expected_start_time,
+        expected_end_time: t.expected_end_time,
+        driver_id: t.driver_id,
+      };
+    }
+    // Prefer the trip's driver if the route has none.
+    if (!existing.driver && t.drivers) {
+      existing.driver = { id: t.drivers.id, full_name: t.drivers.full_name, phone: t.drivers.phone ?? null };
+    }
+    map.set(t.vehicle_id, existing);
+  }
+
+  return map;
+}
+
+function emptyAssignment(): VehicleAssignmentRow {
+  return { route: null, driver: null, todayTrip: null, activeTripId: null };
+}
+
+/**
+ * Availability label derived from vehicle status + current assignments.
+ * "in_use" wins over "available" when an active trip exists.
+ */
+export type VehicleAvailability = "available" | "in_use" | "maintenance" | "inactive";
+
+export function vehicleAvailability(
+  status: string | null | undefined,
+  assignment: VehicleAssignmentRow | undefined,
+): VehicleAvailability {
+  if (status === "maintenance") return "maintenance";
+  if (status === "inactive") return "inactive";
+  if (assignment?.activeTripId) return "in_use";
+  return "available";
+}
+
+export function vehicleAvailabilityLabel(a: VehicleAvailability): string {
+  switch (a) {
+    case "available": return "Available";
+    case "in_use": return "In use";
+    case "maintenance": return "Under maintenance";
+    case "inactive": return "Inactive";
+  }
+}
+
+/**
+ * Prevents double-booking a vehicle across concurrent active trips.
+ * Throws if another trip on the same vehicle is already in_progress or paused.
+ * Called from every trip-start site (school-admin Trips page + Driver Portal).
+ */
+export async function assertVehicleAvailableForTrip(
+  vehicleId: string | null | undefined,
+  excludeTripId?: string | null,
+): Promise<void> {
+  if (!vehicleId) return;
+  const { data, error } = await (supabase.from("trips" as never) as any)
+    .select("id,trip_code,name,status")
+    .eq("vehicle_id", vehicleId)
+    .in("status", ["in_progress", "paused"])
+    .limit(2);
+  if (error) throw error;
+  const conflict = ((data ?? []) as any[]).find((t) => t.id !== excludeTripId);
+  if (conflict) {
+    const label = conflict.trip_code ?? conflict.name ?? conflict.id.slice(0, 8);
+    throw new Error(`This vehicle is already on an active trip (${label}). End that trip before starting another.`);
+  }
+}
+
