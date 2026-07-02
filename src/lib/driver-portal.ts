@@ -57,6 +57,28 @@ const TRIP_SELECT = `
   vehicles:vehicle_id (id, registration_number, vehicle_code, capacity)
 `;
 
+/**
+ * Returns route ids currently assigned to this driver. Used so trip queries
+ * can also include trips linked via the route (when trips.driver_id is null
+ * but the school admin assigned the driver at the route level).
+ */
+async function fetchDriverRouteIds(driverId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("routes")
+    .select("id")
+    .eq("driver_id", driverId);
+  if (error) throw error;
+  return (data ?? []).map((r: any) => r.id as string);
+}
+
+/** OR filter matching trips assigned to the driver directly OR via their route. */
+function driverTripOrFilter(driverId: string, routeIds: string[]): string {
+  const routeClause = routeIds.length
+    ? `,and(driver_id.is.null,route_id.in.(${routeIds.join(",")}))`
+    : "";
+  return `driver_id.eq.${driverId}${routeClause}`;
+}
+
 /** All trips assigned to the signed-in driver on a given date (default: today). */
 export function useDriverTrips(dateISO?: string) {
   const { data: driver } = useMyDriver();
@@ -66,9 +88,10 @@ export function useDriverTrips(dateISO?: string) {
     queryKey: ["driver-portal", "trips", driver?.id, date],
     queryFn: async (): Promise<DriverTripRow[]> => {
       if (!driver) return [];
+      const routeIds = await fetchDriverRouteIds(driver.id);
       const { data, error } = await (supabase.from("trips") as any)
         .select(TRIP_SELECT)
-        .eq("driver_id", driver.id)
+        .or(driverTripOrFilter(driver.id, routeIds))
         .eq("trip_date", date)
         .order("expected_start_time", { ascending: true });
       if (error) throw error;
@@ -90,9 +113,10 @@ export function useDriverTripHistory(limit = 100) {
     queryKey: ["driver-portal", "history", driver?.id, limit],
     queryFn: async (): Promise<DriverTripRow[]> => {
       if (!driver) return [];
+      const routeIds = await fetchDriverRouteIds(driver.id);
       const { data, error } = await (supabase.from("trips") as any)
         .select(TRIP_SELECT)
-        .eq("driver_id", driver.id)
+        .or(driverTripOrFilter(driver.id, routeIds))
         .order("trip_date", { ascending: false })
         .limit(limit);
       if (error) throw error;
