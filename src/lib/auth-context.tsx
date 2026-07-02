@@ -70,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshRoles = async () => {
-    if (user) await loadRoles(user.id, user.email);
+    if (user) await loadRoles(user.id);
   };
 
   const primaryRole = pickPrimary(roles);
