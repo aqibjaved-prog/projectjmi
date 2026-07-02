@@ -107,6 +107,13 @@ function VehiclesPage() {
     queryFn: () => fetchVehicleOccupancy(occupancyScope),
   });
 
+  const { data: assignments } = useQuery({
+    enabled: !!occupancyScope,
+    queryKey: ["vehicle-assignments", occupancyScope],
+    queryFn: () => fetchVehicleAssignments(occupancyScope),
+    refetchInterval: 20_000,
+  });
+
   const { data: planUsage } = useQuery({
     enabled: !!occupancyScope,
     queryKey: ["plan-usage", occupancyScope],
