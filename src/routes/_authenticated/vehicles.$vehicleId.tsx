@@ -75,6 +75,8 @@ function VehicleDetailPage() {
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["vehicle", vehicleId] });
     qc.invalidateQueries({ queryKey: ["vehicles-list"] });
+    qc.invalidateQueries({ queryKey: ["vehicle-assignments"] });
+    qc.invalidateQueries({ queryKey: ["vehicle-occupancy"] });
   };
 
   const update = useMutation({
