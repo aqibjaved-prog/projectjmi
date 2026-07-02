@@ -36,8 +36,10 @@ import { VehicleForm } from "@/components/vehicles/vehicle-form";
 import {
   splitVehiclePayload, uploadVehiclePhoto, expiryStatus, expiryLabel,
   vehicleTypeLabel, vehicleStatusLabel, fuelTypeLabel, fetchVehicleOccupancy,
+  fetchVehicleAssignments, vehicleAvailability, vehicleAvailabilityLabel,
   VEHICLE_TYPES, VEHICLE_STATUSES, FUEL_TYPES,
   type VehicleFormValues, type VehicleRow, type VehicleType, type VehicleStatus, type FuelType,
+  type VehicleAvailability,
 } from "@/lib/vehicles";
 import { fetchPlanUsage, planLimitMessage, preflightCheck } from "@/lib/plan-limits";
 import { PlanUsageCard } from "@/components/plan-usage-card";
