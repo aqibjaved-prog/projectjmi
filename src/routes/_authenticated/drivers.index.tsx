@@ -96,6 +96,9 @@ function DriversPage() {
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
     return (drivers ?? []).filter((row) => {
+      const isDeleted = !!row.deleted_at;
+      if (status === "deleted") { if (!isDeleted) return false; }
+      else if (isDeleted) return false;
       if (s) {
         const meta = row.metadata ?? {};
         const blob = `${row.full_name} ${row.phone ?? ""} ${row.license_number ?? ""} ${meta.email ?? ""}`.toLowerCase();
