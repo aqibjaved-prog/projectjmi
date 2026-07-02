@@ -243,16 +243,8 @@ function TripDetailPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
-  // Auto-start dialog trigger
-  useEffect(() => {
-    if (search.start && trip && (trip.status === "scheduled" || trip.status === "ready")) {
-      if (confirm("Start this trip now? Student list, driver, vehicle and route will be locked.")) {
-        startTrip.mutate();
-      }
-      navigate({ to: "/trips/$tripId", params: { tripId }, search: {} });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search.start, trip?.id]);
+  // School admins are monitoring-only; trip lifecycle is controlled from the Driver Portal.
+
 
   if (isLoading) return <div className="space-y-4"><Skeleton className="h-12 w-72" /><Skeleton className="h-64" /></div>;
   if (!trip) return <EmptyState title="Trip not found" description="This trip may have been deleted or you don't have access." />;
@@ -269,33 +261,28 @@ function TripDetailPage() {
         actions={
           <div className="flex flex-wrap gap-2">
             <Button variant="ghost" asChild><Link to="/trips"><ArrowLeft className="mr-2 h-4 w-4" /> Back</Link></Button>
-            {canManage && trip.status === "scheduled" && (
-              <Button variant="outline" onClick={() => setEditOpen(true)}><Pencil className="mr-2 h-4 w-4" /> Edit</Button>
-            )}
-            {canManage && (trip.status === "scheduled" || trip.status === "ready") && (
-              <Button onClick={() => { if (confirm("Start trip? Student list, driver, vehicle and route will be locked.")) startTrip.mutate(); }} disabled={startTrip.isPending}>
-                <Play className="mr-2 h-4 w-4" /> Start trip
+            {canManage && trip.drivers?.phone && (
+              <Button variant="outline" asChild>
+                <a href={`tel:${trip.drivers.phone}`}><User className="mr-2 h-4 w-4" /> Contact driver</a>
               </Button>
             )}
-            {canManage && trip.status === "in_progress" && (
-              <>
-                <Button variant="outline" onClick={() => pauseTrip.mutate()}><Pause className="mr-2 h-4 w-4" /> Pause</Button>
-                <Button onClick={() => { if (confirm("Complete this trip?")) completeTrip.mutate(); }}>
-                  <CheckCircle2 className="mr-2 h-4 w-4" /> Complete
-                </Button>
-              </>
-            )}
-            {canManage && trip.status === "paused" && (
-              <Button onClick={() => resumeTrip.mutate()}><Play className="mr-2 h-4 w-4" /> Resume</Button>
+            {canManage && trip.status === "scheduled" && (
+              <Button variant="outline" onClick={() => setEditOpen(true)}>
+                <Pencil className="mr-2 h-4 w-4" /> Reassign driver / vehicle
+              </Button>
             )}
             {canManage && trip.status !== "completed" && trip.status !== "canceled" && (
-              <Button variant="destructive" onClick={() => { if (confirm("Cancel trip?")) cancelTrip.mutate(); }}>
-                <XCircle className="mr-2 h-4 w-4" /> Cancel
+              <Button
+                variant="destructive"
+                onClick={() => { if (confirm("Terminate this trip? The driver will be notified and this cannot be undone.")) cancelTrip.mutate(); }}
+              >
+                <XCircle className="mr-2 h-4 w-4" /> Terminate trip
               </Button>
             )}
           </div>
         }
       />
+
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <InfoCard icon={Flag} label="Status" value={<TripStatusPill status={trip.status} />} />
@@ -340,14 +327,10 @@ function TripDetailPage() {
 
         <TabsContent value="map">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader>
               <CardTitle className="text-base flex items-center gap-2"><MapPin className="h-4 w-4" /> Live map</CardTitle>
-              {live && canManage && (
-                <Button size="sm" variant="outline" onClick={() => mockGps.mutate()}>
-                  <RefreshCcw className="mr-2 h-4 w-4" /> Simulate GPS ping
-                </Button>
-              )}
             </CardHeader>
+
             <CardContent>
               <TripLiveMap trip={trip} />
               {trip.live_location && (
@@ -363,8 +346,9 @@ function TripDetailPage() {
         </TabsContent>
 
         <TabsContent value="stops">
-          <StopTable trip={trip} canManage={canManage} onArrive={(id) => markStop.mutate({ stopId: id, action: "arrive" })} onDepart={(id) => markStop.mutate({ stopId: id, action: "depart" })} onCounts={(id, boarded, missing) => markStop.mutate({ stopId: id, action: "depart", boarded, missing })} />
+          <StopTable trip={trip} canManage={false} onArrive={() => {}} onDepart={() => {}} onCounts={() => {}} />
         </TabsContent>
+
 
         <TabsContent value="timeline">
           <Card>

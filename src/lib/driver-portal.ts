@@ -4,24 +4,40 @@ import { useAuth } from "@/lib/auth-context";
 import { normalizeTrip, type TripRow } from "@/lib/trips";
 import type { DriverRow } from "@/lib/drivers";
 
-/** Fetches the current signed-in user's driver profile (if any). */
+/** Today's date (YYYY-MM-DD) in the given IANA timezone, falling back to UTC. */
+export function todayInTimezone(tz?: string | null): string {
+  try {
+    const fmt = new Intl.DateTimeFormat("en-CA", {
+      timeZone: tz && tz.trim() ? tz : "UTC",
+      year: "numeric", month: "2-digit", day: "2-digit",
+    });
+    return fmt.format(new Date());
+  } catch {
+    return new Date().toISOString().slice(0, 10);
+  }
+}
+
+/** Fetches the current signed-in user's driver profile (if any) + school timezone. */
 export function useMyDriver() {
   const { user } = useAuth();
   return useQuery({
     enabled: !!user,
     queryKey: ["driver-portal", "me", user?.id],
-    queryFn: async (): Promise<DriverRow | null> => {
+    queryFn: async (): Promise<(DriverRow & { school_timezone?: string | null }) | null> => {
       if (!user) return null;
       const { data, error } = await supabase
         .from("drivers")
-        .select("*")
+        .select("*, schools:school_id(timezone)")
         .eq("user_id", user.id)
         .maybeSingle();
       if (error) throw error;
-      return (data as unknown as DriverRow) ?? null;
+      if (!data) return null;
+      const { schools, ...rest } = data as any;
+      return { ...(rest as DriverRow), school_timezone: schools?.timezone ?? null };
     },
   });
 }
+
 
 export interface DriverTripRow extends TripRow {
   routes?: {
@@ -79,10 +95,10 @@ function driverTripOrFilter(driverId: string, routeIds: string[]): string {
   return `driver_id.eq.${driverId}${routeClause}`;
 }
 
-/** All trips assigned to the signed-in driver on a given date (default: today). */
+/** All trips assigned to the signed-in driver on a given date (default: today in school tz). */
 export function useDriverTrips(dateISO?: string) {
   const { data: driver } = useMyDriver();
-  const date = dateISO ?? new Date().toISOString().slice(0, 10);
+  const date = dateISO ?? todayInTimezone(driver?.school_timezone);
   return useQuery({
     enabled: !!driver,
     queryKey: ["driver-portal", "trips", driver?.id, date],
@@ -101,9 +117,11 @@ export function useDriverTrips(dateISO?: string) {
         vehicles: r.vehicles ?? null,
       })) as DriverTripRow[];
     },
-    refetchInterval: 15_000,
+    refetchInterval: 10_000,
+    refetchOnWindowFocus: true,
   });
 }
+
 
 /** Full history of the driver's trips (most recent first). */
 export function useDriverTripHistory(limit = 100) {
