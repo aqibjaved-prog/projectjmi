@@ -243,16 +243,8 @@ function TripDetailPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
-  // Auto-start dialog trigger
-  useEffect(() => {
-    if (search.start && trip && (trip.status === "scheduled" || trip.status === "ready")) {
-      if (confirm("Start this trip now? Student list, driver, vehicle and route will be locked.")) {
-        startTrip.mutate();
-      }
-      navigate({ to: "/trips/$tripId", params: { tripId }, search: {} });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search.start, trip?.id]);
+  // School admins are monitoring-only; trip lifecycle is controlled from the Driver Portal.
+
 
   if (isLoading) return <div className="space-y-4"><Skeleton className="h-12 w-72" /><Skeleton className="h-64" /></div>;
   if (!trip) return <EmptyState title="Trip not found" description="This trip may have been deleted or you don't have access." />;
