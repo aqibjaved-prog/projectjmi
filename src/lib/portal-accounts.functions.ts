@@ -39,6 +39,20 @@ const UpdateEmailSchema = z.object({
   email: z.string().email().max(255),
 });
 
+const DeleteSchema = z.object({
+  kind: KindSchema,
+  recordId: z.string().uuid(),
+  schoolId: z.string().uuid(),
+});
+
+const RestoreSchema = z.object({
+  kind: KindSchema,
+  recordId: z.string().uuid(),
+  schoolId: z.string().uuid(),
+  email: z.string().email().max(255).optional(),
+  password: z.string().min(8).optional(),
+});
+
 async function assertCanManageSchool(callerId: string, schoolId: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin
