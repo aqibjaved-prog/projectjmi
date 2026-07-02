@@ -188,7 +188,7 @@ function DriverDetailPage() {
             <Button onClick={() => setEditOpen(true)}><Pencil className="mr-2 h-4 w-4" /> Edit</Button>
             <Button
               variant="destructive"
-              onClick={() => { if (confirm(`Delete ${driver.full_name}?`)) remove.mutate(); }}
+              onClick={() => setConfirmDeleteOpen(true)}
             >
               <Trash2 className="mr-2 h-4 w-4" /> Delete
             </Button>
