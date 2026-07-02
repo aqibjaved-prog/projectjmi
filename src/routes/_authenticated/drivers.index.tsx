@@ -434,6 +434,7 @@ function DriversPage() {
                 <SelectItem value="all">All statuses</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="deleted">Deleted</SelectItem>
               </SelectContent>
             </Select>
             <Select value={licenseFilter} onValueChange={(v: LicenseFilter) => { setLicenseFilter(v); setPage(1); }}>
