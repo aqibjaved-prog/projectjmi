@@ -9,13 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Pencil, Trash2, Power, Wrench, Bus } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, Power, Wrench, Bus, User, Route as RouteIcon, MapPin, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { VehicleForm } from "@/components/vehicles/vehicle-form";
 import {
   vehicleToFormDefaults, splitVehiclePayload, mergeMetadata, uploadVehiclePhoto,
   getVehiclePhotoUrl, expiryStatus, expiryLabel,
   vehicleTypeLabel, vehicleStatusLabel, fuelTypeLabel, fetchVehicleOccupancy,
+  fetchVehicleAssignments, vehicleAvailability, vehicleAvailabilityLabel,
   type VehicleFormValues, type VehicleRow, type VehicleStatus,
 } from "@/lib/vehicles";
 
