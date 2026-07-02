@@ -269,33 +269,28 @@ function TripDetailPage() {
         actions={
           <div className="flex flex-wrap gap-2">
             <Button variant="ghost" asChild><Link to="/trips"><ArrowLeft className="mr-2 h-4 w-4" /> Back</Link></Button>
-            {canManage && trip.status === "scheduled" && (
-              <Button variant="outline" onClick={() => setEditOpen(true)}><Pencil className="mr-2 h-4 w-4" /> Edit</Button>
-            )}
-            {canManage && (trip.status === "scheduled" || trip.status === "ready") && (
-              <Button onClick={() => { if (confirm("Start trip? Student list, driver, vehicle and route will be locked.")) startTrip.mutate(); }} disabled={startTrip.isPending}>
-                <Play className="mr-2 h-4 w-4" /> Start trip
+            {canManage && trip.drivers?.phone && (
+              <Button variant="outline" asChild>
+                <a href={`tel:${trip.drivers.phone}`}><User className="mr-2 h-4 w-4" /> Contact driver</a>
               </Button>
             )}
-            {canManage && trip.status === "in_progress" && (
-              <>
-                <Button variant="outline" onClick={() => pauseTrip.mutate()}><Pause className="mr-2 h-4 w-4" /> Pause</Button>
-                <Button onClick={() => { if (confirm("Complete this trip?")) completeTrip.mutate(); }}>
-                  <CheckCircle2 className="mr-2 h-4 w-4" /> Complete
-                </Button>
-              </>
-            )}
-            {canManage && trip.status === "paused" && (
-              <Button onClick={() => resumeTrip.mutate()}><Play className="mr-2 h-4 w-4" /> Resume</Button>
+            {canManage && trip.status === "scheduled" && (
+              <Button variant="outline" onClick={() => setEditOpen(true)}>
+                <Pencil className="mr-2 h-4 w-4" /> Reassign driver / vehicle
+              </Button>
             )}
             {canManage && trip.status !== "completed" && trip.status !== "canceled" && (
-              <Button variant="destructive" onClick={() => { if (confirm("Cancel trip?")) cancelTrip.mutate(); }}>
-                <XCircle className="mr-2 h-4 w-4" /> Cancel
+              <Button
+                variant="destructive"
+                onClick={() => { if (confirm("Terminate this trip? The driver will be notified and this cannot be undone.")) cancelTrip.mutate(); }}
+              >
+                <XCircle className="mr-2 h-4 w-4" /> Terminate trip
               </Button>
             )}
           </div>
         }
       />
+
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <InfoCard icon={Flag} label="Status" value={<TripStatusPill status={trip.status} />} />
