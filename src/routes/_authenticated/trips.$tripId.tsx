@@ -28,6 +28,7 @@ import {
   normalizeTrip, tripStatusLabel, tripTypeLabel, tripFormToPayload, delayMinutes, delayLabel,
   type TripRow, type TripStopProgress, type TripFormValues, type TripLiveLocation,
 } from "@/lib/trips";
+import { assertVehicleAvailableForTrip } from "@/lib/vehicles";
 import { TripForm } from "@/components/trips/trip-form";
 import { isGoogleMapsConfigured, loadGoogleMaps } from "@/lib/google-maps-loader";
 
