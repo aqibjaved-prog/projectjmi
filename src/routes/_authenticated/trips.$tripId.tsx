@@ -327,14 +327,10 @@ function TripDetailPage() {
 
         <TabsContent value="map">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader>
               <CardTitle className="text-base flex items-center gap-2"><MapPin className="h-4 w-4" /> Live map</CardTitle>
-              {live && canManage && (
-                <Button size="sm" variant="outline" onClick={() => mockGps.mutate()}>
-                  <RefreshCcw className="mr-2 h-4 w-4" /> Simulate GPS ping
-                </Button>
-              )}
             </CardHeader>
+
             <CardContent>
               <TripLiveMap trip={trip} />
               {trip.live_location && (
