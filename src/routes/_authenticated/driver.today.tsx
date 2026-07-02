@@ -28,6 +28,7 @@ function TodayPage() {
 
   const start = useMutation({
     mutationFn: async (trip: TripRow) => {
+      await assertVehicleAvailableForTrip(trip.vehicle_id, trip.id);
       const timeline = [...trip.timeline, makeEvent("trip.started", "Driver started the trip")];
       const snapshot = {
         ...(trip.snapshot ?? {}),
