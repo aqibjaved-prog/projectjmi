@@ -1,0 +1,194 @@
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth-context";
+import { normalizeTrip, type TripRow } from "@/lib/trips";
+import type { DriverRow } from "@/lib/drivers";
+
+/** Fetches the current signed-in user's driver profile (if any). */
+export function useMyDriver() {
+  const { user } = useAuth();
+  return useQuery({
+    enabled: !!user,
+    queryKey: ["driver-portal", "me", user?.id],
+    queryFn: async (): Promise<DriverRow | null> => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from("drivers")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as unknown as DriverRow) ?? null;
+    },
+  });
+}
+
+export interface DriverTripRow extends TripRow {
+  routes?: {
+    id: string;
+    name: string;
+    route_code: string | null;
+    stops: unknown;
+    total_distance: number | null;
+    estimated_duration: number | null;
+    start_lat: number | null;
+    start_lng: number | null;
+    end_lat: number | null;
+    end_lng: number | null;
+    starting_point: string | null;
+    ending_point: string | null;
+    route_color: string | null;
+  } | null;
+  vehicles?: {
+    id: string;
+    registration_number: string;
+    vehicle_code: string | null;
+    capacity: number;
+  } | null;
+}
+
+const TRIP_SELECT = `
+  *,
+  routes:route_id (
+    id, name, route_code, stops, total_distance, estimated_duration,
+    start_lat, start_lng, end_lat, end_lng,
+    starting_point, ending_point, route_color
+  ),
+  vehicles:vehicle_id (id, registration_number, vehicle_code, capacity)
+`;
+
+/** All trips assigned to the signed-in driver on a given date (default: today). */
+export function useDriverTrips(dateISO?: string) {
+  const { data: driver } = useMyDriver();
+  const date = dateISO ?? new Date().toISOString().slice(0, 10);
+  return useQuery({
+    enabled: !!driver,
+    queryKey: ["driver-portal", "trips", driver?.id, date],
+    queryFn: async (): Promise<DriverTripRow[]> => {
+      if (!driver) return [];
+      const { data, error } = await (supabase.from("trips") as any)
+        .select(TRIP_SELECT)
+        .eq("driver_id", driver.id)
+        .eq("trip_date", date)
+        .order("expected_start_time", { ascending: true });
+      if (error) throw error;
+      return ((data ?? []) as any[]).map((r) => ({
+        ...normalizeTrip(r),
+        routes: r.routes ?? null,
+        vehicles: r.vehicles ?? null,
+      })) as DriverTripRow[];
+    },
+    refetchInterval: 15_000,
+  });
+}
+
+/** Full history of the driver's trips (most recent first). */
+export function useDriverTripHistory(limit = 100) {
+  const { data: driver } = useMyDriver();
+  return useQuery({
+    enabled: !!driver,
+    queryKey: ["driver-portal", "history", driver?.id, limit],
+    queryFn: async (): Promise<DriverTripRow[]> => {
+      if (!driver) return [];
+      const { data, error } = await (supabase.from("trips") as any)
+        .select(TRIP_SELECT)
+        .eq("driver_id", driver.id)
+        .order("trip_date", { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+      return ((data ?? []) as any[]).map((r) => ({
+        ...normalizeTrip(r),
+        routes: r.routes ?? null,
+        vehicles: r.vehicles ?? null,
+      })) as DriverTripRow[];
+    },
+  });
+}
+
+export function useDriverTrip(tripId: string) {
+  const { data: driver } = useMyDriver();
+  return useQuery({
+    enabled: !!driver && !!tripId,
+    queryKey: ["driver-portal", "trip", tripId],
+    queryFn: async (): Promise<DriverTripRow | null> => {
+      const { data, error } = await (supabase.from("trips") as any)
+        .select(TRIP_SELECT)
+        .eq("id", tripId)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+      return { ...normalizeTrip(data as any), routes: (data as any).routes ?? null, vehicles: (data as any).vehicles ?? null } as DriverTripRow;
+    },
+    refetchInterval: 10_000,
+  });
+}
+
+export interface DriverStudentRow {
+  id: string;
+  full_name: string;
+  student_code: string | null;
+  grade: string | null;
+  class_section: string | null;
+  photo_url: string | null;
+  pickup_address: string | null;
+  drop_address: string | null;
+  route_id: string | null;
+  parent_phone: string | null;
+  parent_name: string | null;
+  qr_code: string | null;
+}
+
+/** Students assigned to the driver's currently-assigned route(s). */
+export function useDriverStudents() {
+  const { data: driver } = useMyDriver();
+  return useQuery({
+    enabled: !!driver,
+    queryKey: ["driver-portal", "students", driver?.id],
+    queryFn: async (): Promise<DriverStudentRow[]> => {
+      if (!driver) return [];
+      // Find routes assigned to this driver
+      const { data: routes, error: rErr } = await supabase
+        .from("routes")
+        .select("id")
+        .eq("driver_id", driver.id);
+      if (rErr) throw rErr;
+      const routeIds = (routes ?? []).map((r: any) => r.id);
+      if (routeIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("students")
+        .select("id, full_name, student_code, grade, class_section, photo_url, pickup_address, drop_address, route_id, parent_phone, parent_name, qr_code")
+        .in("route_id", routeIds)
+        .order("full_name", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as unknown as DriverStudentRow[];
+    },
+  });
+}
+
+export function useDriverNotifications() {
+  const { user } = useAuth();
+  return useQuery({
+    enabled: !!user,
+    queryKey: ["driver-portal", "notifications", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false })
+        .limit(25);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export async function patchDriverTrip(id: string, patch: Record<string, unknown>) {
+  const { data, error } = await (supabase.from("trips") as any)
+    .update(patch)
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return normalizeTrip(data as any);
+}

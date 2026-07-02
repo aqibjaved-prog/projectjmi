@@ -55,6 +55,7 @@ import { Route as AuthenticatedDriverQrRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedDriverNavigationRouteImport } from './routes/_authenticated/driver.navigation'
 import { Route as AuthenticatedDriverHistoryRouteImport } from './routes/_authenticated/driver.history'
 import { Route as AuthenticatedDriverDashboardRouteImport } from './routes/_authenticated/driver.dashboard'
+import { Route as AuthenticatedDriverTripTripIdRouteImport } from './routes/_authenticated/driver.trip.$tripId'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -308,6 +309,12 @@ const AuthenticatedDriverDashboardRoute =
     path: '/dashboard',
     getParentRoute: () => AuthenticatedDriverRoute,
   } as any)
+const AuthenticatedDriverTripTripIdRoute =
+  AuthenticatedDriverTripTripIdRouteImport.update({
+    id: '/trip/$tripId',
+    path: '/trip/$tripId',
+    getParentRoute: () => AuthenticatedDriverRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -355,6 +362,7 @@ export interface FileRoutesByFullPath {
   '/students/': typeof AuthenticatedStudentsIndexRoute
   '/trips/': typeof AuthenticatedTripsIndexRoute
   '/vehicles/': typeof AuthenticatedVehiclesIndexRoute
+  '/driver/trip/$tripId': typeof AuthenticatedDriverTripTripIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -396,6 +404,7 @@ export interface FileRoutesByTo {
   '/students': typeof AuthenticatedStudentsIndexRoute
   '/trips': typeof AuthenticatedTripsIndexRoute
   '/vehicles': typeof AuthenticatedVehiclesIndexRoute
+  '/driver/trip/$tripId': typeof AuthenticatedDriverTripTripIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -445,6 +454,7 @@ export interface FileRoutesById {
   '/_authenticated/students/': typeof AuthenticatedStudentsIndexRoute
   '/_authenticated/trips/': typeof AuthenticatedTripsIndexRoute
   '/_authenticated/vehicles/': typeof AuthenticatedVehiclesIndexRoute
+  '/_authenticated/driver/trip/$tripId': typeof AuthenticatedDriverTripTripIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -494,6 +504,7 @@ export interface FileRouteTypes {
     | '/students/'
     | '/trips/'
     | '/vehicles/'
+    | '/driver/trip/$tripId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -535,6 +546,7 @@ export interface FileRouteTypes {
     | '/students'
     | '/trips'
     | '/vehicles'
+    | '/driver/trip/$tripId'
   id:
     | '__root__'
     | '/'
@@ -583,6 +595,7 @@ export interface FileRouteTypes {
     | '/_authenticated/students/'
     | '/_authenticated/trips/'
     | '/_authenticated/vehicles/'
+    | '/_authenticated/driver/trip/$tripId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -916,6 +929,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDriverDashboardRouteImport
       parentRoute: typeof AuthenticatedDriverRoute
     }
+    '/_authenticated/driver/trip/$tripId': {
+      id: '/_authenticated/driver/trip/$tripId'
+      path: '/trip/$tripId'
+      fullPath: '/driver/trip/$tripId'
+      preLoaderRoute: typeof AuthenticatedDriverTripTripIdRouteImport
+      parentRoute: typeof AuthenticatedDriverRoute
+    }
   }
 }
 
@@ -926,6 +946,7 @@ interface AuthenticatedDriverRouteChildren {
   AuthenticatedDriverQrRoute: typeof AuthenticatedDriverQrRoute
   AuthenticatedDriverStudentsRoute: typeof AuthenticatedDriverStudentsRoute
   AuthenticatedDriverTodayRoute: typeof AuthenticatedDriverTodayRoute
+  AuthenticatedDriverTripTripIdRoute: typeof AuthenticatedDriverTripTripIdRoute
 }
 
 const AuthenticatedDriverRouteChildren: AuthenticatedDriverRouteChildren = {
@@ -935,6 +956,7 @@ const AuthenticatedDriverRouteChildren: AuthenticatedDriverRouteChildren = {
   AuthenticatedDriverQrRoute: AuthenticatedDriverQrRoute,
   AuthenticatedDriverStudentsRoute: AuthenticatedDriverStudentsRoute,
   AuthenticatedDriverTodayRoute: AuthenticatedDriverTodayRoute,
+  AuthenticatedDriverTripTripIdRoute: AuthenticatedDriverTripTripIdRoute,
 }
 
 const AuthenticatedDriverRouteWithChildren =
