@@ -134,6 +134,7 @@ const PENDING_TASKS = [
 const API_SERVICES = [
   { name: "createServerFn (@tanstack/react-start)", purpose: "App-internal RPC. All CRUD, business logic, admin operations." },
   { name: "src/lib/school-admins.functions.ts", purpose: "Super-admin managed school-admin accounts (create/update/delete/reset)." },
+  { name: "src/lib/portal-accounts.functions.ts", purpose: "Provision Driver & Parent portal logins from School Admin CRUD dialogs; reset password; update email. Authorizes Super Admin or the School Admin of the target school; creates auth user + user_roles + links drivers.user_id / parents.user_id." },
   { name: "src/lib/dev-docs.functions.ts", purpose: "Live schema introspection for this page (super-admin only)." },
   { name: "Supabase Data API (PostgREST)", purpose: "Client-side reads/writes via @/integrations/supabase/client under RLS." },
   { name: "Supabase Auth", purpose: "Email/password sessions; role lookup via public.user_roles + has_role()." },
