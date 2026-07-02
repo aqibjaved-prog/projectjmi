@@ -95,10 +95,10 @@ function driverTripOrFilter(driverId: string, routeIds: string[]): string {
   return `driver_id.eq.${driverId}${routeClause}`;
 }
 
-/** All trips assigned to the signed-in driver on a given date (default: today). */
+/** All trips assigned to the signed-in driver on a given date (default: today in school tz). */
 export function useDriverTrips(dateISO?: string) {
   const { data: driver } = useMyDriver();
-  const date = dateISO ?? new Date().toISOString().slice(0, 10);
+  const date = dateISO ?? todayInTimezone(driver?.school_timezone);
   return useQuery({
     enabled: !!driver,
     queryKey: ["driver-portal", "trips", driver?.id, date],
@@ -117,9 +117,11 @@ export function useDriverTrips(dateISO?: string) {
         vehicles: r.vehicles ?? null,
       })) as DriverTripRow[];
     },
-    refetchInterval: 15_000,
+    refetchInterval: 10_000,
+    refetchOnWindowFocus: true,
   });
 }
+
 
 /** Full history of the driver's trips (most recent first). */
 export function useDriverTripHistory(limit = 100) {
