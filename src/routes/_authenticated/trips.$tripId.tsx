@@ -127,6 +127,7 @@ function TripDetailPage() {
   const startTrip = useMutation({
     mutationFn: async () => {
       if (!trip) throw new Error("Trip not loaded");
+      await assertVehicleAvailableForTrip(trip.vehicle_id, trip.id);
       const snapshot = {
         route_name: trip.routes?.name ?? null,
         driver_name: trip.drivers?.full_name ?? null,
