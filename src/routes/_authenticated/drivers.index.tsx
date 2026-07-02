@@ -131,7 +131,7 @@ function DriversPage() {
   };
 
   const create = useMutation({
-    mutationFn: async ({ values, photo }: { values: DriverFormValues; photo: File | null }) => {
+    mutationFn: async ({ values, photo, account }: { values: DriverFormValues; photo: File | null; account: { email: string; password: string } | null }) => {
       const target = activeSchoolId;
       if (!target) throw new Error("Select a school first.");
       const { columns, metadata } = splitDriverPayload(values);
@@ -148,6 +148,21 @@ function DriversPage() {
           .from("drivers")
           .update({ metadata: { ...metadata, photo_path: path } })
           .eq("id", inserted.id);
+      }
+      if (account && inserted?.id) {
+        const { provisionPortalAccount } = await import("@/lib/portal-accounts.functions");
+        const res = await provisionPortalAccount({
+          data: {
+            kind: "driver",
+            recordId: inserted.id,
+            schoolId: target,
+            email: account.email,
+            password: account.password,
+            fullName: columns.full_name,
+            phone: columns.phone,
+          },
+        });
+        if (!res.ok) throw new Error(res.error);
       }
     },
     onSuccess: () => {
@@ -353,8 +368,10 @@ function DriversPage() {
                     <DriverForm
                       submitting={create.isPending}
                       submitLabel="Create driver"
-                      onSubmit={(values, photo) => create.mutate({ values, photo })}
+                      accountMode="create"
+                      onSubmit={(values, photo, account) => create.mutate({ values, photo, account })}
                     />
+
                   )}
                 </DialogContent>
               </Dialog>

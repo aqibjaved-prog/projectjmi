@@ -60,8 +60,17 @@ function DriverDetailPage() {
     qc.invalidateQueries({ queryKey: ["platform-stats"] });
   };
 
+  const { data: linkedEmail } = useQuery({
+    enabled: !!driver?.user_id,
+    queryKey: ["driver-linked-email", driver?.user_id],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("email").eq("id", driver!.user_id!).maybeSingle();
+      return (data?.email as string | undefined) ?? null;
+    },
+  });
+
   const update = useMutation({
-    mutationFn: async ({ values, photo }: { values: DriverFormValues; photo: File | null }) => {
+    mutationFn: async ({ values, photo, account }: { values: DriverFormValues; photo: File | null; account: { email: string; password: string } | null }) => {
       if (!driver) throw new Error("Driver not loaded");
       const existingPath = driver.metadata?.photo_path ?? null;
       let photoPath = existingPath;
@@ -75,6 +84,41 @@ function DriverDetailPage() {
         .update({ ...columns, metadata: merged })
         .eq("id", driver.id);
       if (error) throw error;
+
+      if (account) {
+        const emailChanged = !!driver.user_id && !!account.email && account.email !== (linkedEmail ?? "");
+        const wantsPassword = !!account.password;
+        if (!driver.user_id) {
+          const { provisionPortalAccount } = await import("@/lib/portal-accounts.functions");
+          const res = await provisionPortalAccount({
+            data: {
+              kind: "driver",
+              recordId: driver.id,
+              schoolId: driver.school_id,
+              email: account.email,
+              password: account.password,
+              fullName: columns.full_name,
+              phone: columns.phone,
+            },
+          });
+          if (!res.ok) throw new Error(res.error);
+        } else {
+          if (emailChanged) {
+            const { updatePortalEmail } = await import("@/lib/portal-accounts.functions");
+            const res = await updatePortalEmail({
+              data: { kind: "driver", recordId: driver.id, schoolId: driver.school_id, email: account.email },
+            });
+            if (!res.ok) throw new Error(res.error);
+          }
+          if (wantsPassword) {
+            const { resetPortalPassword } = await import("@/lib/portal-accounts.functions");
+            const res = await resetPortalPassword({
+              data: { kind: "driver", recordId: driver.id, schoolId: driver.school_id, password: account.password },
+            });
+            if (!res.ok) throw new Error(res.error);
+          }
+        }
+      }
     },
     onSuccess: () => {
       toast.success("Driver updated");
@@ -239,8 +283,12 @@ function DriverDetailPage() {
               existingPhotoUrl={photoUrl ?? null}
               submitting={update.isPending}
               submitLabel="Save changes"
-              onSubmit={(values, photo) => update.mutate({ values, photo })}
+              accountMode="edit"
+              hasAccount={!!driver?.user_id}
+              linkedEmail={linkedEmail ?? null}
+              onSubmit={(values, photo, account) => update.mutate({ values, photo, account })}
             />
+
           )}
         </DialogContent>
       </Dialog>
