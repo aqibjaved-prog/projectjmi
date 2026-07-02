@@ -35,6 +35,7 @@ function DriverDetailPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [editOpen, setEditOpen] = useState(!!search.edit);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   useEffect(() => { setEditOpen(!!search.edit); }, [search.edit]);
 
