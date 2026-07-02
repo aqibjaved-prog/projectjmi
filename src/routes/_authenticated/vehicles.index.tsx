@@ -177,6 +177,8 @@ function VehiclesPage() {
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["vehicles-list"] });
+    qc.invalidateQueries({ queryKey: ["vehicle-assignments"] });
+    qc.invalidateQueries({ queryKey: ["vehicle-occupancy"] });
     qc.invalidateQueries({ queryKey: ["school-stats"] });
     qc.invalidateQueries({ queryKey: ["platform-stats"] });
   };
