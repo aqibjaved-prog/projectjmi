@@ -25,8 +25,12 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   MoreHorizontal, Plus, ChevronLeft, ChevronRight, Eye, Pencil, Power, Trash2,
-  Upload, Download, IdCard, CheckCircle2, XCircle, AlertTriangle,
+  Upload, Download, IdCard, CheckCircle2, XCircle, AlertTriangle, RotateCcw,
 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
