@@ -486,7 +486,7 @@ function VehiclesPage() {
                     <TableHead>Type</TableHead>
                     <TableHead>Assigned driver</TableHead>
                     <TableHead>Assigned route</TableHead>
-                    <TableHead>Today's trip</TableHead>
+                    <TableHead>Current trip</TableHead>
                     <TableHead>Students</TableHead>
                     <TableHead>Availability</TableHead>
                     <TableHead>Insurance</TableHead>
@@ -523,7 +523,7 @@ function VehiclesPage() {
                               {a.driver.full_name}
                             </Link>
                           ) : (
-                            <span className="text-muted-foreground">No driver assigned</span>
+                            <span className="text-muted-foreground">Not Assigned</span>
                           )}
                         </TableCell>
                         <TableCell className="text-sm">
@@ -533,21 +533,25 @@ function VehiclesPage() {
                               {a.route.route_code && <div className="text-xs text-muted-foreground">{a.route.route_code}</div>}
                             </Link>
                           ) : (
-                            <span className="text-muted-foreground">No route assigned</span>
+                            <span className="text-muted-foreground">Not Assigned</span>
                           )}
                         </TableCell>
                         <TableCell className="text-sm">
-                          {a?.todayTrip ? (
-                            <Link to="/trips/$tripId" params={{ tripId: a.todayTrip.id }} className="hover:underline">
-                              <div>{a.todayTrip.name ?? a.todayTrip.trip_code ?? "Trip"}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {a.todayTrip.expected_start_time ?? "—"} · {a.todayTrip.status.replace("_", " ")}
-                              </div>
-                            </Link>
-                          ) : (
-                            <span className="text-muted-foreground">No active trip</span>
-                          )}
+                          {(() => {
+                            const trip = a?.todayTrip ?? a?.upcomingTrip ?? null;
+                            if (!trip) return <span className="text-muted-foreground">Not Assigned</span>;
+                            const isActive = trip.status === "in_progress" || trip.status === "paused";
+                            return (
+                              <Link to="/trips/$tripId" params={{ tripId: trip.id }} className="hover:underline">
+                                <div>{trip.name ?? trip.trip_code ?? "Trip"}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {isActive ? "In Trip" : trip.status === "scheduled" ? "Scheduled" : trip.status.replace("_", " ")}
+                                </div>
+                              </Link>
+                            );
+                          })()}
                         </TableCell>
+
                         <TableCell className="text-sm">
                           {(() => {
                             const occ = occupancy?.get(v.id);
@@ -661,10 +665,13 @@ function StatusBadge({ status }: { status: string }) {
 function AvailabilityBadge({ availability }: { availability: VehicleAvailability }) {
   const variant =
     availability === "available" ? "default" :
-    availability === "in_use" ? "secondary" :
-    availability === "maintenance" ? "outline" : "outline";
+    availability === "in_trip" ? "secondary" :
+    availability === "scheduled" ? "secondary" :
+    availability === "unassigned" ? "outline" :
+    "outline";
   return <Badge variant={variant}>{vehicleAvailabilityLabel(availability)}</Badge>;
 }
+
 
 function triggerDownload(href: string, filename: string) {
   const a = document.createElement("a");

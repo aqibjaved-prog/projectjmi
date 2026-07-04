@@ -16,9 +16,12 @@ import {
   vehicleToFormDefaults, splitVehiclePayload, mergeMetadata, uploadVehiclePhoto,
   getVehiclePhotoUrl, expiryStatus, expiryLabel,
   vehicleTypeLabel, vehicleStatusLabel, fuelTypeLabel, fetchVehicleOccupancy,
-  fetchVehicleAssignments, vehicleAvailability, vehicleAvailabilityLabel,
+  fetchVehicleAssignments, vehicleAvailability, vehicleAvailabilityLabel, routeTypeLabel,
   type VehicleFormValues, type VehicleRow, type VehicleStatus,
 } from "@/lib/vehicles";
+import { getDriverPhotoUrl } from "@/lib/drivers";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 
 type Detail = VehicleRow & { schools?: { id: string; name: string } | null };
 
@@ -71,6 +74,13 @@ function VehicleDetailPage() {
     queryKey: ["vehicle-photo", vehicleId, vehicle?.metadata?.photo_path],
     queryFn: () => getVehiclePhotoUrl(vehicle?.metadata?.photo_path ?? null),
   });
+
+  const { data: driverPhotoUrl } = useQuery({
+    enabled: !!assignment?.driver?.photo_path,
+    queryKey: ["driver-photo", assignment?.driver?.id, assignment?.driver?.photo_path],
+    queryFn: () => getDriverPhotoUrl(assignment?.driver?.photo_path ?? null),
+  });
+
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["vehicle", vehicleId] });
@@ -200,59 +210,92 @@ function VehicleDetailPage() {
 
         <Card className="lg:col-span-3">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Assignments</CardTitle>
-            <Badge variant={vehicleAvailability(vehicle.status, assignment) === "in_use" ? "secondary" : "default"}>
+            <div>
+              <CardTitle>Assignment</CardTitle>
+              {assignment?.assignedAt && (
+                <div className="mt-1 text-xs text-muted-foreground">
+                  Assigned since {new Date(assignment.assignedAt).toLocaleDateString()}
+                </div>
+              )}
+            </div>
+            <Badge
+              variant={
+                vehicleAvailability(vehicle.status, assignment) === "in_trip" ? "secondary" :
+                vehicleAvailability(vehicle.status, assignment) === "scheduled" ? "secondary" :
+                vehicleAvailability(vehicle.status, assignment) === "unassigned" ? "outline" :
+                "default"
+              }
+            >
               {vehicleAvailabilityLabel(vehicleAvailability(vehicle.status, assignment))}
             </Badge>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div>
-                <div className="mb-1 flex items-center gap-1 text-xs uppercase tracking-wide text-muted-foreground"><User className="h-3.5 w-3.5" /> Assigned driver</div>
+                <div className="mb-1 flex items-center gap-1 text-xs uppercase tracking-wide text-muted-foreground"><User className="h-3.5 w-3.5" /> Driver</div>
                 {assignment?.driver ? (
-                  <>
-                    <div className="text-sm font-medium">{assignment.driver.full_name}</div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Phone className="h-3 w-3" /> {assignment.driver.phone ?? "—"}
+                  <div className="flex items-start gap-3">
+                    <Avatar className="h-10 w-10">
+                      {driverPhotoUrl && <AvatarImage src={driverPhotoUrl} alt={assignment.driver.full_name} />}
+                      <AvatarFallback>{assignment.driver.full_name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium">{assignment.driver.full_name}</div>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Phone className="h-3 w-3" />
+                        {assignment.driver.phone ? (
+                          <a href={`tel:${assignment.driver.phone}`} className="hover:underline">{assignment.driver.phone}</a>
+                        ) : "—"}
+                      </div>
+                      <Button size="sm" variant="outline" className="mt-2" asChild>
+                        <Link to="/drivers/$driverId" params={{ driverId: assignment.driver.id }}>View driver</Link>
+                      </Button>
                     </div>
-                    <Button size="sm" variant="outline" className="mt-2" asChild>
-                      <Link to="/drivers/$driverId" params={{ driverId: assignment.driver.id }}>View driver</Link>
-                    </Button>
-                  </>
+                  </div>
                 ) : (
-                  <div className="text-sm text-muted-foreground">No driver assigned</div>
+                  <div className="text-sm text-muted-foreground">Not Assigned</div>
                 )}
               </div>
               <div>
-                <div className="mb-1 flex items-center gap-1 text-xs uppercase tracking-wide text-muted-foreground"><RouteIcon className="h-3.5 w-3.5" /> Assigned route</div>
+                <div className="mb-1 flex items-center gap-1 text-xs uppercase tracking-wide text-muted-foreground"><RouteIcon className="h-3.5 w-3.5" /> Route</div>
                 {assignment?.route ? (
                   <>
                     <div className="text-sm font-medium">{assignment.route.name}</div>
-                    <div className="text-xs text-muted-foreground">{assignment.route.route_code ?? "—"}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {assignment.route.route_code ?? "—"} · {routeTypeLabel(assignment.route.route_type)}
+                    </div>
                     <Button size="sm" variant="outline" className="mt-2" asChild>
                       <Link to="/routes/$routeId" params={{ routeId: assignment.route.id }}>View route</Link>
                     </Button>
                   </>
                 ) : (
-                  <div className="text-sm text-muted-foreground">No route assigned</div>
+                  <div className="text-sm text-muted-foreground">Not Assigned</div>
                 )}
               </div>
               <div>
-                <div className="mb-1 flex items-center gap-1 text-xs uppercase tracking-wide text-muted-foreground"><MapPin className="h-3.5 w-3.5" /> Active trip</div>
-                {assignment?.todayTrip ? (
-                  <>
-                    <div className="text-sm font-medium">{assignment.todayTrip.name ?? assignment.todayTrip.trip_code ?? "Trip"}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {assignment.todayTrip.trip_type} · {assignment.todayTrip.expected_start_time ?? "—"} → {assignment.todayTrip.expected_end_time ?? "—"}
-                    </div>
-                    <div className="text-xs"><Badge variant="outline" className="mt-1">{assignment.todayTrip.status.replace("_", " ")}</Badge></div>
-                    <Button size="sm" variant="outline" className="mt-2" asChild>
-                      <Link to="/trips/$tripId" params={{ tripId: assignment.todayTrip.id }}>View trip</Link>
-                    </Button>
-                  </>
-                ) : (
-                  <div className="text-sm text-muted-foreground">No active trip</div>
-                )}
+                <div className="mb-1 flex items-center gap-1 text-xs uppercase tracking-wide text-muted-foreground"><MapPin className="h-3.5 w-3.5" /> Trip</div>
+                {(() => {
+                  const trip = assignment?.todayTrip ?? assignment?.upcomingTrip ?? null;
+                  if (!trip) return <div className="text-sm text-muted-foreground">Not Assigned</div>;
+                  const isActive = trip.status === "in_progress" || trip.status === "paused";
+                  return (
+                    <>
+                      <div className="text-sm font-medium">{trip.name ?? trip.trip_code ?? "Trip"}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {trip.trip_date ?? "—"}
+                        {"expected_start_time" in trip && trip.expected_start_time ? ` · ${trip.expected_start_time}` : ""}
+                      </div>
+                      <div className="mt-1">
+                        <Badge variant={isActive ? "secondary" : "outline"}>
+                          {isActive ? "In Trip" : trip.status === "scheduled" ? "Scheduled" : trip.status.replace("_", " ")}
+                        </Badge>
+                      </div>
+                      <Button size="sm" variant="outline" className="mt-2" asChild>
+                        <Link to="/trips/$tripId" params={{ tripId: trip.id }}>View trip</Link>
+                      </Button>
+                    </>
+                  );
+                })()}
               </div>
               <div>
                 <div className="mb-1 text-xs uppercase tracking-wide text-muted-foreground">Students &amp; capacity</div>
@@ -278,6 +321,7 @@ function VehicleDetailPage() {
               </div>
             </div>
           </CardContent>
+
         </Card>
 
 
