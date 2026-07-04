@@ -348,6 +348,19 @@ function StatCard({ label, value, sub, icon: Icon }: { label: string; value: str
   );
 }
 
+function AttendanceBadge({ status }: { status: AttendanceEventType | null }) {
+  if (!status) return <span className="text-xs text-muted-foreground">—</span>;
+  const map: Record<AttendanceEventType, { label: string; className: string }> = {
+    boarded: { label: "Boarded", className: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" },
+    late: { label: "Late", className: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400" },
+    absent: { label: "Absent", className: "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-400" },
+    dropped: { label: "Dropped", className: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" },
+    wrong_stop: { label: "Wrong stop", className: "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-400" },
+  };
+  const cfg = map[status];
+  return <Badge variant="outline" className={cfg.className}>{cfg.label}</Badge>;
+}
+
 /* ---------- Stop list ---------- */
 
 function StopList({
