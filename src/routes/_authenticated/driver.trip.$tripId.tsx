@@ -25,6 +25,9 @@ import {
   CheckCircle2, Clock, UserX, QrCode,
 } from "lucide-react";
 import { SosButton } from "./driver.dashboard";
+import {
+  TripCompletionDialog, CompletedTripBanner, type CompletionStats,
+} from "@/components/driver/trip-completion-dialog";
 
 export const Route = createFileRoute("/_authenticated/driver/trip/$tripId")({
   head: () => ({ meta: [{ title: "Live Trip" }] }),
