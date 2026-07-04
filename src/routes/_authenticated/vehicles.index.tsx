@@ -111,8 +111,9 @@ function VehiclesPage() {
     enabled: !!occupancyScope,
     queryKey: ["vehicle-assignments", occupancyScope],
     queryFn: () => fetchVehicleAssignments(occupancyScope),
-    refetchInterval: 20_000,
   });
+
+  useVehicleAssignmentsRealtime(occupancyScope);
 
   const { data: planUsage } = useQuery({
     enabled: !!occupancyScope,

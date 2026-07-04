@@ -65,9 +65,10 @@ function VehicleDetailPage() {
     enabled: !!vehicle?.school_id,
     queryKey: ["vehicle-assignments", vehicle?.school_id],
     queryFn: () => fetchVehicleAssignments(vehicle?.school_id),
-    refetchInterval: 15_000,
   });
   const assignment = vehicle ? assignments?.get(vehicle.id) : undefined;
+
+  useVehicleAssignmentsRealtime(vehicle?.school_id ?? null);
 
   const { data: photoUrl } = useQuery({
     enabled: !!vehicle?.metadata?.photo_path,
