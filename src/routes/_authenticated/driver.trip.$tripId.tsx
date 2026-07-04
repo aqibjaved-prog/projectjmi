@@ -10,16 +10,19 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
-  useDriverTrip, useDriverStudents, patchDriverTrip, type DriverTripRow,
+  useDriverTrip, useDriverStudents, useMyDriver, patchDriverTrip, type DriverTripRow,
 } from "@/lib/driver-portal";
 import {
   tripStatusLabel, tripTypeLabel, makeEvent, delayMinutes, delayLabel,
   type TripLiveLocation, type TripStopProgress,
 } from "@/lib/trips";
+import { useTripAttendance, type AttendanceEventType } from "@/hooks/use-trip-attendance";
 import { loadGoogleMaps, isGoogleMapsConfigured } from "@/lib/google-maps-loader";
 import {
   ArrowLeft, Gauge, MapPin, Navigation as NavIcon, Pause, Play, Square, Users,
+  CheckCircle2, Clock, UserX, QrCode,
 } from "lucide-react";
 import { SosButton } from "./driver.dashboard";
 
