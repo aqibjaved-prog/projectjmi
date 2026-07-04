@@ -25,6 +25,9 @@ import {
   CheckCircle2, Clock, UserX, QrCode,
 } from "lucide-react";
 import { SosButton } from "./driver.dashboard";
+import {
+  TripCompletionDialog, CompletedTripBanner, type CompletionStats,
+} from "@/components/driver/trip-completion-dialog";
 
 export const Route = createFileRoute("/_authenticated/driver/trip/$tripId")({
   head: () => ({ meta: [{ title: "Live Trip" }] }),
@@ -104,23 +107,46 @@ function LiveTripPage() {
     onSuccess: () => { toast.success("Trip resumed"); invalidate(); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
+  const [completionOpen, setCompletionOpen] = useState(false);
   const end = useMutation({
-    mutationFn: async () => {
-      if (!trip) return;
+    mutationFn: async (stats: CompletionStats) => {
+      if (!trip) return { absent: 0 };
       // Auto-mark any student without a scan as absent.
       const absentCount = await markUnscannedAbsent(routeStudents.map((s) => s.id), "trip ended");
+      const endedAt = stats.actual_end;
+      // Recompute absent for the final summary (may include the auto-absents we just inserted).
+      const finalStats: CompletionStats = {
+        ...stats,
+        absent: stats.absent + absentCount,
+        remaining: Math.max(0, stats.remaining - absentCount),
+      };
       await patchDriverTrip(trip.id, {
         status: "completed",
-        ended_at: new Date().toISOString(),
+        ended_at: endedAt,
+        metadata: {
+          ...(trip.metadata ?? {}),
+          completion_summary: finalStats,
+          completed_by: driver?.id ?? null,
+          completed_at: endedAt,
+          locked: true,
+        },
         timeline: [
           ...trip.timeline,
-          makeEvent("trip.completed", "Trip ended by driver"),
+          makeEvent("trip.completed", "Trip ended by driver", {
+            distance_km: finalStats.distance_km,
+            duration_min: finalStats.duration_min,
+            boarded: finalStats.boarded,
+            dropped: finalStats.dropped,
+            absent: finalStats.absent,
+            late: finalStats.late,
+          }),
         ],
       });
-      return absentCount;
+      return { absent: absentCount };
     },
-    onSuccess: (absentCount) => {
-      toast.success(absentCount ? `Trip ended · ${absentCount} student(s) auto-marked absent` : "Trip ended");
+    onSuccess: ({ absent }) => {
+      toast.success(absent ? `Trip completed · ${absent} student(s) auto-marked absent` : "Trip completed");
+      setCompletionOpen(false);
       invalidate();
       invalidateAttendance();
     },
@@ -186,9 +212,12 @@ function LiveTripPage() {
 
   const nextStop = trip.stop_progress.find((s) => s.status !== "departed" && s.status !== "skipped");
   const remainingStops = trip.stop_progress.filter((s) => s.status !== "departed" && s.status !== "skipped").length;
+  const completionSummary = (trip.metadata?.completion_summary ?? null) as CompletionStats | null;
+  const isCompleted = trip.status === "completed";
 
   return (
     <div className="space-y-4">
+      {isCompleted && <CompletedTripBanner summary={completionSummary} />}
       <PageHeader
         title={trip.name ?? trip.routes?.name ?? "Live trip"}
         description={`${tripTypeLabel(trip.trip_type)} · ${trip.trip_date} · ${trip.trip_code ?? ""}`}
@@ -203,8 +232,8 @@ function LiveTripPage() {
             {isLive && <Button variant="outline" onClick={() => pause.mutate()}><Pause className="mr-2 h-4 w-4" /> Pause</Button>}
             {isPaused && <Button onClick={() => resume.mutate()}><Play className="mr-2 h-4 w-4" /> Resume</Button>}
             {(isLive || isPaused) && (
-              <Button variant="destructive" onClick={() => { if (confirm("End this trip? Unscanned students will be auto-marked absent.")) end.mutate(); }}>
-                <Square className="mr-2 h-4 w-4" /> End
+              <Button variant="destructive" onClick={() => setCompletionOpen(true)}>
+                <Square className="mr-2 h-4 w-4" /> Complete trip
               </Button>
             )}
             <SosButton activeTripId={isLive || isPaused ? trip.id : null} />
@@ -329,6 +358,17 @@ function LiveTripPage() {
           )}
         </CardContent>
       </Card>
+
+      <TripCompletionDialog
+        open={completionOpen}
+        onOpenChange={setCompletionOpen}
+        trip={trip}
+        attendance={attendanceData ?? { byStudent: {}, counts: { boarded: 0, late: 0, absent: 0, dropped: 0, wrong_stop: 0 } }}
+        routeStudentCount={routeStudents.length}
+        driverName={driver?.full_name ?? null}
+        submitting={end.isPending}
+        onConfirm={(stats) => end.mutate(stats)}
+      />
     </div>
   );
 }
