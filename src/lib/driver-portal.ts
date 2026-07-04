@@ -105,12 +105,16 @@ export function useDriverTrips(dateISO?: string) {
     queryFn: async (): Promise<DriverTripRow[]> => {
       if (!driver) return [];
       const routeIds = await fetchDriverRouteIds(driver.id);
+      // Show trips scheduled for today (school timezone) OR any live trip
+      // (in_progress/paused) regardless of trip_date so an active trip started
+      // earlier and not yet completed keeps appearing in the driver portal.
       const { data, error } = await (supabase.from("trips") as any)
         .select(TRIP_SELECT)
         .or(driverTripOrFilter(driver.id, routeIds))
-        .eq("trip_date", date)
+        .or(`trip_date.eq.${date},status.in.(in_progress,paused)`)
         .order("expected_start_time", { ascending: true });
       if (error) throw error;
+
       return ((data ?? []) as any[]).map((r) => ({
         ...normalizeTrip(r),
         routes: r.routes ?? null,
