@@ -201,6 +201,12 @@ function QrPage() {
       });
       if (iErr) throw iErr;
 
+      // Instantly refresh attendance on driver + admin trip views (realtime
+      // handles other tabs, this covers the current tab).
+      qc.invalidateQueries({ queryKey: ["trip-attendance", activeTrip.id] });
+
+
+
       pushHistory({
         kind: isLate ? "warning" : "success",
         title: isLate ? "Boarded (Late)" : "Boarded",
