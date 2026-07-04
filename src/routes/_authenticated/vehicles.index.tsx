@@ -37,12 +37,14 @@ import {
   splitVehiclePayload, uploadVehiclePhoto, expiryStatus, expiryLabel,
   vehicleTypeLabel, vehicleStatusLabel, fuelTypeLabel, fetchVehicleOccupancy,
   fetchVehicleAssignments, vehicleAvailability, vehicleAvailabilityLabel,
+
   VEHICLE_TYPES, VEHICLE_STATUSES, FUEL_TYPES,
   type VehicleFormValues, type VehicleRow, type VehicleType, type VehicleStatus, type FuelType,
   type VehicleAvailability,
 } from "@/lib/vehicles";
 import { fetchPlanUsage, planLimitMessage, preflightCheck } from "@/lib/plan-limits";
 import { PlanUsageCard } from "@/components/plan-usage-card";
+import { useVehicleAssignmentsRealtime } from "@/hooks/use-vehicle-assignments-realtime";
 
 export const Route = createFileRoute("/_authenticated/vehicles/")({
   head: () => ({ meta: [{ title: "Vehicles — School Van Guardian" }] }),
@@ -111,8 +113,9 @@ function VehiclesPage() {
     enabled: !!occupancyScope,
     queryKey: ["vehicle-assignments", occupancyScope],
     queryFn: () => fetchVehicleAssignments(occupancyScope),
-    refetchInterval: 20_000,
   });
+
+  useVehicleAssignmentsRealtime(occupancyScope);
 
   const { data: planUsage } = useQuery({
     enabled: !!occupancyScope,
