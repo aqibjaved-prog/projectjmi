@@ -30,6 +30,7 @@ import {
 } from "@/lib/trips";
 import { TripForm } from "@/components/trips/trip-form";
 import { isGoogleMapsConfigured, loadGoogleMaps } from "@/lib/google-maps-loader";
+import { useTripAttendance } from "@/hooks/use-trip-attendance";
 
 
 const searchSchema = z.object({ edit: z.coerce.number().optional(), start: z.coerce.number().optional() });
