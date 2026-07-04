@@ -138,7 +138,7 @@ function TripDetailPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
-
+  const editTrip = useMutation({
     mutationFn: async (values: TripFormValues) => {
       await patchTrip(tripFormToPayload(values));
     },
@@ -146,7 +146,7 @@ function TripDetailPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
-  // School admins are monitoring-only; trip lifecycle is controlled from the Driver Portal.
+
 
 
   if (isLoading) return <div className="space-y-4"><Skeleton className="h-12 w-72" /><Skeleton className="h-64" /></div>;
