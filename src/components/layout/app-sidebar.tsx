@@ -87,9 +87,10 @@ const NAV: { label: string; items: NavItem[] }[] = [
   {
     label: "Parent",
     items: [
-      { title: "My Child", url: "/parent/child", icon: Baby, roles: ["parent"] },
+      { title: "My Children", url: "/parent/child", icon: Baby, roles: ["parent"] },
       { title: "Live Bus", url: "/parent/live", icon: Radio, roles: ["parent"] },
       { title: "Trip History", url: "/parent/history", icon: History, roles: ["parent"] },
+
     ],
   },
   {
