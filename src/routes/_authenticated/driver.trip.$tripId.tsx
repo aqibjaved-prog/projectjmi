@@ -305,8 +305,9 @@ function LiveTripPage() {
                       </TableRow>
                     );
                   })}
-              </TableBody>
-            </Table>
+                </TableBody>
+              </Table>
+            </>
           )}
         </CardContent>
       </Card>
