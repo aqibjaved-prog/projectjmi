@@ -107,23 +107,46 @@ function LiveTripPage() {
     onSuccess: () => { toast.success("Trip resumed"); invalidate(); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
+  const [completionOpen, setCompletionOpen] = useState(false);
   const end = useMutation({
-    mutationFn: async () => {
-      if (!trip) return;
+    mutationFn: async (stats: CompletionStats) => {
+      if (!trip) return { absent: 0 };
       // Auto-mark any student without a scan as absent.
       const absentCount = await markUnscannedAbsent(routeStudents.map((s) => s.id), "trip ended");
+      const endedAt = stats.actual_end;
+      // Recompute absent for the final summary (may include the auto-absents we just inserted).
+      const finalStats: CompletionStats = {
+        ...stats,
+        absent: stats.absent + absentCount,
+        remaining: Math.max(0, stats.remaining - absentCount),
+      };
       await patchDriverTrip(trip.id, {
         status: "completed",
-        ended_at: new Date().toISOString(),
+        ended_at: endedAt,
+        metadata: {
+          ...(trip.metadata ?? {}),
+          completion_summary: finalStats,
+          completed_by: driver?.id ?? null,
+          completed_at: endedAt,
+          locked: true,
+        },
         timeline: [
           ...trip.timeline,
-          makeEvent("trip.completed", "Trip ended by driver"),
+          makeEvent("trip.completed", "Trip ended by driver", {
+            distance_km: finalStats.distance_km,
+            duration_min: finalStats.duration_min,
+            boarded: finalStats.boarded,
+            dropped: finalStats.dropped,
+            absent: finalStats.absent,
+            late: finalStats.late,
+          }),
         ],
       });
-      return absentCount;
+      return { absent: absentCount };
     },
-    onSuccess: (absentCount) => {
-      toast.success(absentCount ? `Trip ended · ${absentCount} student(s) auto-marked absent` : "Trip ended");
+    onSuccess: ({ absent }) => {
+      toast.success(absent ? `Trip completed · ${absent} student(s) auto-marked absent` : "Trip completed");
+      setCompletionOpen(false);
       invalidate();
       invalidateAttendance();
     },
