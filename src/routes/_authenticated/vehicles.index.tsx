@@ -37,6 +37,7 @@ import {
   splitVehiclePayload, uploadVehiclePhoto, expiryStatus, expiryLabel,
   vehicleTypeLabel, vehicleStatusLabel, fuelTypeLabel, fetchVehicleOccupancy,
   fetchVehicleAssignments, vehicleAvailability, vehicleAvailabilityLabel,
+
   VEHICLE_TYPES, VEHICLE_STATUSES, FUEL_TYPES,
   type VehicleFormValues, type VehicleRow, type VehicleType, type VehicleStatus, type FuelType,
   type VehicleAvailability,
