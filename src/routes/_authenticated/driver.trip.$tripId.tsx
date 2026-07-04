@@ -35,15 +35,58 @@ function LiveTripPage() {
   const { tripId } = Route.useParams();
   const { data: trip, isLoading } = useDriverTrip(tripId);
   const { data: students } = useDriverStudents();
+  const { data: driver } = useMyDriver();
+  const { data: attendanceData } = useTripAttendance(tripId);
   const qc = useQueryClient();
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["driver-portal"] });
+  const invalidateAttendance = () => qc.invalidateQueries({ queryKey: ["trip-attendance", tripId] });
 
   const isLive = trip?.status === "in_progress";
   const isPaused = trip?.status === "paused";
 
   // GPS tracking — updates trips.live_location every 10s while trip is live.
   useGpsTracker(tripId, isLive);
+
+  const routeStudents = useMemo(
+    () => (students ?? []).filter((s) => s.route_id === trip?.route_id),
+    [students, trip?.route_id],
+  );
+
+  const attendance = attendanceData?.byStudent ?? {};
+  const counts = attendanceData?.counts ?? { boarded: 0, late: 0, absent: 0, dropped: 0, wrong_stop: 0 };
+  const totalStudents = routeStudents.length;
+  const isDrop = trip?.trip_type === "drop";
+  const presentCount = isDrop ? counts.dropped : counts.boarded + counts.late;
+  const remainingStudents = Math.max(0, totalStudents - presentCount - counts.absent - counts.wrong_stop);
+
+  // Auto-mark unscanned students as absent for the given student ids.
+  async function markUnscannedAbsent(studentIds: string[], reason: string) {
+    if (!trip || !driver || studentIds.length === 0) return 0;
+    const unscanned = studentIds.filter((id) => !attendance[id]);
+    if (unscanned.length === 0) return 0;
+    const rows = unscanned.map((student_id) => ({
+      school_id: driver.school_id,
+      driver_id: driver.id,
+      trip_id: trip.id,
+      student_id,
+      event_type: "absent" as const,
+      scanned_at: new Date().toISOString(),
+      location: null,
+    }));
+    const { error } = await supabase.from("qr_logs").insert(rows);
+    if (error) throw error;
+    // Log to trip timeline
+    await patchDriverTrip(trip.id, {
+      timeline: [
+        ...trip.timeline,
+        makeEvent("students.auto_absent", `Auto-marked ${unscanned.length} student(s) absent — ${reason}`, {
+          count: unscanned.length,
+        }),
+      ],
+    });
+    return unscanned.length;
+  }
 
   const pause = useMutation({
     mutationFn: async () => {
@@ -64,18 +107,29 @@ function LiveTripPage() {
   const end = useMutation({
     mutationFn: async () => {
       if (!trip) return;
+      // Auto-mark any student without a scan as absent.
+      const absentCount = await markUnscannedAbsent(routeStudents.map((s) => s.id), "trip ended");
       await patchDriverTrip(trip.id, {
-        status: "completed", ended_at: new Date().toISOString(),
-        timeline: [...trip.timeline, makeEvent("trip.completed", "Trip ended by driver")],
+        status: "completed",
+        ended_at: new Date().toISOString(),
+        timeline: [
+          ...trip.timeline,
+          makeEvent("trip.completed", "Trip ended by driver"),
+        ],
       });
+      return absentCount;
     },
-    onSuccess: () => { toast.success("Trip ended"); invalidate(); },
+    onSuccess: (absentCount) => {
+      toast.success(absentCount ? `Trip ended · ${absentCount} student(s) auto-marked absent` : "Trip ended");
+      invalidate();
+      invalidateAttendance();
+    },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
   const markStop = useMutation({
     mutationFn: async ({ stopId, action, boarded, missing }: { stopId: string; action: "arrive" | "depart" | "skip"; boarded?: number; missing?: number }) => {
-      if (!trip) return;
+      if (!trip) return { absent: 0, action };
       const now = new Date().toISOString();
       const stops = trip.stop_progress.map((s) => {
         if (s.stop_id !== stopId) return s;
@@ -87,21 +141,43 @@ function LiveTripPage() {
       const msg = action === "arrive" ? `Reached ${stop?.name}` : action === "skip" ? `Skipped ${stop?.name}` : `Departed ${stop?.name}`;
       const et = action === "arrive" ? "stop.reached" : action === "skip" ? "stop.skipped" : "stop.departed";
       await patchDriverTrip(trip.id, { stop_progress: stops, timeline: [...trip.timeline, makeEvent(et, msg)] });
+
+      // Auto-absent: when the LAST remaining stop is departed or skipped, mark
+      // every student still without a scan as absent (student→stop mapping
+      // is not stored today, so we treat "route done" as the trigger).
+      let absent = 0;
+      const stillOpen = stops.some((s) => s.status !== "departed" && s.status !== "skipped");
+      if (!stillOpen && (action === "depart" || action === "skip")) {
+        absent = await markUnscannedAbsent(routeStudents.map((s) => s.id), `left last stop (${stop?.name ?? ""})`);
+      }
+      return { absent, action };
     },
-    onSuccess: () => { toast.success("Stop updated"); invalidate(); },
+    onSuccess: ({ absent }) => {
+      toast.success(absent ? `Stop updated · ${absent} unscanned marked absent` : "Stop updated");
+      invalidate();
+      invalidateAttendance();
+    },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
+  // Drop-trip actions still update qr_logs directly. Boarded/Absent/Late are
+  // no longer manual — Boarded comes from the QR scanner, Absent from the
+  // auto-absent flow, Late from a delayed scan.
   const studentStatus = useMutation({
-    mutationFn: async ({ studentId, status }: { studentId: string; status: "boarded" | "absent" | "not_present" | "late" | "dropped" | "wrong_stop" }) => {
-      if (!trip) return;
-      const meta = (trip.metadata ?? {}) as any;
-      const attendance = (meta.attendance ?? {}) as Record<string, string>;
-      attendance[studentId] = status;
-      const timeline = [...trip.timeline, makeEvent(`student.${status}`, `Student ${studentId} marked ${status}`, { studentId })];
-      await patchDriverTrip(trip.id, { metadata: { ...meta, attendance }, timeline });
+    mutationFn: async ({ studentId, status }: { studentId: string; status: "dropped" | "wrong_stop" }) => {
+      if (!trip || !driver) return;
+      const { error } = await supabase.from("qr_logs").insert({
+        school_id: driver.school_id,
+        driver_id: driver.id,
+        trip_id: trip.id,
+        student_id: studentId,
+        event_type: status,
+        scanned_at: new Date().toISOString(),
+        location: null,
+      });
+      if (error) throw error;
     },
-    onSuccess: () => invalidate(),
+    onSuccess: () => { invalidateAttendance(); },
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
@@ -109,10 +185,7 @@ function LiveTripPage() {
   if (!trip) return <EmptyState title="Trip not found" description="This trip may have been deleted or you don't have access." />;
 
   const nextStop = trip.stop_progress.find((s) => s.status !== "departed" && s.status !== "skipped");
-  const remaining = trip.stop_progress.filter((s) => s.status !== "departed" && s.status !== "skipped").length;
-  const attendance = ((trip.metadata as any)?.attendance ?? {}) as Record<string, string>;
-  const picked = Object.values(attendance).filter((s) => s === "boarded").length;
-  const routeStudents = (students ?? []).filter((s) => s.route_id === trip.route_id);
+  const remainingStops = trip.stop_progress.filter((s) => s.status !== "departed" && s.status !== "skipped").length;
 
   return (
     <div className="space-y-4">
@@ -122,10 +195,15 @@ function LiveTripPage() {
         actions={
           <div className="flex flex-wrap gap-2">
             <Button variant="ghost" asChild><Link to="/driver/today"><ArrowLeft className="mr-2 h-4 w-4" /> Back</Link></Button>
+            {isLive && (
+              <Button variant="outline" asChild>
+                <Link to="/driver/qr"><QrCode className="mr-2 h-4 w-4" /> Scan QR</Link>
+              </Button>
+            )}
             {isLive && <Button variant="outline" onClick={() => pause.mutate()}><Pause className="mr-2 h-4 w-4" /> Pause</Button>}
             {isPaused && <Button onClick={() => resume.mutate()}><Play className="mr-2 h-4 w-4" /> Resume</Button>}
             {(isLive || isPaused) && (
-              <Button variant="destructive" onClick={() => { if (confirm("End this trip?")) end.mutate(); }}>
+              <Button variant="destructive" onClick={() => { if (confirm("End this trip? Unscanned students will be auto-marked absent.")) end.mutate(); }}>
                 <Square className="mr-2 h-4 w-4" /> End
               </Button>
             )}
@@ -138,7 +216,15 @@ function LiveTripPage() {
         <StatCard label="Status" value={tripStatusLabel(trip.status)} />
         <StatCard label="Speed" value={trip.live_location?.speed_kmh != null ? `${trip.live_location.speed_kmh} km/h` : "—"} icon={Gauge} />
         <StatCard label="Next stop" value={nextStop?.name ?? "—"} sub={nextStop?.scheduled_arrival ?? undefined} />
-        <StatCard label="Students picked" value={`${picked} / ${routeStudents.length}`} sub={`${remaining} stops remaining`} icon={Users} />
+        <StatCard label="Progress" value={`${presentCount} / ${totalStudents}`} sub={`${remainingStops} stops · ${remainingStudents} pending`} icon={Users} />
+      </div>
+
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-5">
+        <StatCard label="Total" value={String(totalStudents)} icon={Users} />
+        <StatCard label={isDrop ? "Dropped" : "Boarded"} value={String(isDrop ? counts.dropped : counts.boarded)} icon={CheckCircle2} />
+        <StatCard label="Late" value={String(counts.late)} icon={Clock} />
+        <StatCard label="Absent" value={String(counts.absent)} icon={UserX} />
+        <StatCard label="Remaining" value={String(remainingStudents)} />
       </div>
 
       <Card>
@@ -160,59 +246,65 @@ function LiveTripPage() {
       <Card>
         <CardHeader><CardTitle className="text-base">Stops</CardTitle></CardHeader>
         <CardContent>
-          <StopList trip={trip} canManage={isLive} onArrive={(id) => markStop.mutate({ stopId: id, action: "arrive" })} onDepart={(id, b, m) => markStop.mutate({ stopId: id, action: "depart", boarded: b, missing: m })} onSkip={(id) => { if (confirm("Skip this stop?")) markStop.mutate({ stopId: id, action: "skip" }); }} />
+          <StopList trip={trip} canManage={isLive} onArrive={(id) => markStop.mutate({ stopId: id, action: "arrive" })} onDepart={(id, b, m) => markStop.mutate({ stopId: id, action: "depart", boarded: b, missing: m })} onSkip={(id) => { if (confirm("Skip this stop? Remaining students may be auto-marked absent.")) markStop.mutate({ stopId: id, action: "skip" }); }} />
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader><CardTitle className="text-base flex items-center gap-2"><Users className="h-4 w-4" /> Students on this trip</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2"><Users className="h-4 w-4" /> Students on this trip</CardTitle>
+        </CardHeader>
         <CardContent>
           {routeStudents.length === 0 ? (
             <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">No students on this route.</div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Student</TableHead>
-                  <TableHead>Class</TableHead>
-                  <TableHead>Pickup</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-[280px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {routeStudents.map((s) => {
-                  const st = attendance[s.id];
-                  const isDrop = trip.trip_type === "drop";
-                  return (
-                    <TableRow key={s.id}>
-                      <TableCell>
-                        <div className="font-medium">{s.full_name}</div>
-                        <div className="text-xs text-muted-foreground">{s.student_code ?? "—"}</div>
-                      </TableCell>
-                      <TableCell>{[s.grade, s.class_section].filter(Boolean).join(" · ") || "—"}</TableCell>
-                      <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">{s.pickup_address ?? "—"}</TableCell>
-                      <TableCell>{st ? <Badge variant="outline" className="capitalize">{st.replace("_", " ")}</Badge> : <span className="text-xs text-muted-foreground">—</span>}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {!isDrop ? (
-                            <>
-                              <Button size="sm" variant="outline" disabled={!isLive} onClick={() => studentStatus.mutate({ studentId: s.id, status: "boarded" })}>Boarded</Button>
-                              <Button size="sm" variant="outline" disabled={!isLive} onClick={() => studentStatus.mutate({ studentId: s.id, status: "absent" })}>Absent</Button>
-                              <Button size="sm" variant="outline" disabled={!isLive} onClick={() => studentStatus.mutate({ studentId: s.id, status: "late" })}>Late</Button>
-                            </>
-                          ) : (
-                            <>
-                              <Button size="sm" variant="outline" disabled={!isLive} onClick={() => studentStatus.mutate({ studentId: s.id, status: "dropped" })}>Dropped</Button>
-                              <Button size="sm" variant="outline" disabled={!isLive} onClick={() => studentStatus.mutate({ studentId: s.id, status: "absent" })}>Absent</Button>
-                              <Button size="sm" variant="destructive" disabled={!isLive} onClick={() => studentStatus.mutate({ studentId: s.id, status: "wrong_stop" })}>Wrong stop</Button>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+            <>
+              {!isDrop && (
+                <p className="mb-3 text-xs text-muted-foreground">
+                  Boarded, Late and Absent update automatically from QR scans and stop progress. Use the QR Scanner to board students.
+                </p>
+              )}
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Student</TableHead>
+                    <TableHead>Class</TableHead>
+                    <TableHead>Pickup</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Scanned</TableHead>
+                    {isDrop && <TableHead className="w-[240px]">Actions</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {routeStudents.map((s) => {
+                    const rec = attendance[s.id];
+                    return (
+                      <TableRow key={s.id}>
+                        <TableCell>
+                          <div className="font-medium">{s.full_name}</div>
+                          <div className="text-xs text-muted-foreground">{s.student_code ?? "—"}</div>
+                        </TableCell>
+                        <TableCell>{[s.grade, s.class_section].filter(Boolean).join(" · ") || "—"}</TableCell>
+                        <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">{s.pickup_address ?? "—"}</TableCell>
+                        <TableCell><AttendanceBadge status={rec?.event_type ?? null} /></TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {rec?.scanned_at ? new Date(rec.scanned_at).toLocaleTimeString() : "—"}
+                        </TableCell>
+                        {isDrop && (
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              <Button size="sm" variant="outline" disabled={!isLive || rec?.event_type === "dropped"} onClick={() => studentStatus.mutate({ studentId: s.id, status: "dropped" })}>
+                                Dropped
+                              </Button>
+                              <Button size="sm" variant="destructive" disabled={!isLive} onClick={() => studentStatus.mutate({ studentId: s.id, status: "wrong_stop" })}>
+                                Wrong stop
+                              </Button>
+                            </div>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })}
               </TableBody>
             </Table>
           )}
