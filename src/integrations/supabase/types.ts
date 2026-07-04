@@ -139,6 +139,7 @@ export type Database = {
           full_name: string
           id: string
           phone: string | null
+          phone_normalized: string | null
           school_id: string
           updated_at: string
           user_id: string | null
@@ -150,6 +151,7 @@ export type Database = {
           full_name: string
           id?: string
           phone?: string | null
+          phone_normalized?: string | null
           school_id: string
           updated_at?: string
           user_id?: string | null
@@ -161,6 +163,7 @@ export type Database = {
           full_name?: string
           id?: string
           phone?: string | null
+          phone_normalized?: string | null
           school_id?: string
           updated_at?: string
           user_id?: string | null
@@ -543,6 +546,7 @@ export type Database = {
           parent_id: string | null
           parent_name: string | null
           parent_phone: string | null
+          parent_phone_normalized: string | null
           photo_url: string | null
           pickup_address: string | null
           pickup_lat: number | null
@@ -576,6 +580,7 @@ export type Database = {
           parent_id?: string | null
           parent_name?: string | null
           parent_phone?: string | null
+          parent_phone_normalized?: string | null
           photo_url?: string | null
           pickup_address?: string | null
           pickup_lat?: number | null
@@ -609,6 +614,7 @@ export type Database = {
           parent_id?: string | null
           parent_name?: string | null
           parent_phone?: string | null
+          parent_phone_normalized?: string | null
           photo_url?: string | null
           pickup_address?: string | null
           pickup_lat?: number | null
@@ -1102,6 +1108,14 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      link_parent_by_phone: {
+        Args: never
+        Returns: {
+          linked_children: number
+          schools: number
+        }[]
+      }
+      normalize_phone: { Args: { _p: string }; Returns: string }
       school_plan_limits: {
         Args: { _school_id: string }
         Returns: {

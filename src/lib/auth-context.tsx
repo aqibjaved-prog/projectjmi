@@ -36,11 +36,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const loadRoles = async (uid: string) => {
-    const { data } = await supabase
+    let { data } = await supabase
       .from("user_roles")
       .select("role, school_id")
       .eq("user_id", uid);
-    const roleRows = (data as UserRoleRow[]) ?? [];
+    let roleRows = (data as UserRoleRow[]) ?? [];
+
+    // Parent OTP auto-link: if the signed-in user has a phone but no role yet,
+    // try to link them to any matching students by parent_phone.
+    if (roleRows.length === 0) {
+      const { data: authData } = await supabase.auth.getUser();
+      const phone = authData.user?.phone;
+      if (phone) {
+        try {
+          await supabase.rpc("link_parent_by_phone" as never);
+          const re = await supabase.from("user_roles").select("role, school_id").eq("user_id", uid);
+          roleRows = ((re.data as UserRoleRow[]) ?? []);
+        } catch {
+          // ignored — user will see "no role" state
+        }
+      }
+    }
 
     // Enforce driver account lifecycle: block disabled or soft-deleted drivers.
     if (roleRows.some((r) => r.role === "driver")) {
@@ -63,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setRoles(roleRows);
   };
+
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
