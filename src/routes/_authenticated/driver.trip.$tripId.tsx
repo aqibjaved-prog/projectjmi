@@ -229,8 +229,8 @@ function LiveTripPage() {
             {isLive && <Button variant="outline" onClick={() => pause.mutate()}><Pause className="mr-2 h-4 w-4" /> Pause</Button>}
             {isPaused && <Button onClick={() => resume.mutate()}><Play className="mr-2 h-4 w-4" /> Resume</Button>}
             {(isLive || isPaused) && (
-              <Button variant="destructive" onClick={() => { if (confirm("End this trip? Unscanned students will be auto-marked absent.")) end.mutate(); }}>
-                <Square className="mr-2 h-4 w-4" /> End
+              <Button variant="destructive" onClick={() => setCompletionOpen(true)}>
+                <Square className="mr-2 h-4 w-4" /> Complete trip
               </Button>
             )}
             <SosButton activeTripId={isLive || isPaused ? trip.id : null} />
