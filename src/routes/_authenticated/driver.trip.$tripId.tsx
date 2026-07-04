@@ -212,9 +212,12 @@ function LiveTripPage() {
 
   const nextStop = trip.stop_progress.find((s) => s.status !== "departed" && s.status !== "skipped");
   const remainingStops = trip.stop_progress.filter((s) => s.status !== "departed" && s.status !== "skipped").length;
+  const completionSummary = (trip.metadata?.completion_summary ?? null) as CompletionStats | null;
+  const isCompleted = trip.status === "completed";
 
   return (
     <div className="space-y-4">
+      {isCompleted && <CompletedTripBanner summary={completionSummary} />}
       <PageHeader
         title={trip.name ?? trip.routes?.name ?? "Live trip"}
         description={`${tripTypeLabel(trip.trip_type)} · ${trip.trip_date} · ${trip.trip_code ?? ""}`}
