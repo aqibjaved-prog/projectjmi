@@ -358,6 +358,17 @@ function LiveTripPage() {
           )}
         </CardContent>
       </Card>
+
+      <TripCompletionDialog
+        open={completionOpen}
+        onOpenChange={setCompletionOpen}
+        trip={trip}
+        attendance={attendanceData ?? { byStudent: {}, counts: { boarded: 0, late: 0, absent: 0, dropped: 0, wrong_stop: 0 } }}
+        routeStudentCount={routeStudents.length}
+        driverName={driver?.full_name ?? null}
+        submitting={end.isPending}
+        onConfirm={(stats) => end.mutate(stats)}
+      />
     </div>
   );
 }
