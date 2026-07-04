@@ -75,6 +75,13 @@ function VehicleDetailPage() {
     queryFn: () => getVehiclePhotoUrl(vehicle?.metadata?.photo_path ?? null),
   });
 
+  const { data: driverPhotoUrl } = useQuery({
+    enabled: !!assignment?.driver?.photo_path,
+    queryKey: ["driver-photo", assignment?.driver?.id, assignment?.driver?.photo_path],
+    queryFn: () => getDriverPhotoUrl(assignment?.driver?.photo_path ?? null),
+  });
+
+
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["vehicle", vehicleId] });
     qc.invalidateQueries({ queryKey: ["vehicles-list"] });
