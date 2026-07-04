@@ -16,9 +16,12 @@ import {
   vehicleToFormDefaults, splitVehiclePayload, mergeMetadata, uploadVehiclePhoto,
   getVehiclePhotoUrl, expiryStatus, expiryLabel,
   vehicleTypeLabel, vehicleStatusLabel, fuelTypeLabel, fetchVehicleOccupancy,
-  fetchVehicleAssignments, vehicleAvailability, vehicleAvailabilityLabel,
+  fetchVehicleAssignments, vehicleAvailability, vehicleAvailabilityLabel, routeTypeLabel,
   type VehicleFormValues, type VehicleRow, type VehicleStatus,
 } from "@/lib/vehicles";
+import { getDriverPhotoUrl } from "@/lib/drivers";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 
 type Detail = VehicleRow & { schools?: { id: string; name: string } | null };
 
