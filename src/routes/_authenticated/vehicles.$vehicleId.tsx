@@ -21,6 +21,7 @@ import {
 } from "@/lib/vehicles";
 import { getDriverPhotoUrl } from "@/lib/drivers";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useVehicleAssignmentsRealtime } from "@/hooks/use-vehicle-assignments-realtime";
 
 
 type Detail = VehicleRow & { schools?: { id: string; name: string } | null };

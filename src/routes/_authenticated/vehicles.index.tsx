@@ -44,6 +44,7 @@ import {
 } from "@/lib/vehicles";
 import { fetchPlanUsage, planLimitMessage, preflightCheck } from "@/lib/plan-limits";
 import { PlanUsageCard } from "@/components/plan-usage-card";
+import { useVehicleAssignmentsRealtime } from "@/hooks/use-vehicle-assignments-realtime";
 
 export const Route = createFileRoute("/_authenticated/vehicles/")({
   head: () => ({ meta: [{ title: "Vehicles — School Van Guardian" }] }),
