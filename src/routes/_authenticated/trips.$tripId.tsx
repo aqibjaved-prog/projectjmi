@@ -68,6 +68,10 @@ function TripDetailPage() {
     },
   });
 
+  const { data: attendanceData } = useTripAttendance(tripId);
+  const attendance = attendanceData?.byStudent ?? {};
+  const attendanceCounts = attendanceData?.counts ?? { boarded: 0, late: 0, absent: 0, dropped: 0, wrong_stop: 0 };
+
   const { data: assignedStudents } = useQuery({
     enabled: !!trip?.route_id,
     queryKey: ["trip-students", trip?.route_id],
