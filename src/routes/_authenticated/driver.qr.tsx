@@ -9,6 +9,7 @@ import { BrowserMultiFormatReader } from "@zxing/browser";
 import { BarcodeFormat, DecodeHintType } from "@zxing/library";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyDriver, useDriverTrips } from "@/lib/driver-portal";
+import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/driver/qr")({
