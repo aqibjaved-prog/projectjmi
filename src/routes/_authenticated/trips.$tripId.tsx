@@ -18,8 +18,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  ArrowLeft, Play, Pause, CheckCircle2, XCircle, Clock, MapPin, User, Car, Route as RouteIcon,
-  Pencil, Users, Gauge, Navigation, Fuel, ShieldCheck, RefreshCcw, Download, Flag,
+  ArrowLeft, XCircle, MapPin, User, Car, Route as RouteIcon,
+  Pencil, Users, Gauge, Navigation, Fuel, ShieldCheck, RefreshCcw, Download, Flag, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
@@ -28,9 +28,9 @@ import {
   normalizeTrip, tripStatusLabel, tripTypeLabel, tripFormToPayload, delayMinutes, delayLabel,
   type TripRow, type TripStopProgress, type TripFormValues, type TripLiveLocation,
 } from "@/lib/trips";
-import { assertVehicleAvailableForTrip } from "@/lib/vehicles";
 import { TripForm } from "@/components/trips/trip-form";
 import { isGoogleMapsConfigured, loadGoogleMaps } from "@/lib/google-maps-loader";
+
 
 const searchSchema = z.object({ edit: z.coerce.number().optional(), start: z.coerce.number().optional() });
 
