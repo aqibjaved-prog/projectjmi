@@ -79,6 +79,7 @@ function QrPage() {
 
   const { data: driver } = useMyDriver();
   const { data: trips } = useDriverTrips();
+  const qc = useQueryClient();
 
   const activeTrip = trips?.find((t) => t.status === "in_progress" || t.status === "paused") ?? null;
 
