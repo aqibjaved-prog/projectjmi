@@ -486,7 +486,7 @@ function VehiclesPage() {
                     <TableHead>Type</TableHead>
                     <TableHead>Assigned driver</TableHead>
                     <TableHead>Assigned route</TableHead>
-                    <TableHead>Today's trip</TableHead>
+                    <TableHead>Current trip</TableHead>
                     <TableHead>Students</TableHead>
                     <TableHead>Availability</TableHead>
                     <TableHead>Insurance</TableHead>
