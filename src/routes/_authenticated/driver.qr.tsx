@@ -9,6 +9,7 @@ import { BrowserMultiFormatReader } from "@zxing/browser";
 import { BarcodeFormat, DecodeHintType } from "@zxing/library";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyDriver, useDriverTrips } from "@/lib/driver-portal";
+import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/driver/qr")({
@@ -78,6 +79,7 @@ function QrPage() {
 
   const { data: driver } = useMyDriver();
   const { data: trips } = useDriverTrips();
+  const qc = useQueryClient();
 
   const activeTrip = trips?.find((t) => t.status === "in_progress" || t.status === "paused") ?? null;
 
@@ -144,19 +146,20 @@ function QrPage() {
         return;
       }
 
-      // Duplicate check: already boarded on this trip?
+      // Duplicate check: already boarded / late on this trip?
       const { data: dup, error: dErr } = await supabase
         .from("qr_logs")
-        .select("id")
+        .select("id, event_type")
         .eq("trip_id", activeTrip.id)
         .eq("student_id", student.id)
-        .eq("event_type", "boarded")
+        .in("event_type", ["boarded", "late"])
         .limit(1);
       if (dErr) throw dErr;
       if (dup && dup.length > 0) {
         pushHistory({
           kind: "warning",
-          title: "Student Already Boarded",
+          title: "Already Boarded",
+          detail: "This student has already been scanned for this trip.",
           studentName: student.full_name,
           studentCode: student.student_code,
           at: new Date().toISOString(),
@@ -164,6 +167,22 @@ function QrPage() {
         beep(false); vibrate(false);
         return;
       }
+
+      // Late detection: scanned_at > expected_start + grace period.
+      // Grace period defaults to 10 minutes; configurable per trip via
+      // trip.metadata.late_grace_min.
+      const now = new Date();
+      const graceMin = Number(((activeTrip.metadata ?? {}) as any).late_grace_min ?? 10);
+      let isLate = false;
+      if (activeTrip.expected_start_time && activeTrip.trip_date) {
+        const [hh, mm, ss] = activeTrip.expected_start_time.split(":").map((n) => Number(n) || 0);
+        const scheduled = new Date(`${activeTrip.trip_date}T${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss || 0).padStart(2, "0")}`);
+        if (!Number.isNaN(scheduled.getTime())) {
+          const deadline = new Date(scheduled.getTime() + graceMin * 60_000);
+          isLate = now.getTime() > deadline.getTime();
+        }
+      }
+      const eventType = isLate ? "late" : "boarded";
 
       // GPS (best effort)
       const pos = await getPosition();
@@ -176,15 +195,22 @@ function QrPage() {
         driver_id: driver.id,
         trip_id: activeTrip.id,
         student_id: student.id,
-        event_type: "boarded",
+        event_type: eventType,
         location,
-        scanned_at: new Date().toISOString(),
+        scanned_at: now.toISOString(),
       });
       if (iErr) throw iErr;
 
+      // Instantly refresh attendance on driver + admin trip views (realtime
+      // handles other tabs, this covers the current tab).
+      qc.invalidateQueries({ queryKey: ["trip-attendance", activeTrip.id] });
+
+
+
       pushHistory({
-        kind: "success",
-        title: "Boarded",
+        kind: isLate ? "warning" : "success",
+        title: isLate ? "Boarded (Late)" : "Boarded",
+        detail: isLate ? `Scanned after ${graceMin}-minute grace period.` : undefined,
         studentName: student.full_name,
         studentCode: student.student_code,
         at: new Date().toISOString(),
@@ -203,7 +229,7 @@ function QrPage() {
       // Resume after cooldown
       setTimeout(() => { processingRef.current = false; }, COOLDOWN_MS);
     }
-  }, [driver, activeTrip, pushHistory]);
+  }, [driver, activeTrip, pushHistory, qc]);
 
   const start = useCallback(async () => {
     setErr(null);

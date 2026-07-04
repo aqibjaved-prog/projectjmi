@@ -30,6 +30,7 @@ import {
 } from "@/lib/trips";
 import { TripForm } from "@/components/trips/trip-form";
 import { isGoogleMapsConfigured, loadGoogleMaps } from "@/lib/google-maps-loader";
+import { useTripAttendance } from "@/hooks/use-trip-attendance";
 
 
 const searchSchema = z.object({ edit: z.coerce.number().optional(), start: z.coerce.number().optional() });
@@ -66,6 +67,10 @@ function TripDetailPage() {
       return d && d.status === "in_progress" ? 5000 : false;
     },
   });
+
+  const { data: attendanceData } = useTripAttendance(tripId);
+  const attendance = attendanceData?.byStudent ?? {};
+  const attendanceCounts = attendanceData?.counts ?? { boarded: 0, late: 0, absent: 0, dropped: 0, wrong_stop: 0 };
 
   const { data: assignedStudents } = useQuery({
     enabled: !!trip?.route_id,
@@ -275,6 +280,13 @@ function TripDetailPage() {
         </TabsContent>
 
         <TabsContent value="students">
+          <div className="grid gap-3 grid-cols-2 sm:grid-cols-5 mb-4">
+            <InfoCard icon={Users} label="Total" value={String((assignedStudents ?? []).length)} />
+            <InfoCard icon={Users} label={trip.trip_type === "drop" ? "Dropped" : "Boarded"} value={String(trip.trip_type === "drop" ? attendanceCounts.dropped : attendanceCounts.boarded)} />
+            <InfoCard icon={Clock} label="Late" value={String(attendanceCounts.late)} />
+            <InfoCard icon={XCircle} label="Absent" value={String(attendanceCounts.absent)} />
+            <InfoCard icon={Users} label="Remaining" value={String(Math.max(0, (assignedStudents ?? []).length - Object.keys(attendance).length))} />
+          </div>
           <Card>
             <CardHeader><CardTitle className="text-base flex items-center gap-2"><Users className="h-4 w-4" /> Students {trip.snapshot?.locked_at ? <Badge variant="outline">Locked at start</Badge> : null}</CardTitle></CardHeader>
             <CardContent>
@@ -286,19 +298,42 @@ function TripDetailPage() {
                     <TableRow>
                       <TableHead>Code</TableHead>
                       <TableHead>Name</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Scanned</TableHead>
                       <TableHead>Pickup address</TableHead>
                       <TableHead>Parent phone</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(assignedStudents ?? []).map((s) => (
-                      <TableRow key={s.id}>
-                        <TableCell className="font-mono text-xs">{s.student_code ?? "—"}</TableCell>
-                        <TableCell>{s.full_name}</TableCell>
-                        <TableCell className="text-muted-foreground">{s.pickup_address ?? "—"}</TableCell>
-                        <TableCell>{s.parent_phone ?? "—"}</TableCell>
-                      </TableRow>
-                    ))}
+                    {(assignedStudents ?? []).map((s) => {
+                      const rec = attendance[s.id];
+                      const status = rec?.event_type ?? null;
+                      const styles: Record<string, string> = {
+                        boarded: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+                        dropped: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+                        late: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+                        absent: "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-400",
+                        wrong_stop: "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-400",
+                      };
+                      return (
+                        <TableRow key={s.id}>
+                          <TableCell className="font-mono text-xs">{s.student_code ?? "—"}</TableCell>
+                          <TableCell>{s.full_name}</TableCell>
+                          <TableCell>
+                            {status ? (
+                              <Badge variant="outline" className={styles[status] ?? ""}>{status.replace("_", " ")}</Badge>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {rec?.scanned_at ? new Date(rec.scanned_at).toLocaleTimeString() : "—"}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">{s.pickup_address ?? "—"}</TableCell>
+                          <TableCell>{s.parent_phone ?? "—"}</TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               )}
