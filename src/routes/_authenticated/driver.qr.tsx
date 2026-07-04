@@ -229,7 +229,7 @@ function QrPage() {
       // Resume after cooldown
       setTimeout(() => { processingRef.current = false; }, COOLDOWN_MS);
     }
-  }, [driver, activeTrip, pushHistory]);
+  }, [driver, activeTrip, pushHistory, qc]);
 
   const start = useCallback(async () => {
     setErr(null);
