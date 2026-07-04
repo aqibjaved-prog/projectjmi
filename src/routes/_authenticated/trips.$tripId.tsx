@@ -18,8 +18,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  ArrowLeft, Play, Pause, CheckCircle2, XCircle, Clock, MapPin, User, Car, Route as RouteIcon,
-  Pencil, Users, Gauge, Navigation, Fuel, ShieldCheck, RefreshCcw, Download, Flag,
+  ArrowLeft, XCircle, MapPin, User, Car, Route as RouteIcon,
+  Pencil, Users, Gauge, Navigation, Fuel, ShieldCheck, RefreshCcw, Download, Flag, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
@@ -28,9 +28,9 @@ import {
   normalizeTrip, tripStatusLabel, tripTypeLabel, tripFormToPayload, delayMinutes, delayLabel,
   type TripRow, type TripStopProgress, type TripFormValues, type TripLiveLocation,
 } from "@/lib/trips";
-import { assertVehicleAvailableForTrip } from "@/lib/vehicles";
 import { TripForm } from "@/components/trips/trip-form";
 import { isGoogleMapsConfigured, loadGoogleMaps } from "@/lib/google-maps-loader";
+
 
 const searchSchema = z.object({ edit: z.coerce.number().optional(), start: z.coerce.number().optional() });
 
@@ -124,63 +124,9 @@ function TripDetailPage() {
     if (error) throw error as Error;
   };
 
-  const startTrip = useMutation({
-    mutationFn: async () => {
-      if (!trip) throw new Error("Trip not loaded");
-      await assertVehicleAvailableForTrip(trip.vehicle_id, trip.id);
-      const snapshot = {
-        route_name: trip.routes?.name ?? null,
-        driver_name: trip.drivers?.full_name ?? null,
-        vehicle_registration: trip.vehicles?.registration_number ?? null,
-        vehicle_capacity: trip.vehicles?.capacity ?? null,
-        student_ids: (assignedStudents ?? []).map((s) => s.id),
-        student_count: (assignedStudents ?? []).length,
-        locked_at: new Date().toISOString(),
-      };
-      const timeline = [...trip.timeline, {
-        id: crypto.randomUUID(), event_type: "trip.started",
-        message: "Trip started", at: new Date().toISOString(),
-      }];
-      await patchTrip({
-        status: "in_progress",
-        started_at: new Date().toISOString(),
-        snapshot,
-        timeline,
-      });
-    },
-    onSuccess: () => { toast.success("Trip started — student list, driver, vehicle and route locked."); invalidate(); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
-  });
-
-  const pauseTrip = useMutation({
-    mutationFn: async () => {
-      if (!trip) return;
-      const timeline = [...trip.timeline, { id: crypto.randomUUID(), event_type: "trip.paused", message: "Trip paused", at: new Date().toISOString() }];
-      await patchTrip({ status: "paused", timeline });
-    },
-    onSuccess: () => { toast.success("Trip paused"); invalidate(); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
-  });
-
-  const resumeTrip = useMutation({
-    mutationFn: async () => {
-      if (!trip) return;
-      const timeline = [...trip.timeline, { id: crypto.randomUUID(), event_type: "trip.resumed", message: "Trip resumed", at: new Date().toISOString() }];
-      await patchTrip({ status: "in_progress", timeline });
-    },
-    onSuccess: () => { toast.success("Trip resumed"); invalidate(); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
-  });
-
-  const completeTrip = useMutation({
-    mutationFn: async () => {
-      if (!trip) return;
-      const timeline = [...trip.timeline, { id: crypto.randomUUID(), event_type: "trip.completed", message: "Trip completed", at: new Date().toISOString() }];
-      await patchTrip({ status: "completed", ended_at: new Date().toISOString(), timeline });
-    },
-    onSuccess: () => { toast.success("Trip completed"); invalidate(); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
-  });
+  // Monitoring-only: Start / Pause / Resume / Complete / End Trip and
+  // per-stop arrival controls belong to the Driver Portal, not the School
+  // Admin view. Admins may only Reassign, Contact, or Terminate a trip.
 
   const cancelTrip = useMutation({
     mutationFn: async () => {
@@ -192,49 +138,6 @@ function TripDetailPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
-  const markStop = useMutation({
-    mutationFn: async ({ stopId, action, boarded, missing }: { stopId: string; action: "arrive" | "depart"; boarded?: number; missing?: number }) => {
-      if (!trip) return;
-      const now = new Date().toISOString();
-      const nextStops: TripStopProgress[] = trip.stop_progress.map((s) => {
-        if (s.stop_id !== stopId) return s;
-        if (action === "arrive") return { ...s, actual_arrival: now, status: "reached", students_boarded: boarded ?? s.students_boarded, students_missing: missing ?? s.students_missing };
-        return { ...s, actual_departure: now, status: "departed", students_boarded: boarded ?? s.students_boarded, students_missing: missing ?? s.students_missing };
-      });
-      const stop = nextStops.find((s) => s.stop_id === stopId);
-      const timeline = [...trip.timeline, {
-        id: crypto.randomUUID(),
-        event_type: action === "arrive" ? "stop.reached" : "stop.departed",
-        message: action === "arrive" ? `Reached ${stop?.name}` : `Departed ${stop?.name}`,
-        at: now,
-      }];
-      await patchTrip({ stop_progress: nextStops, timeline });
-    },
-    onSuccess: () => { toast.success("Stop updated"); invalidate(); },
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
-  });
-
-  const mockGps = useMutation({
-    mutationFn: async () => {
-      if (!trip) return;
-      // Pick the next pending stop as a fake current position, else route start.
-      const nextStop = trip.stop_progress.find((s) => s.status !== "departed" && s.lat != null && s.lng != null);
-      const base = nextStop ?? (trip.routes?.start_lat != null ? { lat: trip.routes.start_lat, lng: trip.routes.start_lng } : null);
-      if (!base?.lat || !base?.lng) throw new Error("No coordinates available on route to mock GPS.");
-      const jitter = () => (Math.random() - 0.5) * 0.001;
-      const loc: TripLiveLocation = {
-        lat: Number(base.lat) + jitter(),
-        lng: Number(base.lng) + jitter(),
-        speed_kmh: Math.round(20 + Math.random() * 25),
-        heading: Math.round(Math.random() * 360),
-        recorded_at: new Date().toISOString(),
-      };
-      await patchTrip({ live_location: loc });
-    },
-    onSuccess: () => invalidate(),
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
-  });
-
   const editTrip = useMutation({
     mutationFn: async (values: TripFormValues) => {
       await patchTrip(tripFormToPayload(values));
@@ -243,7 +146,7 @@ function TripDetailPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : "Failed"),
   });
 
-  // School admins are monitoring-only; trip lifecycle is controlled from the Driver Portal.
+
 
 
   if (isLoading) return <div className="space-y-4"><Skeleton className="h-12 w-72" /><Skeleton className="h-64" /></div>;
