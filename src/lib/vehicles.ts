@@ -267,26 +267,49 @@ export function isCapacityError(err: unknown): boolean {
 /* -------------------- Assignments (driver / route / trips) -------------------- */
 
 export interface VehicleAssignmentRow {
-  route: { id: string; name: string; route_code: string | null; driver_id: string | null } | null;
-  driver: { id: string; full_name: string; phone: string | null } | null;
+  route: {
+    id: string;
+    name: string;
+    route_code: string | null;
+    route_type: string | null;
+    driver_id: string | null;
+    assigned_at: string | null;
+  } | null;
+  driver: {
+    id: string;
+    full_name: string;
+    phone: string | null;
+    photo_path: string | null;
+  } | null;
   todayTrip: {
     id: string;
     trip_code: string | null;
     name: string | null;
     status: string;
     trip_type: string;
+    trip_date: string | null;
     expected_start_time: string | null;
     expected_end_time: string | null;
     driver_id: string | null;
   } | null;
+  upcomingTrip: {
+    id: string;
+    trip_code: string | null;
+    name: string | null;
+    status: string;
+    trip_date: string | null;
+    expected_start_time: string | null;
+  } | null;
   activeTripId: string | null;
+  /** Best-effort "assigned since" — route or driver assignment timestamp. */
+  assignedAt: string | null;
 }
 
 /**
- * Resolves each vehicle's assigned route + driver (via routes.vehicle_id) and
- * today's / currently-active trip (via trips.vehicle_id). Returns a map keyed
- * by vehicle_id. RLS is preserved — only vehicles the caller can already read
- * are considered.
+ * Resolves each vehicle's assigned route + driver (via routes.vehicle_id and
+ * drivers.assigned_vehicle_id) and today's / upcoming / active trip
+ * (via trips.vehicle_id). Returns a map keyed by vehicle_id. RLS is
+ * preserved — only vehicles the caller can already read are considered.
  */
 export async function fetchVehicleAssignments(
   schoolId: string | null | undefined,
@@ -299,19 +322,20 @@ export async function fetchVehicleAssignments(
   const [routesRes, tripsRes, driversRes] = await Promise.all([
     supabase
       .from("routes")
-      .select("id,name,route_code,vehicle_id,driver_id,drivers:driver_id(id,full_name,phone)")
+      .select("id,name,route_code,route_type,vehicle_id,driver_id,updated_at,drivers:driver_id(id,full_name,phone,metadata,updated_at)")
       .eq("school_id", schoolId)
       .not("vehicle_id", "is", null),
     supabase
       .from("trips" as never)
-      .select("id,trip_code,name,status,trip_type,trip_date,expected_start_time,expected_end_time,vehicle_id,driver_id,drivers:driver_id(id,full_name,phone)")
+      .select("id,trip_code,name,status,trip_type,trip_date,expected_start_time,expected_end_time,vehicle_id,driver_id,drivers:driver_id(id,full_name,phone,metadata)")
       .eq("school_id", schoolId)
       .not("vehicle_id", "is", null)
-      .or(`trip_date.eq.${today},status.in.(in_progress,paused)`)
+      .or(`trip_date.gte.${today},status.in.(in_progress,paused)`)
+      .order("trip_date", { ascending: true })
       .order("expected_start_time", { ascending: true }),
     supabase
       .from("drivers")
-      .select("id,full_name,phone,assigned_vehicle_id")
+      .select("id,full_name,phone,metadata,updated_at,assigned_vehicle_id")
       .eq("school_id", schoolId)
       .eq("is_active", true)
       .is("deleted_at", null)
@@ -322,23 +346,46 @@ export async function fetchVehicleAssignments(
   const trips = (tripsRes.data ?? []) as any[];
   const drivers = (driversRes.data ?? []) as any[];
 
+  const setAssignedAt = (row: VehicleAssignmentRow, ts: string | null | undefined) => {
+    if (!ts) return;
+    if (!row.assignedAt || new Date(ts) < new Date(row.assignedAt)) row.assignedAt = ts;
+  };
+
   for (const d of drivers) {
     if (!d.assigned_vehicle_id) continue;
     const existing = map.get(d.assigned_vehicle_id) ?? emptyAssignment();
     if (!existing.driver) {
-      existing.driver = { id: d.id, full_name: d.full_name, phone: d.phone ?? null };
+      existing.driver = {
+        id: d.id,
+        full_name: d.full_name,
+        phone: d.phone ?? null,
+        photo_path: d.metadata?.photo_path ?? null,
+      };
     }
+    setAssignedAt(existing, d.updated_at);
     map.set(d.assigned_vehicle_id, existing);
   }
-
 
   for (const r of routes) {
     if (!r.vehicle_id) continue;
     const existing = map.get(r.vehicle_id) ?? emptyAssignment();
-    existing.route = { id: r.id, name: r.name, route_code: r.route_code, driver_id: r.driver_id ?? null };
-    if (r.drivers) {
-      existing.driver = { id: r.drivers.id, full_name: r.drivers.full_name, phone: r.drivers.phone ?? null };
+    existing.route = {
+      id: r.id,
+      name: r.name,
+      route_code: r.route_code,
+      route_type: r.route_type ?? null,
+      driver_id: r.driver_id ?? null,
+      assigned_at: r.updated_at ?? null,
+    };
+    if (r.drivers && !existing.driver) {
+      existing.driver = {
+        id: r.drivers.id,
+        full_name: r.drivers.full_name,
+        phone: r.drivers.phone ?? null,
+        photo_path: r.drivers.metadata?.photo_path ?? null,
+      };
     }
+    setAssignedAt(existing, r.updated_at);
     map.set(r.vehicle_id, existing);
   }
 
@@ -354,14 +401,29 @@ export async function fetchVehicleAssignments(
         name: t.name,
         status: t.status,
         trip_type: t.trip_type,
+        trip_date: t.trip_date,
         expected_start_time: t.expected_start_time,
         expected_end_time: t.expected_end_time,
         driver_id: t.driver_id,
       };
     }
-    // Prefer the trip's driver if the route has none.
+    if (!isActive && t.trip_date && t.trip_date > today && !existing.upcomingTrip) {
+      existing.upcomingTrip = {
+        id: t.id,
+        trip_code: t.trip_code,
+        name: t.name,
+        status: t.status,
+        trip_date: t.trip_date,
+        expected_start_time: t.expected_start_time,
+      };
+    }
     if (!existing.driver && t.drivers) {
-      existing.driver = { id: t.drivers.id, full_name: t.drivers.full_name, phone: t.drivers.phone ?? null };
+      existing.driver = {
+        id: t.drivers.id,
+        full_name: t.drivers.full_name,
+        phone: t.drivers.phone ?? null,
+        photo_path: t.drivers.metadata?.photo_path ?? null,
+      };
     }
     map.set(t.vehicle_id, existing);
   }
@@ -370,14 +432,20 @@ export async function fetchVehicleAssignments(
 }
 
 function emptyAssignment(): VehicleAssignmentRow {
-  return { route: null, driver: null, todayTrip: null, activeTripId: null };
+  return { route: null, driver: null, todayTrip: null, upcomingTrip: null, activeTripId: null, assignedAt: null };
 }
 
 /**
  * Availability label derived from vehicle status + current assignments.
- * "in_use" wins over "available" when an active trip exists.
+ * "in_trip" wins over "scheduled" and both win over "available" / "unassigned".
  */
-export type VehicleAvailability = "available" | "in_use" | "maintenance" | "inactive";
+export type VehicleAvailability =
+  | "in_trip"
+  | "scheduled"
+  | "available"
+  | "unassigned"
+  | "maintenance"
+  | "inactive";
 
 export function vehicleAvailability(
   status: string | null | undefined,
@@ -385,18 +453,32 @@ export function vehicleAvailability(
 ): VehicleAvailability {
   if (status === "maintenance") return "maintenance";
   if (status === "inactive") return "inactive";
-  if (assignment?.activeTripId) return "in_use";
+  if (assignment?.activeTripId) return "in_trip";
+  if (assignment?.upcomingTrip) return "scheduled";
+  if (!assignment?.driver && !assignment?.route) return "unassigned";
   return "available";
 }
 
 export function vehicleAvailabilityLabel(a: VehicleAvailability): string {
   switch (a) {
+    case "in_trip": return "In Trip";
+    case "scheduled": return "Scheduled";
     case "available": return "Available";
-    case "in_use": return "In use";
+    case "unassigned": return "Not Assigned";
     case "maintenance": return "Under maintenance";
     case "inactive": return "Inactive";
   }
 }
+
+export function routeTypeLabel(t: string | null | undefined): string {
+  switch (t) {
+    case "morning": return "Morning";
+    case "afternoon": return "Afternoon";
+    case "both": return "Morning & Afternoon";
+    default: return "—";
+  }
+}
+
 
 /**
  * Prevents double-booking a vehicle across concurrent active trips.
