@@ -5,6 +5,17 @@ const OTP_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const RESEND_COOLDOWN_MS = 60 * 1000; // 60 seconds
 const MAX_ATTEMPTS = 5;
 
+/**
+ * Throw a user-facing error that our errorMiddleware (src/start.ts) will
+ * re-throw (because it has a statusCode) so TanStack serializes the message
+ * back to the caller instead of returning a 500 HTML page (blank screen).
+ */
+function clientError(message: string, statusCode = 400): never {
+  const err = new Error(message) as Error & { statusCode: number };
+  err.statusCode = statusCode;
+  throw err;
+}
+
 function hashCode(phone: string, code: string): string {
   return createHash("sha256").update(`${phone}:${code}`).digest("hex");
 }
@@ -16,9 +27,9 @@ function syntheticEmail(phoneE164: string): string {
 
 function validatePhone(phone: unknown): string {
   if (typeof phone !== "string" || !/^\+\d{8,15}$/.test(phone)) {
-    throw new Error("Invalid phone");
+    clientError("Invalid phone");
   }
-  return phone;
+  return phone as string;
 }
 
 /**
