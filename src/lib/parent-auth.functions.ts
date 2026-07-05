@@ -55,7 +55,7 @@ export const sendDevOtp = createServerFn({ method: "POST" })
       const elapsed = Date.now() - new Date(recent.created_at as string).getTime();
       if (elapsed < RESEND_COOLDOWN_MS) {
         const wait = Math.ceil((RESEND_COOLDOWN_MS - elapsed) / 1000);
-        throw new Error(`Please wait ${wait}s before requesting another OTP`);
+        clientError(`Please wait ${wait}s before requesting another OTP`);
       }
     }
 
@@ -67,7 +67,7 @@ export const sendDevOtp = createServerFn({ method: "POST" })
       code_hash: hashCode(data.phone, code),
       expires_at,
     });
-    if (error) throw new Error(error.message);
+    if (error) clientError(error.message);
 
     // Audit log (non-PII code)
     console.info(`[dev-otp] issued phone=${data.phone} expires=${expires_at}`);
@@ -88,7 +88,7 @@ export const verifyDevOtp = createServerFn({ method: "POST" })
     code: String(input.code ?? "").trim(),
   }))
   .handler(async ({ data }) => {
-    if (!/^\d{6}$/.test(data.code)) throw new Error("Invalid code");
+    if (!/^\d{6}$/.test(data.code)) clientError("Invalid code");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -100,14 +100,14 @@ export const verifyDevOtp = createServerFn({ method: "POST" })
       .limit(1)
       .maybeSingle();
 
-    if (fetchErr) throw new Error(fetchErr.message);
-    if (!row) throw new Error("No OTP requested for this number");
-    if (row.consumed_at) throw new Error("This OTP has already been used");
+    if (fetchErr) clientError(fetchErr.message);
+    if (!row) clientError("No OTP requested for this number");
+    if (row.consumed_at) clientError("This OTP has already been used");
     if (new Date(row.expires_at as string).getTime() < Date.now()) {
-      throw new Error("OTP has expired. Please request a new one.");
+      clientError("OTP has expired. Please request a new one.");
     }
     if ((row.attempts as number) >= MAX_ATTEMPTS) {
-      throw new Error("Too many attempts. Please request a new OTP.");
+      clientError("Too many attempts. Please request a new OTP.");
     }
 
     const expected = Buffer.from(row.code_hash as string, "hex");
@@ -119,7 +119,7 @@ export const verifyDevOtp = createServerFn({ method: "POST" })
         .from("dev_otp_codes")
         .update({ attempts: (row.attempts as number) + 1 })
         .eq("id", row.id as string);
-      throw new Error("Incorrect OTP. Please try again.");
+      clientError("Incorrect OTP. Please try again.");
     }
 
     await supabaseAdmin
@@ -140,17 +140,17 @@ export const verifyDevOtp = createServerFn({ method: "POST" })
       user_metadata: { dev_parent_login: true },
     });
     if (created.error && !/already|exists|registered/i.test(created.error.message)) {
-      throw new Error(created.error.message);
+      clientError(created.error.message);
     }
 
     const linkRes = await supabaseAdmin.auth.admin.generateLink({
       type: "magiclink",
       email,
     });
-    if (linkRes.error) throw new Error(linkRes.error.message);
+    if (linkRes.error) clientError(linkRes.error.message);
 
     const token_hash = linkRes.data.properties?.hashed_token;
-    if (!token_hash) throw new Error("Failed to mint dev session token");
+    if (!token_hash) clientError("Failed to mint dev session token");
 
     console.info(`[dev-otp] verified phone=${data.phone}`);
 
