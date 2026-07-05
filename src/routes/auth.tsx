@@ -83,10 +83,17 @@ function AuthPage() {
     }
     setParentBusy(true);
     try {
-      await sendParentOtp(e164);
+      const res = await sendParentOtp(e164);
       setPhoneE164(e164);
       setOtpStage("code");
-      toast.success(`OTP sent to ${e164}`);
+      setCooldown(60);
+      if (res.devOtp) {
+        setDevOtp(res.devOtp);
+        toast.success(`Development OTP generated for ${e164}`);
+      } else {
+        setDevOtp(null);
+        toast.success(`OTP sent to ${e164}`);
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to send OTP";
       toast.error(msg);
