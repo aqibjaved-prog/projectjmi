@@ -36,6 +36,14 @@ function AuthPage() {
   const [otpCode, setOtpCode] = useState("");
   const [parentBusy, setParentBusy] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
+  const [devOtp, setDevOtp] = useState<string | null>(null);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => Math.max(0, c - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
 
   useEffect(() => {
     if (loading || !user) return;
