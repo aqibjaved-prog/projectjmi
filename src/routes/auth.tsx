@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { Bus, Loader2, Phone } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Bus, Loader2, Phone, AlertTriangle, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { ROLE_HOME } from "@/lib/role-access";
-import { isValidE164, sendParentOtp, toE164, verifyParentOtp, linkParentByPhone } from "@/lib/parent-auth";
+import { DEVELOPMENT_OTP_MODE, isValidE164, sendParentOtp, toE164, verifyParentOtp, linkParentByPhone } from "@/lib/parent-auth";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Sign in — School Van Guardian" }] }),
