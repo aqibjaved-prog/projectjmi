@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import { Bus, Loader2, Phone } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Bus, Loader2, Phone, AlertTriangle, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { ROLE_HOME } from "@/lib/role-access";
-import { isValidE164, sendParentOtp, toE164, verifyParentOtp, linkParentByPhone } from "@/lib/parent-auth";
+import { DEVELOPMENT_OTP_MODE, isValidE164, sendParentOtp, toE164, verifyParentOtp, linkParentByPhone } from "@/lib/parent-auth";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Sign in — School Van Guardian" }] }),
@@ -34,6 +36,14 @@ function AuthPage() {
   const [otpCode, setOtpCode] = useState("");
   const [parentBusy, setParentBusy] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
+  const [devOtp, setDevOtp] = useState<string | null>(null);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => Math.max(0, c - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
 
   useEffect(() => {
     if (loading || !user) return;
@@ -73,10 +83,17 @@ function AuthPage() {
     }
     setParentBusy(true);
     try {
-      await sendParentOtp(e164);
+      const res = await sendParentOtp(e164);
       setPhoneE164(e164);
       setOtpStage("code");
-      toast.success(`OTP sent to ${e164}`);
+      setCooldown(60);
+      if (res.devOtp) {
+        setDevOtp(res.devOtp);
+        toast.success(`Development OTP generated for ${e164}`);
+      } else {
+        setDevOtp(null);
+        toast.success(`OTP sent to ${e164}`);
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to send OTP";
       toast.error(msg);
@@ -147,12 +164,29 @@ function AuthPage() {
 
             {/* --- Parent OTP --- */}
             <TabsContent value="parent" className="mt-6 space-y-4">
-              <div>
-                <h1 className="text-2xl font-semibold tracking-tight">Parent sign in</h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Use the mobile number registered with your school.
-                </p>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h1 className="text-2xl font-semibold tracking-tight">Parent sign in</h1>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Use the mobile number registered with your school.
+                  </p>
+                </div>
+                {DEVELOPMENT_OTP_MODE && (
+                  <Badge variant="destructive" className="whitespace-nowrap">DEV MODE</Badge>
+                )}
               </div>
+
+              {DEVELOPMENT_OTP_MODE && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Development Mode</AlertTitle>
+                  <AlertDescription>
+                    OTP is displayed on screen. No SMS is sent. Disable by setting
+                    <code className="mx-1 rounded bg-background/60 px-1 py-0.5 text-xs">VITE_DEVELOPMENT_OTP_MODE=false</code>
+                    and configuring an SMS provider in backend Auth settings.
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {linkError && (
                 <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
@@ -184,6 +218,36 @@ function AuthPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
+                  {devOtp && (
+                    <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4">
+                      <p className="text-xs font-medium uppercase tracking-wide text-amber-700 dark:text-amber-400">
+                        Development OTP — displayed on screen only
+                      </p>
+                      <div className="mt-2 flex items-center justify-between gap-3">
+                        <span className="font-mono text-3xl font-bold tracking-[0.4em] text-amber-900 dark:text-amber-200">
+                          {devOtp}
+                        </span>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              navigator.clipboard.writeText(devOtp).catch(() => {});
+                              toast.success("OTP copied");
+                            }}
+                          >
+                            <Copy className="mr-1 h-3 w-3" /> Copy
+                          </Button>
+                          <Button size="sm" onClick={() => setOtpCode(devOtp)}>
+                            Autofill
+                          </Button>
+                        </div>
+                      </div>
+                      <p className="mt-2 text-[11px] text-amber-700/80 dark:text-amber-400/80">
+                        Expires in 5 minutes. No SMS was sent.
+                      </p>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label>Enter the 6-digit code sent to {phoneE164}</Label>
                     <InputOTP maxLength={6} value={otpCode} onChange={setOtpCode}>
@@ -202,17 +266,17 @@ function AuthPage() {
                     <button
                       type="button"
                       className="text-muted-foreground hover:text-foreground"
-                      onClick={() => { setOtpStage("phone"); setOtpCode(""); }}
+                      onClick={() => { setOtpStage("phone"); setOtpCode(""); setDevOtp(null); }}
                     >
                       Change number
                     </button>
                     <button
                       type="button"
-                      className="text-primary hover:underline"
+                      className="text-primary hover:underline disabled:opacity-50 disabled:no-underline"
                       onClick={sendOtp}
-                      disabled={parentBusy}
+                      disabled={parentBusy || cooldown > 0}
                     >
-                      Resend OTP
+                      {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend OTP"}
                     </button>
                   </div>
                 </div>
