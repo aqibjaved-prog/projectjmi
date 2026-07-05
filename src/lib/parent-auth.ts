@@ -49,15 +49,14 @@ export async function sendParentOtp(phoneE164: string): Promise<SendOtpResult> {
 
 export async function verifyParentOtp(phoneE164: string, token: string) {
   if (DEVELOPMENT_OTP_MODE) {
-    const { email, token_hash } = await verifyDevOtp({
+    const { token_hash } = await verifyDevOtp({
       data: { phone: phoneE164, code: token },
     });
-    // Uses the exact same client verifyOtp API as production Phone Auth.
+    // Uses the exact same client verifyOtp API that production Phone Auth uses.
     const { data, error } = await supabase.auth.verifyOtp({
       type: "magiclink",
       token_hash,
-      email,
-    } as never);
+    });
     if (error) throw error;
     return data;
   }
