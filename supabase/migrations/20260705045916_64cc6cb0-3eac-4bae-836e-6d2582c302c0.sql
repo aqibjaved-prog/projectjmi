@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.link_parent_by_phone() FROM anon, PUBLIC;
