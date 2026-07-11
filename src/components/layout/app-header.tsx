@@ -54,23 +54,30 @@ export function AppHeader() {
   });
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur">
-      <SidebarTrigger />
-      <Badge variant="outline" className="hidden text-[10px] font-semibold uppercase tracking-wider sm:inline-flex">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border/70 bg-background/75 px-3 backdrop-blur-md supports-[backdrop-filter]:bg-background/60 sm:px-4">
+      <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
+      <div className="hidden h-6 w-px bg-border sm:block" />
+      <Badge
+        variant="outline"
+        className="hidden border-border/70 bg-muted/40 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground sm:inline-flex"
+      >
         {roleLabel(primaryRole)}
       </Badge>
       {primaryRole === "school_admin" && school && (
-        <div className="flex items-center gap-2">
-          <Avatar className="h-7 w-7">
+        <div className="ml-1 flex min-w-0 items-center gap-2">
+          <Avatar className="h-7 w-7 ring-1 ring-border">
             {school.logo_url ? <AvatarImage src={school.logo_url} alt={school.name} /> : null}
-            <AvatarFallback><SchoolIcon className="h-3.5 w-3.5" /></AvatarFallback>
+            <AvatarFallback className="bg-muted"><SchoolIcon className="h-3.5 w-3.5" /></AvatarFallback>
           </Avatar>
-          <span className="hidden text-sm font-medium sm:inline">{school.name}</span>
+          <span className="hidden truncate text-sm font-medium text-foreground sm:inline">{school.name}</span>
         </div>
       )}
-      <div className="relative hidden max-w-md flex-1 md:block">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Search…" className="pl-9" />
+      <div className="relative ml-2 hidden max-w-md flex-1 md:block">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Search…"
+          className="h-9 border-border/70 bg-muted/40 pl-9 text-sm placeholder:text-muted-foreground focus-visible:bg-background"
+        />
       </div>
       <div className="ml-auto flex items-center gap-2">
         <Button asChild variant="ghost" size="icon" aria-label="Notifications" className="relative">

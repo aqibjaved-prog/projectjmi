@@ -111,37 +111,46 @@ export function AppSidebar() {
   const role = primaryRole;
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader>
-        <div className="flex items-center gap-2 px-2 py-1.5">
-          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-primary text-primary-foreground">
-            <Bus className="h-4 w-4" />
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+      <SidebarHeader className="border-b border-sidebar-border">
+        <div className="flex items-center gap-2.5 px-2 py-2">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[image:var(--gradient-ember)] text-primary-foreground shadow-[var(--shadow-glow)]">
+            <Bus className="h-[18px] w-[18px]" />
           </div>
-          <div className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
-            <span className="text-sm font-semibold">School Van Guardian</span>
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          <div className="flex min-w-0 flex-col leading-tight group-data-[collapsible=icon]:hidden">
+            <span className="truncate font-display text-[13px] font-semibold tracking-tight">
+              School Van Guardian
+            </span>
+            <span className="truncate text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
               {role?.replace("_", " ") ?? "—"}
             </span>
           </div>
         </div>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="gap-1">
         {NAV.map((group) => {
           const visible = group.items.filter((i) => role && i.roles.includes(role));
           if (visible.length === 0) return null;
           return (
             <SidebarGroup key={group.label}>
-              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+              <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                {group.label}
+              </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   {visible.map((item) => {
                     const active = pathname === item.url || pathname.startsWith(item.url + "/");
                     return (
                       <SidebarMenuItem key={item.url}>
-                        <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={active}
+                          tooltip={item.title}
+                          className="h-9 gap-2.5 rounded-md text-[13px] font-medium transition-colors data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:shadow-xs"
+                        >
                           <Link to={item.url}>
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.title}</span>
+                            <item.icon className="h-4 w-4 shrink-0" />
+                            <span className="truncate">{item.title}</span>
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
