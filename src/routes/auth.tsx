@@ -128,30 +128,52 @@ function AuthPage() {
   };
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
-      <div className="hidden bg-[image:var(--gradient-brand)] p-12 text-primary-foreground lg:flex lg:flex-col lg:justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="grid h-9 w-9 place-items-center rounded-lg bg-white/15 backdrop-blur">
+    <div className="grid min-h-dvh lg:grid-cols-[1.05fr_1fr]">
+      <div className="relative hidden overflow-hidden bg-[image:var(--gradient-brand)] p-12 text-primary-foreground lg:flex lg:flex-col lg:justify-between">
+        {/* Ambient glow accents */}
+        <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-primary/40 blur-3xl" aria-hidden="true" />
+        <div className="pointer-events-none absolute -bottom-32 -right-16 h-96 w-96 rounded-full bg-primary/25 blur-3xl" aria-hidden="true" />
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.06]"
+          aria-hidden="true"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)",
+            backgroundSize: "48px 48px",
+          }}
+        />
+
+        <Link to="/" className="relative flex items-center gap-2.5">
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-white/10 ring-1 ring-white/20 backdrop-blur">
             <Bus className="h-5 w-5" />
           </div>
-          <span className="font-semibold">School Van Guardian</span>
+          <span className="font-display text-[15px] font-semibold tracking-tight">School Van Guardian</span>
         </Link>
-        <div className="max-w-md">
-          <h2 className="text-3xl font-semibold tracking-tight">Safer rides, calmer parents.</h2>
-          <p className="mt-3 text-sm text-white/80">
+
+        <div className="relative max-w-md">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-white/80 backdrop-blur">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" /> Real-time transport safety
+          </div>
+          <h2 className="font-display text-4xl font-semibold leading-[1.1] tracking-tight text-balance">
+            Safer rides.<br />Calmer parents.
+          </h2>
+          <p className="mt-4 max-w-sm text-[15px] leading-relaxed text-white/70 text-pretty">
             Staff sign in with email. Parents sign in instantly with their mobile number — no accounts to create.
           </p>
         </div>
-        <p className="text-xs text-white/70">© {new Date().getFullYear()} School Van Guardian</p>
+
+        <p className="relative text-xs text-white/60">
+          © {new Date().getFullYear()} School Van Guardian
+        </p>
       </div>
 
-      <div className="flex items-center justify-center p-6">
+      <div className="flex items-center justify-center p-6 sm:p-10">
         <div className="w-full max-w-md">
-          <div className="mb-6 flex items-center gap-2 lg:hidden">
-            <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground">
+          <div className="mb-8 flex items-center gap-2.5 lg:hidden">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-[image:var(--gradient-ember)] text-primary-foreground shadow-[var(--shadow-glow)]">
               <Bus className="h-5 w-5" />
             </div>
-            <span className="font-semibold">School Van Guardian</span>
+            <span className="font-display text-[15px] font-semibold tracking-tight">School Van Guardian</span>
           </div>
 
           <Tabs defaultValue="parent" className="w-full">
