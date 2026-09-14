@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useDriverTrips, patchDriverTrip } from "@/lib/driver-portal";
 import { tripStatusLabel, tripTypeLabel, makeEvent, type TripRow } from "@/lib/trips";
 import { assertVehicleAvailableForTrip } from "@/lib/vehicles";
+import { PreTripSafetyCheck } from "@/components/driver/pre-trip-safety-check";
 import { CheckCircle2, Pause, Play, Square, Timer } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/driver/today")({
