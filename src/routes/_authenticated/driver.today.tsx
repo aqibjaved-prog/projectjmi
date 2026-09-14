@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useDriverTrips, patchDriverTrip } from "@/lib/driver-portal";
 import { tripStatusLabel, tripTypeLabel, makeEvent, type TripRow } from "@/lib/trips";
 import { assertVehicleAvailableForTrip } from "@/lib/vehicles";
+import { PreTripSafetyCheck } from "@/components/driver/pre-trip-safety-check";
 import { CheckCircle2, Pause, Play, Square, Timer } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/driver/today")({
@@ -94,6 +95,8 @@ function TodayPage() {
               <Field label="Started" value={featured.started_at ? new Date(featured.started_at).toLocaleTimeString() : "—"} />
               <Field label="Stops" value={String(featured.stop_progress.length)} />
             </div>
+
+            {(featured.status === "scheduled" || featured.status === "ready") && <PreTripSafetyCheck />}
 
             <div className="flex flex-wrap gap-2">
               {(featured.status === "scheduled" || featured.status === "ready") && (
