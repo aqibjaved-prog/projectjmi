@@ -96,6 +96,8 @@ function TodayPage() {
               <Field label="Stops" value={String(featured.stop_progress.length)} />
             </div>
 
+            {(featured.status === "scheduled" || featured.status === "ready") && <PreTripSafetyCheck />}
+
             <div className="flex flex-wrap gap-2">
               {(featured.status === "scheduled" || featured.status === "ready") && (
                 <Button size="lg" onClick={() => { if (confirm("Start this trip? Driver, vehicle, and route will be locked.")) start.mutate(featured); }} disabled={start.isPending}>
