@@ -20,7 +20,7 @@ interface StatusConfig {
 const IDENTITY_STATES: Record<IdentityStatus, StatusConfig> = {
   pending: { label: "Pending", variant: "secondary", icon: UserCheck, tone: "text-muted-foreground" },
   verifying: { label: "Verifying", variant: "default", icon: UserCheck, tone: "text-primary" },
-  verified: { label: "Verified", variant: "secondary", icon: CheckCircle2, tone: "text-emerald-600" },
+  verified: { label: "Verified", variant: "secondary", icon: CheckCircle2, tone: "text-success" },
   failed: { label: "Failed", variant: "destructive", icon: XCircle, tone: "text-destructive" },
 };
 
