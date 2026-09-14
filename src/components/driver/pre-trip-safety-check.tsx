@@ -27,13 +27,13 @@ const IDENTITY_STATES: Record<IdentityStatus, StatusConfig> = {
 const ALCOHOL_STATES: Record<AlcoholStatus, StatusConfig> = {
   pending: { label: "Pending", variant: "secondary", icon: FlaskConical, tone: "text-muted-foreground" },
   testing: { label: "Testing", variant: "default", icon: FlaskConical, tone: "text-primary" },
-  passed: { label: "Passed", variant: "secondary", icon: CheckCircle2, tone: "text-emerald-600" },
+  passed: { label: "Passed", variant: "secondary", icon: CheckCircle2, tone: "text-success" },
   failed: { label: "Failed", variant: "destructive", icon: XCircle, tone: "text-destructive" },
 };
 
 const OVERALL_STATES: Record<OverallStatus, StatusConfig> = {
   pending: { label: "Pending", variant: "secondary", icon: ShieldCheck, tone: "text-muted-foreground" },
-  approved: { label: "Approved", variant: "secondary", icon: CheckCircle2, tone: "text-emerald-600" },
+  approved: { label: "Approved", variant: "secondary", icon: CheckCircle2, tone: "text-success" },
   trip_locked: { label: "Trip Locked", variant: "default", icon: ShieldCheck, tone: "text-primary" },
 };
 
@@ -93,11 +93,11 @@ export function PreTripSafetyCheck() {
   const overallIcon = overallCfg.icon;
 
   return (
-    <Card className="border-dashed border-amber-500/40 bg-amber-500/[0.02]">
+    <Card className="border-dashed border-warning/40 bg-warning/[0.02]">
       <CardHeader className="pb-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-3">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-warning/10 text-warning">
               <ShieldCheck className="h-5 w-5" aria-hidden="true" />
             </div>
             <div>
@@ -107,14 +107,14 @@ export function PreTripSafetyCheck() {
               </p>
             </div>
           </div>
-          <Badge variant="outline" className="w-fit border-amber-500/40 text-amber-700 dark:text-amber-400">
+          <Badge variant="outline" className="w-fit border-warning/40 text-warning">
             TEST MODE
           </Badge>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-4 pt-0">
-        <div className="flex items-start gap-3 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-900 dark:text-amber-200">
+        <div className="flex items-start gap-3 rounded-lg border border-warning/20 bg-warning/5 p-3 text-xs text-warning-foreground">
           <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
           <span>Hardware sensors not connected. Use the buttons below to simulate verification states.</span>
         </div>
