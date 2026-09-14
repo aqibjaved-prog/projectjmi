@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { UserCheck, FlaskConical, ShieldCheck, Info, RotateCcw, CheckCircle2, XCircle } from "lucide-react";
+import { UserCheck, FlaskConical, ShieldCheck, Info, RotateCcw, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 
 type IdentityStatus = "pending" | "verifying" | "verified" | "failed";
 type AlcoholStatus = "pending" | "testing" | "passed" | "failed";
@@ -19,14 +19,14 @@ interface StatusConfig {
 
 const IDENTITY_STATES: Record<IdentityStatus, StatusConfig> = {
   pending: { label: "Pending", variant: "secondary", icon: UserCheck, tone: "text-muted-foreground" },
-  verifying: { label: "Verifying", variant: "default", icon: UserCheck, tone: "text-primary" },
+  verifying: { label: "Verifying…", variant: "default", icon: Loader2, tone: "text-primary" },
   verified: { label: "Verified", variant: "secondary", icon: CheckCircle2, tone: "text-success" },
   failed: { label: "Failed", variant: "destructive", icon: XCircle, tone: "text-destructive" },
 };
 
 const ALCOHOL_STATES: Record<AlcoholStatus, StatusConfig> = {
   pending: { label: "Pending", variant: "secondary", icon: FlaskConical, tone: "text-muted-foreground" },
-  testing: { label: "Testing", variant: "default", icon: FlaskConical, tone: "text-primary" },
+  testing: { label: "Testing…", variant: "default", icon: Loader2, tone: "text-primary" },
   passed: { label: "Passed", variant: "secondary", icon: CheckCircle2, tone: "text-success" },
   failed: { label: "Failed", variant: "destructive", icon: XCircle, tone: "text-destructive" },
 };
@@ -37,60 +37,76 @@ const OVERALL_STATES: Record<OverallStatus, StatusConfig> = {
   trip_locked: { label: "Trip Locked", variant: "default", icon: ShieldCheck, tone: "text-primary" },
 };
 
+const SIMULATION_DELAY_MS = 1200;
+
 export function PreTripSafetyCheck() {
   const [identity, setIdentity] = useState<IdentityStatus>("pending");
   const [alcohol, setAlcohol] = useState<AlcoholStatus>("pending");
-  const [isSimulatingIdentity, setIsSimulatingIdentity] = useState(false);
-  const [isSimulatingAlcohol, setIsSimulatingAlcohol] = useState(false);
+  const [identityOutcomeVisible, setIdentityOutcomeVisible] = useState(false);
+  const [alcoholOutcomeVisible, setAlcoholOutcomeVisible] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
 
   const overall = useMemo<OverallStatus>(() => {
     if (identity === "verified" && alcohol === "passed") return "approved";
     return "pending";
   }, [identity, alcohol]);
 
-  const simulateIdentity = useCallback((success: boolean) => {
+  const startIdentitySimulation = useCallback(() => {
     setIdentity("verifying");
-    setIsSimulatingIdentity(true);
+    setIsVerifying(true);
+    setIdentityOutcomeVisible(false);
     window.setTimeout(() => {
-      setIsSimulatingIdentity(false);
-      if (success) {
-        setIdentity("verified");
-        toast.success("Driver identity verified (test mode)");
-      } else {
-        setIdentity("failed");
-        toast.error("Identity verification failed (test mode)");
-      }
-    }, 1500);
+      setIsVerifying(false);
+      setIdentityOutcomeVisible(true);
+    }, SIMULATION_DELAY_MS);
   }, []);
 
-  const simulateAlcohol = useCallback((success: boolean) => {
+  const chooseIdentity = useCallback((success: boolean) => {
+    if (success) {
+      setIdentity("verified");
+      toast.success("Driver identity verified (test mode)");
+    } else {
+      setIdentity("failed");
+      toast.error("Identity verification failed (test mode)");
+    }
+    setIdentityOutcomeVisible(false);
+  }, []);
+
+  const startAlcoholSimulation = useCallback(() => {
     setAlcohol("testing");
-    setIsSimulatingAlcohol(true);
+    setIsTesting(true);
+    setAlcoholOutcomeVisible(false);
     window.setTimeout(() => {
-      setIsSimulatingAlcohol(false);
-      if (success) {
-        setAlcohol("passed");
-        toast.success("Alcohol test passed (test mode)");
-      } else {
-        setAlcohol("failed");
-        toast.error("Alcohol test failed (test mode)");
-      }
-    }, 1500);
+      setIsTesting(false);
+      setAlcoholOutcomeVisible(true);
+    }, SIMULATION_DELAY_MS);
+  }, []);
+
+  const chooseAlcohol = useCallback((success: boolean) => {
+    if (success) {
+      setAlcohol("passed");
+      toast.success("Alcohol test passed (test mode)");
+    } else {
+      setAlcohol("failed");
+      toast.error("Alcohol test failed (test mode)");
+    }
+    setAlcoholOutcomeVisible(false);
   }, []);
 
   const reset = useCallback(() => {
     setIdentity("pending");
     setAlcohol("pending");
+    setIdentityOutcomeVisible(false);
+    setAlcoholOutcomeVisible(false);
+    setIsVerifying(false);
+    setIsTesting(false);
     toast.info("Pre-trip checks reset");
   }, []);
 
   const identityCfg = IDENTITY_STATES[identity];
   const alcoholCfg = ALCOHOL_STATES[alcohol];
   const overallCfg = OVERALL_STATES[overall];
-
-  const identityIcon = identityCfg.icon;
-  const alcoholIcon = alcoholCfg.icon;
-  const overallIcon = overallCfg.icon;
 
   return (
     <Card className="border-dashed border-warning/40 bg-warning/[0.02]">
@@ -121,71 +137,72 @@ export function PreTripSafetyCheck() {
 
         <div className="space-y-2">
           <CheckRow
-            Icon={identityIcon}
+            Icon={identityCfg.icon}
             label="Driver Identity Verification"
             statusConfig={identityCfg}
             status={identity}
-          />
+            spinIcon={identity === "verifying"}
+          >
+            {identity === "pending" && (
+              <Button size="sm" onClick={startIdentitySimulation}>
+                <UserCheck className="mr-1.5 h-4 w-4" />
+                Simulate Identity Verification
+              </Button>
+            )}
+            {identityOutcomeVisible && (
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={() => chooseIdentity(true)}>
+                  <CheckCircle2 className="mr-1.5 h-4 w-4" />
+                  Identity Verified
+                </Button>
+                <Button size="sm" variant="destructive" onClick={() => chooseIdentity(false)}>
+                  <XCircle className="mr-1.5 h-4 w-4" />
+                  Identity Failed
+                </Button>
+              </div>
+            )}
+          </CheckRow>
+
           <CheckRow
-            Icon={alcoholIcon}
+            Icon={alcoholCfg.icon}
             label="Alcohol Detection"
             statusConfig={alcoholCfg}
             status={alcohol}
-          />
+            spinIcon={alcohol === "testing"}
+          >
+            {alcohol === "pending" && (
+              <Button size="sm" onClick={startAlcoholSimulation}>
+                <FlaskConical className="mr-1.5 h-4 w-4" />
+                Simulate Alcohol Test
+              </Button>
+            )}
+            {alcoholOutcomeVisible && (
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={() => chooseAlcohol(true)}>
+                  <CheckCircle2 className="mr-1.5 h-4 w-4" />
+                  Alcohol Test Passed
+                </Button>
+                <Button size="sm" variant="destructive" onClick={() => chooseAlcohol(false)}>
+                  <XCircle className="mr-1.5 h-4 w-4" />
+                  Alcohol Test Failed
+                </Button>
+              </div>
+            )}
+          </CheckRow>
+
           <Separator className="my-2" />
+
           <CheckRow
-            Icon={overallIcon}
+            Icon={overallCfg.icon}
             label="Overall Status"
             statusConfig={overallCfg}
             status={overall}
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          <Button
-            size="sm"
-            onClick={() => simulateIdentity(true)}
-            disabled={isSimulatingIdentity || identity === "verified"}
           >
-            <UserCheck className="mr-1.5 h-4 w-4" />
-            {isSimulatingIdentity ? "Verifying…" : identity === "verified" ? "Verified" : "Simulate identity pass"}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => simulateIdentity(false)}
-            disabled={isSimulatingIdentity}
-          >
-            <XCircle className="mr-1.5 h-4 w-4" />
-            Simulate identity fail
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => simulateAlcohol(true)}
-            disabled={isSimulatingAlcohol || alcohol === "passed"}
-          >
-            <FlaskConical className="mr-1.5 h-4 w-4" />
-            {isSimulatingAlcohol ? "Testing…" : alcohol === "passed" ? "Passed" : "Simulate alcohol pass"}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => simulateAlcohol(false)}
-            disabled={isSimulatingAlcohol}
-          >
-            <XCircle className="mr-1.5 h-4 w-4" />
-            Simulate alcohol fail
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={reset}
-            disabled={isSimulatingIdentity || isSimulatingAlcohol}
-            className="ml-auto"
-          >
-            <RotateCcw className="mr-1.5 h-4 w-4" />
-            Reset
-          </Button>
+            <Button size="sm" variant="ghost" onClick={reset} disabled={isVerifying || isTesting}>
+              <RotateCcw className="mr-1.5 h-4 w-4" />
+              Reset
+            </Button>
+          </CheckRow>
         </div>
       </CardContent>
     </Card>
@@ -197,24 +214,31 @@ function CheckRow({
   label,
   statusConfig,
   status,
+  spinIcon,
+  children,
 }: {
   Icon: typeof UserCheck;
   label: string;
   statusConfig: StatusConfig;
   status: string;
+  spinIcon?: boolean;
+  children?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-md border border-border/70 bg-background p-3">
+    <div className="flex flex-col gap-3 rounded-md border border-border/70 bg-background p-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-3">
         <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-muted ${statusConfig.tone}`}>
-          <Icon className="h-4 w-4" aria-hidden="true" />
+          <Icon className={`h-4 w-4 ${spinIcon ? "animate-spin" : ""}`} aria-hidden="true" />
         </div>
         <div>
           <div className="text-sm font-medium">{label}</div>
           <div className="text-[11px] capitalize text-muted-foreground">{status.replace("_", " ")}</div>
         </div>
       </div>
-      <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
+      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+        <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
+        {children}
+      </div>
     </div>
   );
 }
